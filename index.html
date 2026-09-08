@@ -1,1647 +1,675 @@
 <!doctype html>
 <html lang="uk">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Elvin</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Elvin</title>
 
-  <style>
-    :root {
-      color-scheme: dark;
-    }
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:#0d1015;
+  color:#f5f7fa;
+  font-family:Arial,sans-serif
+}
+header{
+  padding:20px 28px;
+  border-bottom:1px solid #29303a;
+  font-size:21px;
+  font-weight:800
+}
+main{
+  max-width:1100px;
+  margin:35px auto;
+  padding:0 18px
+}
+h1{font-size:38px;margin-bottom:8px}
+h2,h3{margin-bottom:12px}
+.card{
+  background:#171b21;
+  border:1px solid #29303a;
+  border-radius:17px;
+  padding:22px;
+  margin-top:20px
+}
+.drop{
+  display:block;
+  padding:44px 20px;
+  border:1px dashed #566171;
+  border-radius:14px;
+  text-align:center;
+  cursor:pointer;
+  background:#11151a
+}
+.drop.drag{
+  border-color:#fff;
+  background:#151a20
+}
+input[type=file]{display:none}
+.muted{color:#9da7b4}
 
-    * {
-      box-sizing: border-box;
-    }
+textarea,input[type=text]{
+  width:100%;
+  background:#0e1217;
+  color:#fff;
+  border:1px solid #303844;
+  border-radius:11px;
+  padding:13px
+}
+textarea{
+  min-height:100px;
+  resize:vertical
+}
 
-    body {
-      margin: 0;
-      background: #0d1015;
-      color: #f5f7fa;
-      font-family: Arial, sans-serif;
-    }
+button{
+  padding:11px 15px;
+  border:0;
+  border-radius:10px;
+  font-weight:700;
+  cursor:pointer
+}
+button:disabled{
+  opacity:.5;
+  cursor:not-allowed
+}
+.primary{
+  background:#fff;
+  color:#111;
+  margin-top:14px
+}
+.secondary{
+  background:#222933;
+  color:#fff;
+  border:1px solid #353e4a
+}
+.danger{
+  background:#351919;
+  color:#ffd6d6;
+  border:1px solid #653232
+}
+.hidden{display:none!important}
 
-    header {
-      padding: 20px 28px;
-      border-bottom: 1px solid #29303a;
-      font-size: 21px;
-      font-weight: 800;
-    }
+.photoTop{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  margin-top:18px;
+  flex-wrap:wrap
+}
+.photos{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+  margin-top:14px
+}
+.photoCard{
+  border:1px solid #303844;
+  border-radius:14px;
+  overflow:hidden;
+  background:#101419
+}
+.previewBox{
+  height:360px;
+  background:#080b0f;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden
+}
+.previewBox img{
+  max-width:90%;
+  max-height:90%;
+  object-fit:contain;
+  transition:transform .2s ease
+}
+.photoInfo{padding:12px}
+.photoName{
+  font-weight:700;
+  overflow-wrap:anywhere
+}
+.photoMeta{
+  color:#9da7b4;
+  font-size:12px;
+  margin-top:5px
+}
+.actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:10px
+}
 
-    main {
-      max-width: 1100px;
-      margin: 35px auto;
-      padding: 0 18px;
-    }
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px
+}
+.kv{
+  background:#101419;
+  border:1px solid #303844;
+  border-radius:12px;
+  padding:13px
+}
+.k{
+  color:#9da7b4;
+  font-size:12px;
+  margin-bottom:5px
+}
+.v{font-weight:700}
 
-    h1 {
-      font-size: 38px;
-      margin-bottom: 10px;
-    }
+.question{
+  background:#101419;
+  border:1px solid #303844;
+  border-radius:13px;
+  padding:16px;
+  margin-top:12px
+}
+.option{
+  width:100%;
+  text-align:left;
+  background:#222933;
+  color:#fff;
+  border:1px solid #353e4a;
+  margin-top:8px
+}
+.option.selected{
+  outline:2px solid #fff;
+  background:#303946
+}
 
-    .card {
-      background: #171b21;
-      border: 1px solid #29303a;
-      border-radius: 17px;
-      padding: 22px;
-      margin-top: 20px;
-    }
+.ok{
+  background:#17301f;
+  color:#c8f7d1;
+  padding:13px;
+  border-radius:11px
+}
+.error{
+  background:#421c1c;
+  color:#ffd4d4;
+  border:1px solid #703232;
+  padding:14px;
+  border-radius:11px;
+  margin-top:14px;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere
+}
+.loader{
+  display:inline-block;
+  width:15px;
+  height:15px;
+  border:2px solid #777;
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+  margin-right:7px;
+  vertical-align:-2px
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-    .drop {
-      display: block;
-      text-align: center;
-      padding: 42px 20px;
-      border: 1px dashed #566171;
-      border-radius: 14px;
-      cursor: pointer;
-      background: #11151a;
-    }
-
-    .drop.drag {
-      border-color: white;
-      background: #151a20;
-    }
-
-    input[type=file] {
-      display: none;
-    }
-
-    .muted {
-      color: #9da7b4;
-    }
-
-    textarea,
-    input[type=text] {
-      width: 100%;
-      background: #0e1217;
-      color: #fff;
-      border: 1px solid #303844;
-      border-radius: 11px;
-      padding: 13px;
-    }
-
-    textarea {
-      min-height: 100px;
-      resize: vertical;
-    }
-
-    button {
-      padding: 12px 16px;
-      border: 0;
-      border-radius: 10px;
-      font-weight: 750;
-      cursor: pointer;
-      margin: 12px 8px 0 0;
-    }
-
-    button:disabled {
-      opacity: .45;
-      cursor: not-allowed;
-    }
-
-    .primary {
-      background: #fff;
-      color: #111;
-    }
-
-    .secondary {
-      background: #222933;
-      color: #fff;
-      border: 1px solid #353e4a;
-    }
-
-    .danger {
-      background: #321a1a;
-      color: #ffd5d5;
-      border: 1px solid #5a2b2b;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .photo-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-top: 18px;
-      flex-wrap: wrap;
-    }
-
-    .photo-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-      margin-top: 12px;
-    }
-
-    .photo-card {
-      background: #101419;
-      border: 1px solid #303844;
-      border-radius: 14px;
-      overflow: hidden;
-    }
-
-    .photo-preview {
-      width: 100%;
-      height: 360px;
-      object-fit: contain;
-      display: block;
-      background: #080b0f;
-    }
-
-    .photo-info {
-      padding: 12px;
-    }
-
-    .photo-name {
-      font-weight: 700;
-      word-break: break-word;
-    }
-
-    .photo-meta {
-      color: #9da7b4;
-      font-size: 12px;
-      margin-top: 4px;
-    }
-
-    .question {
-      background: #101419;
-      border: 1px solid #303844;
-      border-radius: 13px;
-      padding: 16px;
-      margin-top: 12px;
-    }
-
-    .option {
-      display: block;
-      width: 100%;
-      text-align: left;
-      background: #222933;
-      color: white;
-      border: 1px solid #353e4a;
-      margin: 8px 0 0;
-    }
-
-    .option.selected {
-      outline: 2px solid #eee;
-      background: #303946;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 5px 9px;
-      border-radius: 999px;
-      background: #222933;
-      color: #d7dde5;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .badge.ok {
-      background: #17301f;
-      color: #bff3c9;
-    }
-
-    .badge.warn {
-      background: #3a2c16;
-      color: #ffd99a;
-    }
-
-    .status {
-      padding: 12px;
-      border-radius: 10px;
-      background: #17251c;
-      color: #d7ffe1;
-      margin-top: 14px;
-    }
-
-    .error {
-      padding: 12px;
-      border-radius: 10px;
-      background: #321a1a;
-      color: #ffd5d5;
-      margin-top: 14px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 14px;
-    }
-
-    .kv {
-      background: #101419;
-      border: 1px solid #303844;
-      border-radius: 12px;
-      padding: 13px;
-    }
-
-    .k {
-      color: #9da7b4;
-      font-size: 12px;
-      margin-bottom: 5px;
-    }
-
-    .v {
-      font-weight: 700;
-      word-break: break-word;
-    }
-
-    .loader {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid #777;
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-      vertical-align: -3px;
-      margin-right: 8px;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    @media(max-width:700px) {
-      .grid,
-      .photo-grid {
-        grid-template-columns: 1fr;
-      }
-
-      h1 {
-        font-size: 30px;
-      }
-
-      .photo-preview {
-        height: 300px;
-      }
-    }
-  </style>
+@media(max-width:700px){
+  .photos,.grid{grid-template-columns:1fr}
+  h1{font-size:30px}
+  .previewBox{height:300px}
+}
+</style>
 </head>
 
 <body>
 
-<header>
-  ELVIN · AI меблевий конструктор
-</header>
+<header>ELVIN · AI меблевий конструктор</header>
 
 <main>
 
-  <h1>Нове замовлення</h1>
+<h1>Нове замовлення</h1>
 
-  <p class="muted">
-    Завантажте всі фото одного замовлення.
-    Elvin проаналізує їх разом, покаже що зрозумів
-    і зупиниться там, де потрібне уточнення.
-  </p>
+<p class="muted">
+  Завантажте всі фото одного замовлення.
+  Elvin проаналізує їх разом і зупиниться там,
+  де потрібне уточнення.
+</p>
 
+<div class="card">
 
-  <div class="card">
+  <label id="drop" class="drop" for="file">
+    <b>Додати фото креслення / замовлення</b>
+    <br><br>
+    <span class="muted">
+      JPG · JPEG · PNG · можна вибрати кілька фото
+    </span>
+  </label>
 
-    <label class="drop" id="drop" for="file">
+  <input
+    id="file"
+    type="file"
+    accept="image/jpeg,image/png"
+    multiple
+  >
 
-      <b>Додати фото креслення / замовлення</b>
+  <div id="photosWrap" class="hidden">
 
-      <br><br>
+    <div class="photoTop">
 
-      <span class="muted">
-        JPG · JPEG · PNG · можна вибрати кілька фото
-      </span>
-
-    </label>
-
-
-    <input
-      id="file"
-      type="file"
-      accept="image/jpeg,image/png"
-      multiple
-    >
-
-
-    <div id="photosWrap" class="hidden">
-
-      <div class="photo-head">
-
-        <div>
-          <b id="photoCount"></b>
-          <span class="muted">в одному замовленні</span>
-        </div>
-
-        <button
-          class="secondary"
-          id="addMore"
-          type="button"
-        >
-          + Додати ще фото
-        </button>
-
+      <div>
+        <b id="photoCount"></b>
+        <span class="muted">в одному замовленні</span>
       </div>
 
-
-      <div
-        id="photoGrid"
-        class="photo-grid"
-      ></div>
+      <button id="addMore" class="secondary">
+        + Додати ще фото
+      </button>
 
     </div>
 
-
-    <h3>Примітка технолога</h3>
-
-    <textarea
-      id="note"
-      placeholder="Тільки додаткова інформація, якої може не бути на фото..."
-    ></textarea>
-
-
-    <button
-      class="primary"
-      id="analyse"
-    >
-      Аналізувати замовлення
-    </button>
-
-
-    <div
-      id="error"
-      class="error hidden"
-    ></div>
+    <div id="photos" class="photos"></div>
 
   </div>
 
+  <h3>Примітка технолога</h3>
+
+  <textarea
+    id="note"
+    placeholder="Тільки додаткова інформація, якої може не бути на фото..."
+  ></textarea>
+
+  <button id="analyse" class="primary">
+    Аналізувати замовлення
+  </button>
+
+  <div id="error" class="error hidden"></div>
+
+</div>
 
 
-  <div
-    class="card hidden"
-    id="result"
-  >
+<div id="result" class="card hidden">
 
-    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+  <h2>Що зрозумів Elvin</h2>
 
-      <h2 style="margin:0">
-        Що зрозумів Elvin
-      </h2>
+  <p id="summary" class="muted"></p>
 
-      <span
-        id="stateBadge"
-        class="badge"
-      ></span>
+  <div id="project" class="grid"></div>
 
-    </div>
-
-
-    <p
-      id="summary"
-      class="muted"
-    ></p>
-
-
-    <div
-      id="projectGrid"
-      class="grid"
-    ></div>
-
-
-    <div
-      id="warningsWrap"
-      class="hidden"
-    >
-
-      <h3>Попередження</h3>
-
-      <div id="warnings"></div>
-
-    </div>
-
+  <div id="warningsBlock" class="hidden">
+    <h3>Попередження</h3>
+    <div id="warnings"></div>
   </div>
 
+</div>
 
 
-  <div
-    class="card hidden"
-    id="clarifications"
-  >
+<div id="questionsBlock" class="card hidden">
 
-    <h2>
-      Потрібне уточнення
-    </h2>
+  <h2>Потрібне уточнення</h2>
 
-    <p class="muted">
-      Elvin не вгадує.
-      Оберіть відповідь тільки там,
-      де фото або правило не дають
-      однозначного рішення.
-    </p>
+  <p class="muted">
+    Elvin не вгадує критичні виробничі дані.
+  </p>
+
+  <div id="questions"></div>
+
+</div>
 
 
-    <div id="questions"></div>
+<div id="ready" class="card hidden">
 
+  <h2>Готово до наступного етапу</h2>
 
-    <button
-      class="primary"
-      id="continueBtn"
-    >
-      Застосувати відповіді →
-    </button>
-
+  <div class="ok">
+    Критичних питань не залишилося.
   </div>
 
-
-
-  <div
-    class="card hidden"
-    id="ready"
-  >
-
-    <h2>
-      Документ готовий до наступного етапу
-    </h2>
-
-    <div class="status">
-
-      Критичних питань не залишилося.
-      Наступним кроком підключимо
-      Wardrobe Engine та генерацію BAZIS.
-
-    </div>
-
-  </div>
+</div>
 
 </main>
 
 
 <script>
 
-const $ =
-  id => document.getElementById(id);
-
-
-let currentFiles = [];
-
-let currentAnalysis = null;
-
-let selectedAnswers = {};
-
-let previewUrls = [];
-
+const $ = id => document.getElementById(id);
 
 const MAX_FILES = 8;
 
-const ALLOWED_TYPES = [
-  "image/jpeg",
-  "image/png"
-];
+let photos = [];
+let analysis = null;
 
 
-const drop =
-  $("drop");
+function showError(message){
+  $("error").textContent = message;
+  $("error").classList.remove("hidden");
+}
 
 
+function clearError(){
+  $("error").textContent = "";
+  $("error").classList.add("hidden");
+}
 
-[
-  "dragenter",
-  "dragover"
-]
-.forEach(
-  eventName => {
 
-    drop.addEventListener(
-      eventName,
-      event => {
+function resetResult(){
+  analysis = null;
+  $("result").classList.add("hidden");
+  $("questionsBlock").classList.add("hidden");
+  $("ready").classList.add("hidden");
+}
 
-        event.preventDefault();
 
-        drop.classList.add("drag");
+function escapeHtml(value){
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    c => ({
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#039;"
+    }[c])
+  );
+}
 
-      }
+
+function addFiles(files){
+
+  clearError();
+
+  for(const file of files){
+
+    if(
+      file.type !== "image/jpeg" &&
+      file.type !== "image/png"
+    ){
+      showError(
+        "Elvin приймає тільки JPG, JPEG або PNG."
+      );
+      continue;
+    }
+
+    if(photos.length >= MAX_FILES){
+      showError(
+        `Максимум ${MAX_FILES} фото одного замовлення.`
+      );
+      break;
+    }
+
+    const duplicate = photos.some(
+      item =>
+        item.file.name === file.name &&
+        item.file.size === file.size &&
+        item.file.lastModified === file.lastModified
     );
 
-  }
-);
-
-
-
-[
-  "dragleave",
-  "drop"
-]
-.forEach(
-  eventName => {
-
-    drop.addEventListener(
-      eventName,
-      event => {
-
-        event.preventDefault();
-
-        drop.classList.remove("drag");
-
-      }
-    );
-
-  }
-);
-
-
-
-drop.addEventListener(
-  "drop",
-  event => {
-
-    const files =
-      Array.from(
-        event.dataTransfer.files || []
-      );
-
-    addFiles(files);
-
-  }
-);
-
-
-
-$("file")
-.addEventListener(
-  "change",
-  event => {
-
-    const files =
-      Array.from(
-        event.target.files || []
-      );
-
-    addFiles(files);
-
-    event.target.value = "";
-
-  }
-);
-
-
-
-$("addMore")
-.addEventListener(
-  "click",
-  () => {
-
-    $("file").click();
-
-  }
-);
-
-
-
-function addFiles(files) {
-
-  $("error")
-    .classList
-    .add("hidden");
-
-
-  const valid =
-    files.filter(
-      file =>
-        ALLOWED_TYPES.includes(
-          file.type
-        )
-    );
-
-
-  const rejected =
-    files.length -
-    valid.length;
-
-
-  for (
-    const file
-    of valid
-  ) {
-
-    const duplicate =
-      currentFiles.some(
-        existing =>
-          existing.name === file.name &&
-          existing.size === file.size &&
-          existing.lastModified ===
-          file.lastModified
-      );
-
-
-    if (
-      !duplicate &&
-      currentFiles.length <
-      MAX_FILES
-    ) {
-
-      currentFiles.push(file);
-
+    if(!duplicate){
+      photos.push({
+        file,
+        rotation:0,
+        preview:URL.createObjectURL(file)
+      });
     }
 
   }
 
-
-  if (rejected) {
-
-    showError(
-      "Elvin приймає тільки JPG, JPEG або PNG."
-    );
-
-  }
-
-
-  if (
-    currentFiles.length >=
-    MAX_FILES
-  ) {
-
-    $("addMore").disabled = true;
-
-  } else {
-
-    $("addMore").disabled = false;
-
-  }
-
-
   renderPhotos();
-
-  hideResults();
-
+  resetResult();
 }
 
 
+function removePhoto(index){
 
-function removeFile(index) {
-
-  currentFiles.splice(
-    index,
-    1
+  URL.revokeObjectURL(
+    photos[index].preview
   );
 
+  photos.splice(index,1);
 
   renderPhotos();
-
-  hideResults();
-
+  resetResult();
 }
 
 
+function rotatePhoto(index){
 
-function renderPhotos() {
+  photos[index].rotation =
+    (photos[index].rotation + 90) % 360;
 
-  previewUrls.forEach(
-    url =>
-      URL.revokeObjectURL(url)
-  );
-
-
-  previewUrls = [];
+  renderPhotos();
+  resetResult();
+}
 
 
-  if (
-    !currentFiles.length
-  ) {
+function renderPhotos(){
 
-    $("photosWrap")
-      .classList
-      .add("hidden");
+  if(!photos.length){
 
-
-    $("photoGrid")
-      .innerHTML = "";
-
+    $("photosWrap").classList.add("hidden");
+    $("photos").innerHTML = "";
 
     return;
-
   }
 
+  $("photosWrap").classList.remove("hidden");
 
-  $("photosWrap")
-    .classList
-    .remove("hidden");
+  $("photoCount").textContent =
+    `${photos.length} фото`;
 
+  $("photos").innerHTML =
+    photos.map((item,index) => {
 
-  $("photoCount")
-    .textContent =
-      `${currentFiles.length} фото`;
+      const mb =
+        (item.file.size / 1024 / 1024)
+        .toFixed(2);
 
+      return `
+        <div class="photoCard">
 
-  $("photoGrid")
-    .innerHTML =
-      currentFiles
-      .map(
-        (file,index) => {
-
-          const url =
-            URL.createObjectURL(file);
-
-
-          previewUrls.push(url);
-
-
-          const mb =
-            (
-              file.size /
-              1024 /
-              1024
-            )
-            .toFixed(2);
-
-
-          return `
-
-          <div class="photo-card">
+          <div class="previewBox">
 
             <img
-              class="photo-preview"
-              src="${url}"
+              src="${item.preview}"
+              style="transform:rotate(${item.rotation}deg)"
               alt="Фото ${index + 1}"
             >
 
+          </div>
 
-            <div class="photo-info">
+          <div class="photoInfo">
 
-              <div class="photo-name">
+            <div class="photoName">
+              Фото ${index + 1}: ${escapeHtml(item.file.name)}
+            </div>
 
-                Фото ${index + 1}:
-                ${escapeHtml(file.name)}
+            <div class="photoMeta">
+              ${mb} МБ · поворот ${item.rotation}°
+            </div>
 
-              </div>
+            <div class="actions">
 
-
-              <div class="photo-meta">
-
-                ${mb} МБ
-
-              </div>
-
+              <button
+                class="secondary"
+                onclick="rotatePhoto(${index})"
+              >
+                ↻ Повернути 90°
+              </button>
 
               <button
                 class="danger"
-                type="button"
-                data-remove="${index}"
+                onclick="removePhoto(${index})"
               >
-
                 Видалити
-
               </button>
 
             </div>
-
-          </div>
-
-          `;
-
-        }
-      )
-      .join("");
-
-
-  document
-  .querySelectorAll(
-    "[data-remove]"
-  )
-  .forEach(
-    button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          removeFile(
-            Number(
-              button.dataset.remove
-            )
-          );
-
-        }
-      );
-
-    }
-  );
-
-}
-
-
-
-function hideResults() {
-
-  $("result")
-    .classList
-    .add("hidden");
-
-
-  $("clarifications")
-    .classList
-    .add("hidden");
-
-
-  $("ready")
-    .classList
-    .add("hidden");
-
-
-  selectedAnswers = {};
-
-  currentAnalysis = null;
-
-}
-
-
-
-function showError(message) {
-
-  $("error")
-    .textContent =
-      message;
-
-
-  $("error")
-    .classList
-    .remove("hidden");
-
-}
-
-
-
-function setBusy(busy) {
-
-  $("analyse")
-    .disabled =
-      busy;
-
-
-  $("continueBtn")
-    .disabled =
-      busy;
-
-
-  $("addMore")
-    .disabled =
-      busy;
-
-
-  $("analyse")
-    .innerHTML =
-      busy
-
-      ?
-
-      '<span class="loader"></span>Elvin аналізує…'
-
-      :
-
-      'Аналізувати замовлення';
-
-}
-
-
-
-function imageToDataURL(file) {
-
-  return new Promise(
-    (resolve,reject) => {
-
-      const reader =
-        new FileReader();
-
-
-      reader.onload =
-        () => {
-
-          const image =
-            new Image();
-
-
-          image.onload =
-            () => {
-
-              const MAX_SIDE =
-                2200;
-
-
-              const scale =
-                Math.min(
-
-                  1,
-
-                  MAX_SIDE /
-
-                  Math.max(
-                    image.naturalWidth,
-                    image.naturalHeight
-                  )
-
-                );
-
-
-              const width =
-                Math.max(
-                  1,
-                  Math.round(
-                    image.naturalWidth *
-                    scale
-                  )
-                );
-
-
-              const height =
-                Math.max(
-                  1,
-                  Math.round(
-                    image.naturalHeight *
-                    scale
-                  )
-                );
-
-
-              const canvas =
-                document.createElement(
-                  "canvas"
-                );
-
-
-              canvas.width =
-                width;
-
-
-              canvas.height =
-                height;
-
-
-              const context =
-                canvas.getContext("2d");
-
-
-              context.fillStyle =
-                "#ffffff";
-
-
-              context.fillRect(
-                0,
-                0,
-                width,
-                height
-              );
-
-
-              context.drawImage(
-                image,
-                0,
-                0,
-                width,
-                height
-              );
-
-
-              resolve(
-                canvas.toDataURL(
-                  "image/jpeg",
-                  0.86
-                )
-              );
-
-            };
-
-
-          image.onerror =
-            () => {
-
-              reject(
-                new Error(
-                  `Не вдалося прочитати ${file.name}`
-                )
-              );
-
-            };
-
-
-          image.src =
-            reader.result;
-
-        };
-
-
-      reader.onerror =
-        () => {
-
-          reject(
-            new Error(
-              `Не вдалося прочитати ${file.name}`
-            )
-          );
-
-        };
-
-
-      reader.readAsDataURL(file);
-
-    }
-  );
-
-}
-
-
-
-async function prepareImages() {
-
-  const images = [];
-
-
-  for (
-    let i = 0;
-    i < currentFiles.length;
-    i++
-  ) {
-
-    const file =
-      currentFiles[i];
-
-
-    const dataUrl =
-      await imageToDataURL(file);
-
-
-    images.push(
-      {
-
-        fileName:
-          file.name,
-
-        mimeType:
-          "image/jpeg",
-
-        dataUrl
-
-      }
-    );
-
-  }
-
-
-  const totalChars =
-    images.reduce(
-
-      (sum,image) =>
-        sum +
-        image.dataUrl.length,
-
-      0
-
-    );
-
-
-  if (
-    totalChars >
-    5_500_000
-  ) {
-
-    throw new Error(
-
-      "Фото разом завеликі. " +
-      "Видаліть зайве фото або зробіть фото трохи меншого розміру."
-
-    );
-
-  }
-
-
-  return images;
-
-}
-
-
-
-function escapeHtml(value) {
-
-  return String(
-    value ?? ""
-  )
-  .replace(
-    /[&<>"']/g,
-    char =>
-      ({
-
-        "&":"&amp;",
-
-        "<":"&lt;",
-
-        ">":"&gt;",
-
-        '"':"&quot;",
-
-        "'":"&#039;"
-
-      }[char])
-  );
-
-}
-
-
-
-function projectValue(value) {
-
-  if (
-    value === null ||
-    value === undefined ||
-    value === "" ||
-    value === 0
-  ) {
-
-    return "—";
-
-  }
-
-
-  return escapeHtml(value);
-
-}
-
-
-
-function renderAnalysis(data) {
-
-  currentAnalysis =
-    data;
-
-
-  $("result")
-    .classList
-    .remove("hidden");
-
-
-  $("summary")
-    .textContent =
-      data.summary || "";
-
-
-  const project =
-    data.project || {};
-
-
-  const rows = [
-
-    [
-      "Назва замовлення",
-      project.name
-    ],
-
-    [
-      "Тип виробу",
-      project.furniture_type
-    ],
-
-    [
-      "Ширина",
-      project.width_mm
-        ?
-        project.width_mm + " мм"
-        :
-        ""
-    ],
-
-    [
-      "Висота",
-      project.height_mm
-        ?
-        project.height_mm + " мм"
-        :
-        ""
-    ],
-
-    [
-      "Глибина",
-      project.depth_mm
-        ?
-        project.depth_mm + " мм"
-        :
-        ""
-    ],
-
-    [
-      "Секції",
-      project.sections_description
-    ],
-
-    [
-      "Матеріал",
-      project.material
-    ],
-
-    [
-      "Задня стінка",
-      project.back_panel
-    ]
-
-  ];
-
-
-  $("projectGrid")
-    .innerHTML =
-
-      rows.map(
-
-        ([key,value]) => `
-
-        <div class="kv">
-
-          <div class="k">
-
-            ${escapeHtml(key)}
-
-          </div>
-
-          <div class="v">
-
-            ${projectValue(value)}
 
           </div>
 
         </div>
+      `;
 
-        `
-
-      )
-      .join("");
-
-
-  const warnings =
-    data.warnings || [];
-
-
-  if (
-    warnings.length
-  ) {
-
-    $("warningsWrap")
-      .classList
-      .remove("hidden");
-
-
-    $("warnings")
-      .innerHTML =
-
-        warnings.map(
-
-          warning => `
-
-          <div class="question">
-
-            ${escapeHtml(warning)}
-
-          </div>
-
-          `
-
-        )
-        .join("");
-
-  } else {
-
-    $("warningsWrap")
-      .classList
-      .add("hidden");
-
-  }
-
-
-  const questions =
-    data.questions || [];
-
-
-  const ready =
-    data.status === "ready" &&
-    questions.length === 0;
-
-
-  $("stateBadge")
-    .className =
-      "badge " +
-      (
-        ready
-        ?
-        "ok"
-        :
-        "warn"
-      );
-
-
-  $("stateBadge")
-    .textContent =
-      ready
-      ?
-      "Готово"
-      :
-      `Потрібно уточнень: ${questions.length}`;
-
-
-  if (
-    questions.length
-  ) {
-
-    $("clarifications")
-      .classList
-      .remove("hidden");
-
-
-    $("ready")
-      .classList
-      .add("hidden");
-
-
-    selectedAnswers = {};
-
-
-    $("questions")
-      .innerHTML =
-
-        questions.map(
-
-          question => {
-
-            const options =
-
-              (question.options || [])
-              .map(
-
-                option => {
-
-                  const recommended =
-
-                    option.recommended
-
-                    ?
-
-                    " · рекомендовано Elvin"
-
-                    :
-
-                    "";
-
-
-                  return `
-
-                  <button
-                    class="option"
-                    data-q="${escapeHtml(question.id)}"
-                    data-oid="${escapeHtml(option.id)}"
-                    data-label="${escapeHtml(option.label)}"
-                  >
-
-                    ${escapeHtml(option.label)}
-
-                    ${recommended}
-
-                  </button>
-
-                  `;
-
-                }
-              )
-              .join("");
-
-
-            const other =
-
-              question.allow_other
-
-              ?
-
-              `
-
-              <button
-                class="option otherBtn"
-                data-q="${escapeHtml(question.id)}"
-                data-oid="__other__"
-                data-label="Інше значення"
-              >
-
-                Інше значення
-
-              </button>
-
-
-              <input
-                class="hidden otherInput"
-                data-other-for="${escapeHtml(question.id)}"
-                type="text"
-                placeholder="Введіть своє значення або пояснення"
-              >
-
-              `
-
-              :
-
-              "";
-
-
-            return `
-
-            <div class="question">
-
-              <b>
-
-                ${escapeHtml(question.title)}
-
-              </b>
-
-
-              <p>
-
-                ${escapeHtml(question.question)}
-
-              </p>
-
-
-              ${options}
-
-              ${other}
-
-            </div>
-
-            `;
-
-          }
-
-        )
-        .join("");
-
-
-    document
-    .querySelectorAll(".option")
-    .forEach(
-
-      button => {
-
-        button.addEventListener(
-
-          "click",
-
-          () => {
-
-            const questionId =
-              button.dataset.q;
-
-
-            document
-            .querySelectorAll(
-              `.option[data-q="${CSS.escape(questionId)}"]`
-            )
-            .forEach(
-
-              element =>
-                element
-                  .classList
-                  .remove("selected")
-
-            );
-
-
-            button
-              .classList
-              .add("selected");
-
-
-            const otherInput =
-              document.querySelector(
-                `[data-other-for="${CSS.escape(questionId)}"]`
-              );
-
-
-            if (
-              button.dataset.oid ===
-              "__other__"
-            ) {
-
-              if (otherInput) {
-
-                otherInput
-                  .classList
-                  .remove("hidden");
-
-
-                otherInput.focus();
-
-
-                selectedAnswers[
-                  questionId
-                ] =
-                {
-
-                  option_id:
-                    "__other__",
-
-                  value:
-                    otherInput.value
-
-                };
-
-
-                otherInput.oninput =
-                  () => {
-
-                    selectedAnswers[
-                      questionId
-                    ] =
-                    {
-
-                      option_id:
-                        "__other__",
-
-                      value:
-                        otherInput.value
-
-                    };
-
-                  };
-
-              }
-
-            } else {
-
-              if (otherInput) {
-
-                otherInput
-                  .classList
-                  .add("hidden");
-
-              }
-
-
-              selectedAnswers[
-                questionId
-              ] =
-              {
-
-                option_id:
-                  button.dataset.oid,
-
-                value:
-                  button.dataset.label
-
-              };
-
-            }
-
-          }
-
-        );
-
-      }
-
-    );
-
-  } else {
-
-    $("clarifications")
-      .classList
-      .add("hidden");
-
-
-    $("ready")
-      .classList
-      .toggle(
-        "hidden",
-        !ready
-      );
-
-  }
-
-
-  $("result")
-    .scrollIntoView(
-      {
-        behavior:
-          "smooth",
-
-        block:
-          "start"
-      }
-    );
-
+    }).join("");
 }
 
 
+function fileToImage(file){
 
-async function callAnalyze(
-  answers = null
-) {
+  return new Promise((resolve,reject) => {
 
-  if (
-    !currentFiles.length
-  ) {
+    const reader = new FileReader();
 
+    reader.onload = () => {
+
+      const img = new Image();
+
+      img.onload = () => resolve(img);
+
+      img.onerror = () =>
+        reject(
+          new Error(
+            `Не вдалося прочитати ${file.name}`
+          )
+        );
+
+      img.src = reader.result;
+    };
+
+    reader.onerror = () =>
+      reject(
+        new Error(
+          `Не вдалося прочитати ${file.name}`
+        )
+      );
+
+    reader.readAsDataURL(file);
+  });
+}
+
+
+async function preparePhoto(item){
+
+  const img =
+    await fileToImage(item.file);
+
+  let width =
+    img.naturalWidth;
+
+  let height =
+    img.naturalHeight;
+
+  const MAX_SIDE = 2000;
+
+  const scale =
+    Math.min(
+      1,
+      MAX_SIDE / Math.max(width,height)
+    );
+
+  width =
+    Math.round(width * scale);
+
+  height =
+    Math.round(height * scale);
+
+
+  const rotated =
+    item.rotation === 90 ||
+    item.rotation === 270;
+
+
+  const canvas =
+    document.createElement("canvas");
+
+
+  canvas.width =
+    rotated ? height : width;
+
+  canvas.height =
+    rotated ? width : height;
+
+
+  const ctx =
+    canvas.getContext("2d");
+
+
+  ctx.fillStyle = "#fff";
+
+  ctx.fillRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+
+  ctx.translate(
+    canvas.width / 2,
+    canvas.height / 2
+  );
+
+
+  ctx.rotate(
+    item.rotation *
+    Math.PI /
+    180
+  );
+
+
+  ctx.drawImage(
+    img,
+    -width / 2,
+    -height / 2,
+    width,
+    height
+  );
+
+
+  return canvas.toDataURL(
+    "image/jpeg",
+    0.82
+  );
+}
+
+
+async function prepareImages(){
+
+  const images = [];
+
+  for(let i=0;i<photos.length;i++){
+
+    const dataUrl =
+      await preparePhoto(
+        photos[i]
+      );
+
+    images.push({
+      fileName:
+        photos[i].file.name,
+
+      mimeType:
+        "image/jpeg",
+
+      dataUrl
+    });
+  }
+
+  return images;
+}
+
+
+function setBusy(busy){
+
+  $("analyse").disabled = busy;
+
+  $("analyse").innerHTML =
+    busy
+      ? '<span class="loader"></span>Elvin аналізує…'
+      : 'Аналізувати замовлення';
+}
+
+
+async function callAnalyze(){
+
+  if(!photos.length){
     throw new Error(
       "Спочатку додайте хоча б одне фото."
     );
-
   }
 
 
@@ -1649,206 +677,348 @@ async function callAnalyze(
     await prepareImages();
 
 
-  const response =
-    await fetch(
+  let response;
 
-      "/.netlify/functions/analyze",
 
-      {
+  try{
 
-        method:
-          "POST",
+    response =
+      await fetch(
+        "/.netlify/functions/analyze",
+        {
+          method:"POST",
 
-        headers:
-          {
+          headers:{
             "Content-Type":
               "application/json"
           },
 
-        body:
-          JSON.stringify(
-            {
-
-              images,
-
-              note:
-                $("note")
-                .value
-                .trim(),
-
-              answers,
-
-              previousAnalysis:
-                answers
-                ?
-                currentAnalysis
-                :
-                null
-
-            }
-          )
-
-      }
-
-    );
-
-
-  const payload =
-    await response
-      .json()
-      .catch(
-        () => ({})
+          body:JSON.stringify({
+            images,
+            note:$("note").value.trim()
+          })
+        }
       );
 
-
-  if (
-    !response.ok
-  ) {
+  }catch(error){
 
     throw new Error(
-
-      payload.error ||
-      "Помилка аналізу."
-
+      "Не вдалося підключитися до сервера Netlify.\n" +
+      error.message
     );
-
   }
 
 
-  return payload;
+  const raw =
+    await response.text();
 
+
+  let data = null;
+
+
+  try{
+
+    data =
+      raw
+        ? JSON.parse(raw)
+        : null;
+
+  }catch(_){}
+
+
+  if(!response.ok){
+
+    const message =
+      data?.error ||
+      data?.message ||
+      raw ||
+      "Сервер не повернув опис помилки.";
+
+    throw new Error(
+      `HTTP ${response.status}\n${message}`
+    );
+  }
+
+
+  if(!data){
+
+    throw new Error(
+      "Сервер повернув неочікувану відповідь:\n" +
+      raw
+    );
+  }
+
+
+  return data;
 }
 
 
+function showAnalysis(data){
 
-$("analyse")
-.addEventListener(
-  "click",
-  async () => {
+  analysis = data;
 
-    $("error")
+  $("result").classList.remove("hidden");
+
+  $("summary").textContent =
+    data.summary || "";
+
+
+  const p =
+    data.project || {};
+
+
+  const rows = [
+
+    ["Назва замовлення",p.name],
+
+    ["Тип виробу",p.furniture_type],
+
+    [
+      "Ширина",
+      p.width_mm
+        ? p.width_mm + " мм"
+        : "—"
+    ],
+
+    [
+      "Висота",
+      p.height_mm
+        ? p.height_mm + " мм"
+        : "—"
+    ],
+
+    [
+      "Глибина",
+      p.depth_mm
+        ? p.depth_mm + " мм"
+        : "—"
+    ],
+
+    [
+      "Секції",
+      p.sections_description
+    ],
+
+    [
+      "Матеріал",
+      p.material
+    ],
+
+    [
+      "Задня стінка",
+      p.back_panel
+    ]
+
+  ];
+
+
+  $("project").innerHTML =
+    rows.map(([key,value]) => `
+      <div class="kv">
+        <div class="k">
+          ${escapeHtml(key)}
+        </div>
+        <div class="v">
+          ${escapeHtml(value || "—")}
+        </div>
+      </div>
+    `).join("");
+
+
+  const warnings =
+    data.warnings || [];
+
+
+  if(warnings.length){
+
+    $("warningsBlock")
+      .classList
+      .remove("hidden");
+
+    $("warnings")
+      .innerHTML =
+      warnings.map(
+        item =>
+          `<div class="question">${escapeHtml(item)}</div>`
+      ).join("");
+
+  }else{
+
+    $("warningsBlock")
+      .classList
+      .add("hidden");
+  }
+
+
+  const questions =
+    data.questions || [];
+
+
+  if(questions.length){
+
+    $("questionsBlock")
+      .classList
+      .remove("hidden");
+
+    $("ready")
       .classList
       .add("hidden");
 
 
-    setBusy(true);
+    $("questions")
+      .innerHTML =
+      questions.map(question => {
+
+        const options =
+          (question.options || [])
+          .map(option => `
+
+            <button
+              class="option"
+              type="button"
+            >
+
+              ${escapeHtml(option.label)}
+
+              ${
+                option.recommended
+                  ? " · рекомендовано Elvin"
+                  : ""
+              }
+
+            </button>
+
+          `)
+          .join("");
 
 
-    try {
+        return `
 
-      const result =
-        await callAnalyze(null);
+          <div class="question">
+
+            <b>
+              ${escapeHtml(question.title)}
+            </b>
+
+            <p>
+              ${escapeHtml(question.question)}
+            </p>
+
+            ${options}
+
+          </div>
+
+        `;
+
+      }).join("");
 
 
-      renderAnalysis(result);
+  }else{
 
-    } catch (error) {
+    $("questionsBlock")
+      .classList
+      .add("hidden");
 
-      showError(
-        error.message
-      );
 
-    } finally {
+    if(data.status === "ready"){
 
-      setBusy(false);
+      $("ready")
+        .classList
+        .remove("hidden");
 
+    }else{
+
+      $("ready")
+        .classList
+        .add("hidden");
     }
+  }
+}
 
+
+$("file").addEventListener(
+  "change",
+  event => {
+
+    addFiles(
+      Array.from(
+        event.target.files || []
+      )
+    );
+
+    event.target.value = "";
   }
 );
 
 
+$("addMore").addEventListener(
+  "click",
+  () => $("file").click()
+);
 
-$("continueBtn")
-.addEventListener(
+
+const drop = $("drop");
+
+
+drop.addEventListener(
+  "dragover",
+  event => {
+    event.preventDefault();
+    drop.classList.add("drag");
+  }
+);
+
+
+drop.addEventListener(
+  "dragleave",
+  () =>
+    drop.classList.remove("drag")
+);
+
+
+drop.addEventListener(
+  "drop",
+  event => {
+
+    event.preventDefault();
+
+    drop.classList.remove("drag");
+
+    addFiles(
+      Array.from(
+        event.dataTransfer.files || []
+      )
+    );
+  }
+);
+
+
+$("analyse").addEventListener(
   "click",
   async () => {
 
-    const questions =
-      (
-        currentAnalysis &&
-        currentAnalysis.questions
-      )
-      ||
-      [];
-
-
-    const missing =
-      questions.filter(
-
-        question =>
-
-          !selectedAnswers[
-            question.id
-          ]
-
-          ||
-
-          (
-            selectedAnswers[
-              question.id
-            ]
-            .option_id ===
-            "__other__"
-
-            &&
-
-            !selectedAnswers[
-              question.id
-            ]
-            .value
-            .trim()
-          )
-
-      );
-
-
-    if (
-      missing.length
-    ) {
-
-      showError(
-
-        "Дайте відповідь на всі критичні питання перед продовженням."
-
-      );
-
-
-      return;
-
-    }
-
-
-    $("error")
-      .classList
-      .add("hidden");
-
-
+    clearError();
+    resetResult();
     setBusy(true);
 
-
-    try {
+    try{
 
       const result =
-        await callAnalyze(
-          selectedAnswers
-        );
+        await callAnalyze();
 
+      showAnalysis(result);
 
-      renderAnalysis(result);
-
-    } catch (error) {
+    }catch(error){
 
       showError(
-        error.message
+        error.message ||
+        String(error)
       );
 
-    } finally {
+    }finally{
 
       setBusy(false);
-
     }
-
   }
 );
 
