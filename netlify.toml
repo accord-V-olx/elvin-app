@@ -1,6 +1,741 @@
-[build]
-  publish = "."
-  functions = "netlify/functions"
+const MAX_IMAGES = 8;
+const MAX_TOTAL_CHARS = 5_500_000;
 
-[functions]
-  node_bundler = "esbuild"
+
+const schema = {
+
+  type:"object",
+
+  properties:{
+
+    status:{
+      type:"string",
+      enum:[
+        "needs_clarification",
+        "ready"
+      ]
+    },
+
+    summary:{
+      type:"string"
+    },
+
+    project:{
+
+      type:"object",
+
+      properties:{
+
+        name:{
+          type:"string"
+        },
+
+        furniture_type:{
+          type:"string"
+        },
+
+        width_mm:{
+          type:"number"
+        },
+
+        height_mm:{
+          type:"number"
+        },
+
+        depth_mm:{
+          type:"number"
+        },
+
+        sections_description:{
+          type:"string"
+        },
+
+        material:{
+          type:"string"
+        },
+
+        back_panel:{
+          type:"string"
+        }
+      },
+
+      required:[
+        "name",
+        "furniture_type",
+        "width_mm",
+        "height_mm",
+        "depth_mm",
+        "sections_description",
+        "material",
+        "back_panel"
+      ],
+
+      additionalProperties:false
+    },
+
+
+    warnings:{
+
+      type:"array",
+
+      items:{
+        type:"string"
+      }
+    },
+
+
+    questions:{
+
+      type:"array",
+
+      items:{
+
+        type:"object",
+
+        properties:{
+
+          id:{
+            type:"string"
+          },
+
+          title:{
+            type:"string"
+          },
+
+          question:{
+            type:"string"
+          },
+
+          allow_other:{
+            type:"boolean"
+          },
+
+          options:{
+
+            type:"array",
+
+            items:{
+
+              type:"object",
+
+              properties:{
+
+                id:{
+                  type:"string"
+                },
+
+                label:{
+                  type:"string"
+                },
+
+                recommended:{
+                  type:"boolean"
+                }
+              },
+
+              required:[
+                "id",
+                "label",
+                "recommended"
+              ],
+
+              additionalProperties:false
+            }
+          }
+        },
+
+        required:[
+          "id",
+          "title",
+          "question",
+          "allow_other",
+          "options"
+        ],
+
+        additionalProperties:false
+      }
+    }
+  },
+
+  required:[
+    "status",
+    "summary",
+    "project",
+    "warnings",
+    "questions"
+  ],
+
+  additionalProperties:false
+};
+
+
+function jsonResponse(
+  data,
+  status = 200
+){
+
+  return new Response(
+
+    JSON.stringify(data),
+
+    {
+      status,
+
+      headers:{
+        "content-type":
+          "application/json; charset=utf-8",
+
+        "cache-control":
+          "no-store"
+      }
+    }
+  );
+}
+
+
+function getOutputText(response){
+
+  const parts = [];
+
+  for(
+    const item
+    of response.output || []
+  ){
+
+    if(
+      item.type !== "message"
+    ){
+      continue;
+    }
+
+    for(
+      const content
+      of item.content || []
+    ){
+
+      if(
+        content.type === "output_text" &&
+        typeof content.text === "string"
+      ){
+
+        parts.push(
+          content.text
+        );
+      }
+    }
+  }
+
+  return parts.join("");
+}
+
+
+function elvinInstructions(){
+
+  return `
+Ти — Elvin, AI-помічник технолога меблевої фабрики.
+
+На цьому етапі працюєш тільки з шафами.
+
+Ти отримуєш одне або декілька фото ОДНОГО замовлення.
+
+Усі фото аналізуй РАЗОМ як один комплект документів.
+
+Фото можуть містити:
+- фасади;
+- внутрішнє наповнення;
+- габарити;
+- матеріали;
+- рукописні примітки;
+- додаткові аркуші одного замовлення.
+
+
+ГОЛОВНЕ ПРАВИЛО:
+
+STOP → ASK.
+
+
+Не вгадуй критичні виробничі дані.
+
+Якщо дані:
+- не видно;
+- напис нерозбірливий;
+- є суперечність;
+- є кілька можливих значень;
+- потрібний інший аркуш;
+
+постав конкретне питання.
+
+
+НАЗВА ЗАМОВЛЕННЯ:
+
+Назва є обов'язковою.
+
+Використовуй назву ТОЧНО як на документі.
+
+Не придумуй.
+Не перейменовуй.
+Не скорочуй.
+
+Якщо назву не можна впевнено прочитати —
+status = needs_clarification.
+
+
+КІЛЬКА ФОТО:
+
+Порівнюй інформацію між усіма фото.
+
+Якщо одне фото показує фасади,
+а інше внутрішнє наповнення —
+це один виріб.
+
+Якщо фото явно належать різним замовленням —
+постав питання.
+
+
+РОЗМІРИ:
+
+Перевіряй:
+- загальну ширину;
+- висоту;
+- глибину;
+- ширини секцій;
+- внутрішні висоти;
+- розмірні лінії;
+- підписи.
+
+Не визначай розмір лише за пропорціями картинки.
+
+
+СУПЕРЕЧНОСТІ:
+
+Якщо на розмірній лінії 450 мм,
+а у підписі 400 мм —
+
+не вибирай сам.
+
+Запитай технолога.
+
+
+МАТЕРІАЛ:
+
+Записуй тільки те,
+що реально прочитано на фото.
+
+Не вигадуй назву або код матеріалу.
+
+
+ЗАДНЯ СТІНКА:
+
+Якщо написано:
+ДВП,
+ХДФ,
+HDF,
+без задньої стінки
+тощо —
+
+запиши це.
+
+Якщо немає даних —
+не вигадуй.
+
+
+ФАСАДИ:
+
+Якщо фасади передбачені,
+але потрібної інформації немає,
+не став ready.
+
+
+STATUS READY:
+
+ready можна використовувати тільки коли
+критичних питань для наступного етапу
+побудови шафи немає.
+
+Якщо questions не порожній —
+status має бути needs_clarification.
+
+
+НЕ ВИГАДУЙ:
+
+Не пиши:
+"технолог підтвердив"
+"за підтвердженням технолога"
+"узгоджено"
+
+якщо технолог нічого не підтверджував.
+
+
+ВАРІАНТИ ВІДПОВІДІ:
+
+Не пиши:
+"Варіант 1"
+"Варіант 2"
+
+Варіант повинен містити конкретне значення.
+
+Наприклад:
+"450 мм — як на розмірній лінії"
+"400 мм — як у підписі"
+
+
+Якщо значення невідоме:
+
+для тексту використовуй ""
+для числа використовуй 0.
+
+Не генеруй BAZIS на цьому етапі.
+
+Відповідай українською.
+`;
+}
+
+
+export default async request => {
+
+  if(
+    request.method !== "POST"
+  ){
+
+    return jsonResponse(
+      {
+        error:"Method not allowed"
+      },
+      405
+    );
+  }
+
+
+  try{
+
+    const apiKey =
+      Netlify.env.get(
+        "OPENAI_API_KEY"
+      );
+
+
+    const model =
+      Netlify.env.get(
+        "OPENAI_MODEL"
+      )
+      ||
+      "gpt-5.6-sol";
+
+
+    if(!apiKey){
+
+      return jsonResponse(
+        {
+          error:
+            "OPENAI_API_KEY не знайдено в Netlify Environment Variables."
+        },
+        500
+      );
+    }
+
+
+    const body =
+      await request.json();
+
+
+    const images =
+      body?.images;
+
+
+    const note =
+      body?.note || "";
+
+
+    if(
+      !Array.isArray(images) ||
+      images.length === 0
+    ){
+
+      return jsonResponse(
+        {
+          error:
+            "Сервер не отримав жодного фото."
+        },
+        400
+      );
+    }
+
+
+    if(
+      images.length >
+      MAX_IMAGES
+    ){
+
+      return jsonResponse(
+        {
+          error:
+            `Максимум ${MAX_IMAGES} фото.`
+        },
+        400
+      );
+    }
+
+
+    let totalChars = 0;
+
+
+    for(
+      const image
+      of images
+    ){
+
+      if(
+        !image?.dataUrl ||
+        !image?.fileName
+      ){
+
+        return jsonResponse(
+          {
+            error:
+              "Одне з фото передано некоректно."
+          },
+          400
+        );
+      }
+
+
+      totalChars +=
+        image.dataUrl.length;
+    }
+
+
+    if(
+      totalChars >
+      MAX_TOTAL_CHARS
+    ){
+
+      return jsonResponse(
+        {
+          error:
+            "Фото разом завеликі. Спробуйте менше фото або менший розмір."
+        },
+        413
+      );
+    }
+
+
+    const userContent = [];
+
+
+    images.forEach(
+      (image,index) => {
+
+        userContent.push(
+          {
+            type:"input_text",
+
+            text:
+              `Фото ${index + 1}: ${image.fileName}`
+          }
+        );
+
+
+        userContent.push(
+          {
+            type:"input_image",
+
+            image_url:
+              image.dataUrl,
+
+            detail:"high"
+          }
+        );
+      }
+    );
+
+
+    let task =
+      `Проаналізуй ${images.length} фото як один комплект одного замовлення шафи.`;
+
+
+    if(note){
+
+      task +=
+        `\n\nПримітка технолога:\n${note}`;
+    }
+
+
+    userContent.push(
+      {
+        type:"input_text",
+        text:task
+      }
+    );
+
+
+    const openaiResponse =
+      await fetch(
+        "https://api.openai.com/v1/responses",
+        {
+          method:"POST",
+
+          headers:{
+            "Authorization":
+              `Bearer ${apiKey}`,
+
+            "Content-Type":
+              "application/json"
+          },
+
+          body:JSON.stringify({
+
+            model,
+
+            reasoning:{
+              effort:"medium"
+            },
+
+            input:[
+
+              {
+                role:"system",
+
+                content:[
+                  {
+                    type:"input_text",
+                    text:elvinInstructions()
+                  }
+                ]
+              },
+
+              {
+                role:"user",
+                content:userContent
+              }
+            ],
+
+            text:{
+
+              format:{
+
+                type:"json_schema",
+
+                name:
+                  "elvin_wardrobe_analysis",
+
+                strict:true,
+
+                schema
+              }
+            }
+          })
+        }
+      );
+
+
+    const rawText =
+      await openaiResponse.text();
+
+
+    let raw;
+
+
+    try{
+
+      raw =
+        JSON.parse(rawText);
+
+    }catch(_){
+
+      return jsonResponse(
+        {
+          error:
+            `OpenAI повернув не JSON:\n${rawText}`
+        },
+        502
+      );
+    }
+
+
+    if(
+      !openaiResponse.ok
+    ){
+
+      console.error(
+        "OpenAI API error:",
+        raw
+      );
+
+
+      return jsonResponse(
+        {
+          error:
+            `OpenAI API: ${raw?.error?.message || rawText}`
+        },
+        502
+      );
+    }
+
+
+    const text =
+      getOutputText(raw);
+
+
+    if(!text){
+
+      console.error(
+        "No output_text:",
+        raw
+      );
+
+
+      return jsonResponse(
+        {
+          error:
+            "OpenAI відповів, але Elvin не отримав output_text."
+        },
+        502
+      );
+    }
+
+
+    let result;
+
+
+    try{
+
+      result =
+        JSON.parse(text);
+
+    }catch(_){
+
+      return jsonResponse(
+        {
+          error:
+            `Не вдалося прочитати JSON Elvin:\n${text}`
+        },
+        502
+      );
+    }
+
+
+    return jsonResponse(
+      result,
+      200
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "ELVIN FUNCTION ERROR:",
+      error
+    );
+
+
+    return jsonResponse(
+      {
+        error:
+          error?.stack ||
+          error?.message ||
+          String(error)
+      },
+      500
+    );
+  }
+};
