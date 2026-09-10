@@ -7,25 +7,11 @@
 
 <style>
 *{box-sizing:border-box}
-body{
-  margin:0;
-  background:#0d1015;
-  color:#f5f7fa;
-  font-family:Arial,sans-serif
-}
-header{
-  padding:20px 28px;
-  border-bottom:1px solid #29303a;
-  font-size:21px;
-  font-weight:800
-}
-main{
-  max-width:1100px;
-  margin:35px auto;
-  padding:0 18px
-}
+body{margin:0;background:#0d1015;color:#f5f7fa;font-family:Arial,sans-serif}
+header{padding:20px 28px;border-bottom:1px solid #29303a;font-size:21px;font-weight:800}
+main{max-width:1100px;margin:35px auto;padding:0 18px}
 h1{font-size:38px;margin-bottom:8px}
-h2,h3{margin-bottom:12px}
+
 .card{
   background:#171b21;
   border:1px solid #29303a;
@@ -33,6 +19,7 @@ h2,h3{margin-bottom:12px}
   padding:22px;
   margin-top:20px
 }
+
 .drop{
   display:block;
   padding:44px 20px;
@@ -42,10 +29,12 @@ h2,h3{margin-bottom:12px}
   cursor:pointer;
   background:#11151a
 }
+
 .drop.drag{
   border-color:#fff;
   background:#151a20
 }
+
 input[type=file]{display:none}
 .muted{color:#9da7b4}
 
@@ -57,6 +46,7 @@ textarea,input[type=text]{
   border-radius:11px;
   padding:13px
 }
+
 textarea{
   min-height:100px;
   resize:vertical
@@ -69,25 +59,30 @@ button{
   font-weight:700;
   cursor:pointer
 }
+
 button:disabled{
   opacity:.5;
   cursor:not-allowed
 }
+
 .primary{
   background:#fff;
   color:#111;
   margin-top:14px
 }
+
 .secondary{
   background:#222933;
   color:#fff;
   border:1px solid #353e4a
 }
+
 .danger{
   background:#351919;
   color:#ffd6d6;
   border:1px solid #653232
 }
+
 .hidden{display:none!important}
 
 .photoTop{
@@ -98,18 +93,21 @@ button:disabled{
   margin-top:18px;
   flex-wrap:wrap
 }
+
 .photos{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:14px;
   margin-top:14px
 }
+
 .photoCard{
   border:1px solid #303844;
   border-radius:14px;
   overflow:hidden;
   background:#101419
 }
+
 .previewBox{
   height:360px;
   background:#080b0f;
@@ -118,22 +116,18 @@ button:disabled{
   justify-content:center;
   overflow:hidden
 }
+
 .previewBox img{
   max-width:90%;
   max-height:90%;
   object-fit:contain;
   transition:transform .2s ease
 }
+
 .photoInfo{padding:12px}
-.photoName{
-  font-weight:700;
-  overflow-wrap:anywhere
-}
-.photoMeta{
-  color:#9da7b4;
-  font-size:12px;
-  margin-top:5px
-}
+.photoName{font-weight:700;overflow-wrap:anywhere}
+.photoMeta{color:#9da7b4;font-size:12px;margin-top:5px}
+
 .actions{
   display:flex;
   gap:8px;
@@ -146,17 +140,20 @@ button:disabled{
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:12px
 }
+
 .kv{
   background:#101419;
   border:1px solid #303844;
   border-radius:12px;
   padding:13px
 }
+
 .k{
   color:#9da7b4;
   font-size:12px;
   margin-bottom:5px
 }
+
 .v{font-weight:700}
 
 .question{
@@ -166,6 +163,7 @@ button:disabled{
   padding:16px;
   margin-top:12px
 }
+
 .option{
   width:100%;
   text-align:left;
@@ -174,10 +172,6 @@ button:disabled{
   border:1px solid #353e4a;
   margin-top:8px
 }
-.option.selected{
-  outline:2px solid #fff;
-  background:#303946
-}
 
 .ok{
   background:#17301f;
@@ -185,6 +179,7 @@ button:disabled{
   padding:13px;
   border-radius:11px
 }
+
 .error{
   background:#421c1c;
   color:#ffd4d4;
@@ -195,6 +190,7 @@ button:disabled{
   white-space:pre-wrap;
   overflow-wrap:anywhere
 }
+
 .loader{
   display:inline-block;
   width:15px;
@@ -206,7 +202,10 @@ button:disabled{
   margin-right:7px;
   vertical-align:-2px
 }
-@keyframes spin{to{transform:rotate(360deg)}}
+
+@keyframes spin{
+  to{transform:rotate(360deg)}
+}
 
 @media(max-width:700px){
   .photos,.grid{grid-template-columns:1fr}
@@ -218,7 +217,9 @@ button:disabled{
 
 <body>
 
-<header>ELVIN · AI меблевий конструктор</header>
+<header>
+  ELVIN · AI меблевий конструктор
+</header>
 
 <main>
 
@@ -256,7 +257,11 @@ button:disabled{
         <span class="muted">в одному замовленні</span>
       </div>
 
-      <button id="addMore" class="secondary">
+      <button
+        id="addMore"
+        class="secondary"
+        type="button"
+      >
         + Додати ще фото
       </button>
 
@@ -273,7 +278,11 @@ button:disabled{
     placeholder="Тільки додаткова інформація, якої може не бути на фото..."
   ></textarea>
 
-  <button id="analyse" class="primary">
+  <button
+    id="analyse"
+    class="primary"
+    type="button"
+  >
     Аналізувати замовлення
   </button>
 
@@ -291,8 +300,11 @@ button:disabled{
   <div id="project" class="grid"></div>
 
   <div id="warningsBlock" class="hidden">
+
     <h3>Попередження</h3>
+
     <div id="warnings"></div>
+
   </div>
 
 </div>
@@ -331,7 +343,6 @@ const $ = id => document.getElementById(id);
 const MAX_FILES = 8;
 
 let photos = [];
-let analysis = null;
 
 
 function showError(message){
@@ -347,7 +358,6 @@ function clearError(){
 
 
 function resetResult(){
-  analysis = null;
   $("result").classList.add("hidden");
   $("questionsBlock").classList.add("hidden");
   $("ready").classList.add("hidden");
@@ -355,8 +365,11 @@ function resetResult(){
 
 
 function escapeHtml(value){
+
   return String(value ?? "").replace(
+
     /[&<>"']/g,
+
     c => ({
       "&":"&amp;",
       "<":"&lt;",
@@ -364,6 +377,7 @@ function escapeHtml(value){
       '"':"&quot;",
       "'":"&#039;"
     }[c])
+
   );
 }
 
@@ -378,37 +392,51 @@ function addFiles(files){
       file.type !== "image/jpeg" &&
       file.type !== "image/png"
     ){
+
       showError(
         "Elvin приймає тільки JPG, JPEG або PNG."
       );
+
       continue;
     }
 
+
     if(photos.length >= MAX_FILES){
+
       showError(
         `Максимум ${MAX_FILES} фото одного замовлення.`
       );
+
       break;
     }
 
-    const duplicate = photos.some(
-      item =>
-        item.file.name === file.name &&
-        item.file.size === file.size &&
-        item.file.lastModified === file.lastModified
-    );
+
+    const duplicate =
+      photos.some(
+
+        item =>
+          item.file.name === file.name &&
+          item.file.size === file.size &&
+          item.file.lastModified === file.lastModified
+
+      );
+
 
     if(!duplicate){
+
       photos.push({
         file,
         rotation:0,
         preview:URL.createObjectURL(file)
       });
+
     }
 
   }
 
+
   renderPhotos();
+
   resetResult();
 }
 
@@ -422,6 +450,7 @@ function removePhoto(index){
   photos.splice(index,1);
 
   renderPhotos();
+
   resetResult();
 }
 
@@ -432,6 +461,7 @@ function rotatePhoto(index){
     (photos[index].rotation + 90) % 360;
 
   renderPhotos();
+
   resetResult();
 }
 
@@ -441,24 +471,31 @@ function renderPhotos(){
   if(!photos.length){
 
     $("photosWrap").classList.add("hidden");
+
     $("photos").innerHTML = "";
 
     return;
   }
+
 
   $("photosWrap").classList.remove("hidden");
 
   $("photoCount").textContent =
     `${photos.length} фото`;
 
+
   $("photos").innerHTML =
-    photos.map((item,index) => {
+    photos.map(
 
-      const mb =
-        (item.file.size / 1024 / 1024)
-        .toFixed(2);
+      (item,index) => {
 
-      return `
+        const mb =
+          (item.file.size / 1024 / 1024)
+          .toFixed(2);
+
+
+        return `
+
         <div class="photoCard">
 
           <div class="previewBox">
@@ -471,28 +508,39 @@ function renderPhotos(){
 
           </div>
 
+
           <div class="photoInfo">
 
             <div class="photoName">
-              Фото ${index + 1}: ${escapeHtml(item.file.name)}
+
+              Фото ${index + 1}:
+              ${escapeHtml(item.file.name)}
+
             </div>
 
+
             <div class="photoMeta">
+
               ${mb} МБ · поворот ${item.rotation}°
+
             </div>
+
 
             <div class="actions">
 
               <button
                 class="secondary"
-                onclick="rotatePhoto(${index})"
+                type="button"
+                data-rotate="${index}"
               >
                 ↻ Повернути 90°
               </button>
 
+
               <button
                 class="danger"
-                onclick="removePhoto(${index})"
+                type="button"
+                data-remove="${index}"
               >
                 Видалити
               </button>
@@ -502,70 +550,142 @@ function renderPhotos(){
           </div>
 
         </div>
-      `;
 
-    }).join("");
+        `;
+
+      }
+
+    ).join("");
+
+
+  document
+  .querySelectorAll("[data-rotate]")
+  .forEach(
+
+    button => {
+
+      button.onclick =
+        () => rotatePhoto(
+          Number(button.dataset.rotate)
+        );
+
+    }
+
+  );
+
+
+  document
+  .querySelectorAll("[data-remove]")
+  .forEach(
+
+    button => {
+
+      button.onclick =
+        () => removePhoto(
+          Number(button.dataset.remove)
+        );
+
+    }
+
+  );
 }
 
 
 function fileToImage(file){
 
-  return new Promise((resolve,reject) => {
+  return new Promise(
 
-    const reader = new FileReader();
+    (resolve,reject) => {
 
-    reader.onload = () => {
+      const reader =
+        new FileReader();
 
-      const img = new Image();
 
-      img.onload = () => resolve(img);
+      reader.onload =
+        () => {
 
-      img.onerror = () =>
-        reject(
+          const image =
+            new Image();
+
+
+          image.onload =
+            () => resolve(image);
+
+
+          image.onerror =
+            () => reject(
+
+              new Error(
+                `Не вдалося прочитати ${file.name}`
+              )
+
+            );
+
+
+          image.src =
+            reader.result;
+        };
+
+
+      reader.onerror =
+        () => reject(
+
           new Error(
             `Не вдалося прочитати ${file.name}`
           )
+
         );
 
-      img.src = reader.result;
-    };
 
-    reader.onerror = () =>
-      reject(
-        new Error(
-          `Не вдалося прочитати ${file.name}`
-        )
-      );
+      reader.readAsDataURL(file);
 
-    reader.readAsDataURL(file);
-  });
+    }
+
+  );
 }
 
 
 async function preparePhoto(item){
 
-  const img =
-    await fileToImage(item.file);
+  const image =
+    await fileToImage(
+      item.file
+    );
+
 
   let width =
-    img.naturalWidth;
+    image.naturalWidth;
+
 
   let height =
-    img.naturalHeight;
+    image.naturalHeight;
 
-  const MAX_SIDE = 2000;
+
+  const MAX_SIDE =
+    2000;
+
 
   const scale =
     Math.min(
+
       1,
-      MAX_SIDE / Math.max(width,height)
+
+      MAX_SIDE /
+      Math.max(width,height)
+
     );
 
+
   width =
-    Math.round(width * scale);
+    Math.round(
+      width * scale
+    );
+
 
   height =
-    Math.round(height * scale);
+    Math.round(
+      height * scale
+    );
 
 
   const rotated =
@@ -574,23 +694,32 @@ async function preparePhoto(item){
 
 
   const canvas =
-    document.createElement("canvas");
+    document.createElement(
+      "canvas"
+    );
 
 
   canvas.width =
-    rotated ? height : width;
+    rotated
+      ? height
+      : width;
+
 
   canvas.height =
-    rotated ? width : height;
+    rotated
+      ? width
+      : height;
 
 
-  const ctx =
+  const context =
     canvas.getContext("2d");
 
 
-  ctx.fillStyle = "#fff";
+  context.fillStyle =
+    "#ffffff";
 
-  ctx.fillRect(
+
+  context.fillRect(
     0,
     0,
     canvas.width,
@@ -598,21 +727,21 @@ async function preparePhoto(item){
   );
 
 
-  ctx.translate(
+  context.translate(
     canvas.width / 2,
     canvas.height / 2
   );
 
 
-  ctx.rotate(
+  context.rotate(
     item.rotation *
     Math.PI /
     180
   );
 
 
-  ctx.drawImage(
-    img,
+  context.drawImage(
+    image,
     -width / 2,
     -height / 2,
     width,
@@ -631,23 +760,24 @@ async function prepareImages(){
 
   const images = [];
 
-  for(let i=0;i<photos.length;i++){
 
-    const dataUrl =
-      await preparePhoto(
-        photos[i]
-      );
+  for(const item of photos){
 
     images.push({
+
       fileName:
-        photos[i].file.name,
+        item.file.name,
 
       mimeType:
         "image/jpeg",
 
-      dataUrl
+      dataUrl:
+        await preparePhoto(item)
+
     });
+
   }
+
 
   return images;
 }
@@ -655,21 +785,40 @@ async function prepareImages(){
 
 function setBusy(busy){
 
-  $("analyse").disabled = busy;
+  $("analyse").disabled =
+    busy;
 
-  $("analyse").innerHTML =
-    busy
-      ? '<span class="loader"></span>Elvin аналізує…'
-      : 'Аналізувати замовлення';
+
+  $("addMore").disabled =
+    busy;
+
+
+  if(!busy){
+
+    $("analyse").textContent =
+      "Аналізувати замовлення";
+
+  }
 }
 
 
-async function callAnalyze(){
+function sleep(ms){
+
+  return new Promise(
+    resolve =>
+      setTimeout(resolve,ms)
+  );
+}
+
+
+async function startAnalysis(){
 
   if(!photos.length){
+
     throw new Error(
       "Спочатку додайте хоча б одне фото."
     );
+
   }
 
 
@@ -677,36 +826,26 @@ async function callAnalyze(){
     await prepareImages();
 
 
-  let response;
+  const response =
+    await fetch(
 
+      "/.netlify/functions/analyze-start",
 
-  try{
+      {
+        method:"POST",
 
-    response =
-      await fetch(
-        "/.netlify/functions/analyze",
-        {
-          method:"POST",
+        headers:{
+          "Content-Type":
+            "application/json"
+        },
 
-          headers:{
-            "Content-Type":
-              "application/json"
-          },
+        body:JSON.stringify({
+          images,
+          note:$("note").value.trim()
+        })
+      }
 
-          body:JSON.stringify({
-            images,
-            note:$("note").value.trim()
-          })
-        }
-      );
-
-  }catch(error){
-
-    throw new Error(
-      "Не вдалося підключитися до сервера Netlify.\n" +
-      error.message
     );
-  }
 
 
   const raw =
@@ -723,29 +862,78 @@ async function callAnalyze(){
         ? JSON.parse(raw)
         : null;
 
-  }catch(_){}
+  }catch{}
 
 
   if(!response.ok){
 
-    const message =
-      data?.error ||
-      data?.message ||
-      raw ||
-      "Сервер не повернув опис помилки.";
-
     throw new Error(
-      `HTTP ${response.status}\n${message}`
+
+      data?.error ||
+      raw ||
+      "Не вдалося запустити аналіз."
+
     );
+
   }
 
 
-  if(!data){
+  if(!data?.job_id){
 
     throw new Error(
-      "Сервер повернув неочікувану відповідь:\n" +
-      raw
+      "Elvin не отримав ID аналізу."
     );
+
+  }
+
+
+  return data.job_id;
+}
+
+
+async function getAnalysisStatus(jobId){
+
+  const response =
+    await fetch(
+
+      "/.netlify/functions/analyze-status?id=" +
+      encodeURIComponent(jobId),
+
+      {
+        method:"GET",
+        cache:"no-store"
+      }
+
+    );
+
+
+  const raw =
+    await response.text();
+
+
+  let data = null;
+
+
+  try{
+
+    data =
+      raw
+        ? JSON.parse(raw)
+        : null;
+
+  }catch{}
+
+
+  if(!response.ok){
+
+    throw new Error(
+
+      data?.error ||
+      raw ||
+      "Помилка перевірки статусу."
+
+    );
+
   }
 
 
@@ -753,125 +941,239 @@ async function callAnalyze(){
 }
 
 
+async function waitForAnalysis(jobId){
+
+  const started =
+    Date.now();
+
+
+  const MAX_WAIT =
+    10 * 60 * 1000;
+
+
+  while(
+    Date.now() - started <
+    MAX_WAIT
+  ){
+
+    const data =
+      await getAnalysisStatus(
+        jobId
+      );
+
+
+    if(
+      data.status === "completed"
+    ){
+
+      return data.result;
+    }
+
+
+    if(
+      data.status === "failed" ||
+      data.status === "cancelled" ||
+      data.status === "incomplete"
+    ){
+
+      throw new Error(
+
+        data.error ||
+        "Аналіз не завершився."
+
+      );
+
+    }
+
+
+    if(
+      data.status === "queued"
+    ){
+
+      $("analyse").innerHTML =
+        '<span class="loader"></span>Elvin готує аналіз…';
+
+    }
+    else{
+
+      $("analyse").innerHTML =
+        '<span class="loader"></span>Elvin аналізує всі фото…';
+
+    }
+
+
+    await sleep(
+      3000
+    );
+  }
+
+
+  throw new Error(
+    "Аналіз займає занадто багато часу."
+  );
+}
+
+
 function showAnalysis(data){
 
-  analysis = data;
+  $("result")
+    .classList
+    .remove("hidden");
 
-  $("result").classList.remove("hidden");
 
   $("summary").textContent =
     data.summary || "";
 
 
-  const p =
+  const project =
     data.project || {};
 
 
   const rows = [
 
-    ["Назва замовлення",p.name],
+    [
+      "Назва замовлення",
+      project.name
+    ],
 
-    ["Тип виробу",p.furniture_type],
+    [
+      "Тип виробу",
+      project.furniture_type
+    ],
 
     [
       "Ширина",
-      p.width_mm
-        ? p.width_mm + " мм"
+      project.width_mm
+        ? project.width_mm + " мм"
         : "—"
     ],
 
     [
       "Висота",
-      p.height_mm
-        ? p.height_mm + " мм"
+      project.height_mm
+        ? project.height_mm + " мм"
         : "—"
     ],
 
     [
       "Глибина",
-      p.depth_mm
-        ? p.depth_mm + " мм"
+      project.depth_mm
+        ? project.depth_mm + " мм"
         : "—"
     ],
 
     [
       "Секції",
-      p.sections_description
+      project.sections_description
     ],
 
     [
       "Матеріал",
-      p.material
+      project.material
     ],
 
     [
       "Задня стінка",
-      p.back_panel
+      project.back_panel
     ]
 
   ];
 
 
   $("project").innerHTML =
-    rows.map(([key,value]) => `
+    rows.map(
+
+      ([key,value]) => `
+
       <div class="kv">
+
         <div class="k">
           ${escapeHtml(key)}
         </div>
+
         <div class="v">
           ${escapeHtml(value || "—")}
         </div>
+
       </div>
-    `).join("");
+
+      `
+
+    ).join("");
 
 
   const warnings =
     data.warnings || [];
 
 
-  if(warnings.length){
+  $("warningsBlock")
+    .classList
+    .toggle(
+      "hidden",
+      !warnings.length
+    );
 
-    $("warningsBlock")
-      .classList
-      .remove("hidden");
 
-    $("warnings")
-      .innerHTML =
-      warnings.map(
-        item =>
-          `<div class="question">${escapeHtml(item)}</div>`
-      ).join("");
+  $("warnings").innerHTML =
+    warnings.map(
 
-  }else{
+      warning => `
 
-    $("warningsBlock")
-      .classList
-      .add("hidden");
-  }
+      <div class="question">
+        ${escapeHtml(warning)}
+      </div>
+
+      `
+
+    ).join("");
 
 
   const questions =
     data.questions || [];
 
 
-  if(questions.length){
-
-    $("questionsBlock")
-      .classList
-      .remove("hidden");
-
-    $("ready")
-      .classList
-      .add("hidden");
+  $("questionsBlock")
+    .classList
+    .toggle(
+      "hidden",
+      !questions.length
+    );
 
 
-    $("questions")
-      .innerHTML =
-      questions.map(question => {
+  $("ready")
+    .classList
+    .toggle(
 
-        const options =
+      "hidden",
+
+      !(
+        data.status === "ready" &&
+        questions.length === 0
+      )
+
+    );
+
+
+  $("questions").innerHTML =
+    questions.map(
+
+      question => `
+
+      <div class="question">
+
+        <b>
+          ${escapeHtml(question.title)}
+        </b>
+
+        <p>
+          ${escapeHtml(question.question)}
+        </p>
+
+        ${
           (question.options || [])
-          .map(option => `
+          .map(
+
+            option => `
 
             <button
               class="option"
@@ -888,138 +1190,173 @@ function showAnalysis(data){
 
             </button>
 
-          `)
-          .join("");
+            `
+
+          )
+          .join("")
+        }
+
+      </div>
+
+      `
+
+    ).join("");
 
 
-        return `
-
-          <div class="question">
-
-            <b>
-              ${escapeHtml(question.title)}
-            </b>
-
-            <p>
-              ${escapeHtml(question.question)}
-            </p>
-
-            ${options}
-
-          </div>
-
-        `;
-
-      }).join("");
-
-
-  }else{
-
-    $("questionsBlock")
-      .classList
-      .add("hidden");
-
-
-    if(data.status === "ready"){
-
-      $("ready")
-        .classList
-        .remove("hidden");
-
-    }else{
-
-      $("ready")
-        .classList
-        .add("hidden");
-    }
-  }
+  $("result")
+    .scrollIntoView(
+      {
+        behavior:"smooth",
+        block:"start"
+      }
+    );
 }
 
 
-$("file").addEventListener(
+$("file")
+.addEventListener(
+
   "change",
+
   event => {
 
     addFiles(
+
       Array.from(
         event.target.files || []
       )
+
     );
 
+
     event.target.value = "";
+
   }
+
 );
 
 
-$("addMore").addEventListener(
+$("addMore")
+.addEventListener(
+
   "click",
-  () => $("file").click()
+
+  () =>
+    $("file").click()
+
 );
 
 
-const drop = $("drop");
+const drop =
+  $("drop");
 
 
 drop.addEventListener(
+
   "dragover",
+
   event => {
+
     event.preventDefault();
+
     drop.classList.add("drag");
+
   }
+
 );
 
 
 drop.addEventListener(
+
   "dragleave",
+
   () =>
     drop.classList.remove("drag")
+
 );
 
 
 drop.addEventListener(
+
   "drop",
+
   event => {
 
     event.preventDefault();
 
     drop.classList.remove("drag");
 
+
     addFiles(
+
       Array.from(
         event.dataTransfer.files || []
       )
+
     );
+
   }
+
 );
 
 
-$("analyse").addEventListener(
+$("analyse")
+.addEventListener(
+
   "click",
+
   async () => {
 
     clearError();
+
     resetResult();
+
     setBusy(true);
+
 
     try{
 
+      $("analyse").innerHTML =
+        '<span class="loader"></span>Передаю фото Elvin…';
+
+
+      const jobId =
+        await startAnalysis();
+
+
+      $("analyse").innerHTML =
+        '<span class="loader"></span>Elvin аналізує всі фото…';
+
+
       const result =
-        await callAnalyze();
+        await waitForAnalysis(
+          jobId
+        );
 
-      showAnalysis(result);
 
-    }catch(error){
-
-      showError(
-        error.message ||
-        String(error)
+      showAnalysis(
+        result
       );
 
-    }finally{
+    }
+    catch(error){
+
+      showError(
+
+        error?.message ||
+        String(error)
+
+      );
+
+    }
+    finally{
 
       setBusy(false);
+
     }
+
   }
+
 );
 
 </script>
