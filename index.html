@@ -4,1362 +4,284 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Elvin</title>
-
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#0d1015;color:#f5f7fa;font-family:Arial,sans-serif}
 header{padding:20px 28px;border-bottom:1px solid #29303a;font-size:21px;font-weight:800}
 main{max-width:1100px;margin:35px auto;padding:0 18px}
 h1{font-size:38px;margin-bottom:8px}
-
-.card{
-  background:#171b21;
-  border:1px solid #29303a;
-  border-radius:17px;
-  padding:22px;
-  margin-top:20px
-}
-
-.drop{
-  display:block;
-  padding:44px 20px;
-  border:1px dashed #566171;
-  border-radius:14px;
-  text-align:center;
-  cursor:pointer;
-  background:#11151a
-}
-
-.drop.drag{
-  border-color:#fff;
-  background:#151a20
-}
-
-input[type=file]{display:none}
-.muted{color:#9da7b4}
-
-textarea,input[type=text]{
-  width:100%;
-  background:#0e1217;
-  color:#fff;
-  border:1px solid #303844;
-  border-radius:11px;
-  padding:13px
-}
-
-textarea{
-  min-height:100px;
-  resize:vertical
-}
-
-button{
-  padding:11px 15px;
-  border:0;
-  border-radius:10px;
-  font-weight:700;
-  cursor:pointer
-}
-
-button:disabled{
-  opacity:.5;
-  cursor:not-allowed
-}
-
-.primary{
-  background:#fff;
-  color:#111;
-  margin-top:14px
-}
-
-.secondary{
-  background:#222933;
-  color:#fff;
-  border:1px solid #353e4a
-}
-
-.danger{
-  background:#351919;
-  color:#ffd6d6;
-  border:1px solid #653232
-}
-
+.card{background:#171b21;border:1px solid #29303a;border-radius:17px;padding:22px;margin-top:20px}
+.drop{display:block;padding:44px 20px;border:1px dashed #566171;border-radius:14px;text-align:center;cursor:pointer;background:#11151a}
+.drop.drag{border-color:#fff;background:#151a20}
+input[type=file]{display:none}.muted{color:#9da7b4}
+textarea,input[type=text]{width:100%;background:#0e1217;color:#fff;border:1px solid #303844;border-radius:11px;padding:13px}
+textarea{min-height:100px;resize:vertical}
+button{padding:11px 15px;border:0;border-radius:10px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+.primary{background:#fff;color:#111;margin-top:14px}
+.secondary{background:#222933;color:#fff;border:1px solid #353e4a}
+.danger{background:#351919;color:#ffd6d6;border:1px solid #653232}
 .hidden{display:none!important}
-
-.photoTop{
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-  align-items:center;
-  margin-top:18px;
-  flex-wrap:wrap
-}
-
-.photos{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:14px;
-  margin-top:14px
-}
-
-.photoCard{
-  border:1px solid #303844;
-  border-radius:14px;
-  overflow:hidden;
-  background:#101419
-}
-
-.previewBox{
-  height:360px;
-  background:#080b0f;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden
-}
-
-.previewBox img{
-  max-width:90%;
-  max-height:90%;
-  object-fit:contain;
-  transition:transform .2s ease
-}
-
-.photoInfo{padding:12px}
-.photoName{font-weight:700;overflow-wrap:anywhere}
-.photoMeta{color:#9da7b4;font-size:12px;margin-top:5px}
-
-.actions{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  margin-top:10px
-}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px
-}
-
-.kv{
-  background:#101419;
-  border:1px solid #303844;
-  border-radius:12px;
-  padding:13px
-}
-
-.k{
-  color:#9da7b4;
-  font-size:12px;
-  margin-bottom:5px
-}
-
-.v{font-weight:700}
-
-.question{
-  background:#101419;
-  border:1px solid #303844;
-  border-radius:13px;
-  padding:16px;
-  margin-top:12px
-}
-
-.option{
-  width:100%;
-  text-align:left;
-  background:#222933;
-  color:#fff;
-  border:1px solid #353e4a;
-  margin-top:8px
-}
-
-.ok{
-  background:#17301f;
-  color:#c8f7d1;
-  padding:13px;
-  border-radius:11px
-}
-
-.error{
-  background:#421c1c;
-  color:#ffd4d4;
-  border:1px solid #703232;
-  padding:14px;
-  border-radius:11px;
-  margin-top:14px;
-  white-space:pre-wrap;
-  overflow-wrap:anywhere
-}
-
-.loader{
-  display:inline-block;
-  width:15px;
-  height:15px;
-  border:2px solid #777;
-  border-top-color:#fff;
-  border-radius:50%;
-  animation:spin .8s linear infinite;
-  margin-right:7px;
-  vertical-align:-2px
-}
-
-@keyframes spin{
-  to{transform:rotate(360deg)}
-}
-
-@media(max-width:700px){
-  .photos,.grid{grid-template-columns:1fr}
-  h1{font-size:30px}
-  .previewBox{height:300px}
-}
+.photoTop{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:18px;flex-wrap:wrap}
+.photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.photoCard{border:1px solid #303844;border-radius:14px;overflow:hidden;background:#101419}
+.previewBox{height:360px;background:#080b0f;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.previewBox img{max-width:90%;max-height:90%;object-fit:contain;transition:transform .2s ease}
+.photoInfo{padding:12px}.photoName{font-weight:700;overflow-wrap:anywhere}.photoMeta{color:#9da7b4;font-size:12px;margin-top:5px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.kv{background:#101419;border:1px solid #303844;border-radius:12px;padding:13px}
+.k{color:#9da7b4;font-size:12px;margin-bottom:5px}.v{font-weight:700}
+.question{background:#101419;border:1px solid #303844;border-radius:13px;padding:16px;margin-top:12px}
+.question.missing{border-color:#7b4545}
+.option{width:100%;text-align:left;background:#222933;color:#fff;border:1px solid #353e4a;margin-top:8px}
+.option.selected{background:#f5f7fa;color:#111;border-color:#f5f7fa}
+.answerInput{margin-top:10px}
+.answerStatus{color:#9da7b4;font-size:13px;margin-top:8px}
+.answerStatus.done{color:#bfe7c7}
+.ok{background:#17301f;color:#c8f7d1;padding:13px;border-radius:11px}
+.error{background:#421c1c;color:#ffd4d4;border:1px solid #703232;padding:14px;border-radius:11px;margin-top:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.loader{display:inline-block;width:15px;height:15px;border:2px solid #777;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-right:7px;vertical-align:-2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:700px){.photos,.grid{grid-template-columns:1fr}h1{font-size:30px}.previewBox{height:300px}}
 </style>
 </head>
-
 <body>
-
-<header>
-  ELVIN · AI меблевий конструктор
-</header>
-
+<header>ELVIN · AI меблевий конструктор</header>
 <main>
-
 <h1>Нове замовлення</h1>
-
-<p class="muted">
-  Завантажте всі фото одного замовлення.
-  Elvin проаналізує їх разом і зупиниться там,
-  де потрібне уточнення.
-</p>
+<p class="muted">Завантажте всі фото одного замовлення. Elvin проаналізує їх разом і зупиниться там, де потрібне уточнення.</p>
 
 <div class="card">
+<label id="drop" class="drop" for="file"><b>Додати фото креслення / замовлення</b><br><br><span class="muted">JPG · JPEG · PNG · можна вибрати кілька фото</span></label>
+<input id="file" type="file" accept="image/jpeg,image/png" multiple>
 
-  <label id="drop" class="drop" for="file">
-    <b>Додати фото креслення / замовлення</b>
-    <br><br>
-    <span class="muted">
-      JPG · JPEG · PNG · можна вибрати кілька фото
-    </span>
-  </label>
-
-  <input
-    id="file"
-    type="file"
-    accept="image/jpeg,image/png"
-    multiple
-  >
-
-  <div id="photosWrap" class="hidden">
-
-    <div class="photoTop">
-
-      <div>
-        <b id="photoCount"></b>
-        <span class="muted">в одному замовленні</span>
-      </div>
-
-      <button
-        id="addMore"
-        class="secondary"
-        type="button"
-      >
-        + Додати ще фото
-      </button>
-
-    </div>
-
-    <div id="photos" class="photos"></div>
-
+<div id="photosWrap" class="hidden">
+  <div class="photoTop">
+    <div><b id="photoCount"></b> <span class="muted">в одному замовленні</span></div>
+    <button id="addMore" class="secondary" type="button">+ Додати ще фото</button>
   </div>
-
-  <h3>Примітка технолога</h3>
-
-  <textarea
-    id="note"
-    placeholder="Тільки додаткова інформація, якої може не бути на фото..."
-  ></textarea>
-
-  <button
-    id="analyse"
-    class="primary"
-    type="button"
-  >
-    Аналізувати замовлення
-  </button>
-
-  <div id="error" class="error hidden"></div>
-
+  <div id="photos" class="photos"></div>
 </div>
 
+<h3>Примітка технолога</h3>
+<textarea id="note" placeholder="Тільки додаткова інформація, якої може не бути на фото..."></textarea>
+<button id="analyse" class="primary" type="button">Аналізувати замовлення</button>
+<div id="error" class="error hidden"></div>
+</div>
 
 <div id="result" class="card hidden">
-
-  <h2>Що зрозумів Elvin</h2>
-
-  <p id="summary" class="muted"></p>
-
-  <div id="project" class="grid"></div>
-
-  <div id="warningsBlock" class="hidden">
-
-    <h3>Попередження</h3>
-
-    <div id="warnings"></div>
-
-  </div>
-
+<h2>Що зрозумів Elvin</h2>
+<p id="summary" class="muted"></p>
+<div id="project" class="grid"></div>
+<div id="warningsBlock" class="hidden"><h3>Попередження</h3><div id="warnings"></div></div>
 </div>
-
 
 <div id="questionsBlock" class="card hidden">
-
-  <h2>Потрібне уточнення</h2>
-
-  <p class="muted">
-    Elvin не вгадує критичні виробничі дані.
-  </p>
-
-  <div id="questions"></div>
-
+<h2>Потрібне уточнення</h2>
+<p class="muted">Оберіть один із варіантів або введіть свою відповідь. Після відповіді на всі питання натисніть «Продовжити аналіз».</p>
+<div id="questions"></div>
+<button id="continueAnalysis" class="primary" type="button">Продовжити аналіз</button>
 </div>
-
 
 <div id="ready" class="card hidden">
-
-  <h2>Готово до наступного етапу</h2>
-
-  <div class="ok">
-    Критичних питань не залишилося.
-  </div>
-
+<h2>Готово до наступного етапу</h2>
+<div class="ok">Критичних питань не залишилося.</div>
 </div>
-
 </main>
 
-
 <script>
+const $=id=>document.getElementById(id);
+const MAX_FILES=8;
+let photos=[];
+let currentAnalysis=null;
+let selectedAnswers={};
 
-const $ = id => document.getElementById(id);
-
-const MAX_FILES = 8;
-
-let photos = [];
-
-
-function showError(message){
-  $("error").textContent = message;
-  $("error").classList.remove("hidden");
-}
-
-
-function clearError(){
-  $("error").textContent = "";
-  $("error").classList.add("hidden");
-}
-
-
-function resetResult(){
-  $("result").classList.add("hidden");
-  $("questionsBlock").classList.add("hidden");
-  $("ready").classList.add("hidden");
-}
-
-
-function escapeHtml(value){
-
-  return String(value ?? "").replace(
-
-    /[&<>"']/g,
-
-    c => ({
-      "&":"&amp;",
-      "<":"&lt;",
-      ">":"&gt;",
-      '"':"&quot;",
-      "'":"&#039;"
-    }[c])
-
-  );
-}
-
+function showError(message){$("error").textContent=message;$("error").classList.remove("hidden")}
+function clearError(){$("error").textContent="";$("error").classList.add("hidden")}
+function resetResult(){currentAnalysis=null;selectedAnswers={};$("result").classList.add("hidden");$("questionsBlock").classList.add("hidden");$("ready").classList.add("hidden")}
+function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 
 function addFiles(files){
-
-  clearError();
-
-  for(const file of files){
-
-    if(
-      file.type !== "image/jpeg" &&
-      file.type !== "image/png"
-    ){
-
-      showError(
-        "Elvin приймає тільки JPG, JPEG або PNG."
-      );
-
-      continue;
-    }
-
-
-    if(photos.length >= MAX_FILES){
-
-      showError(
-        `Максимум ${MAX_FILES} фото одного замовлення.`
-      );
-
-      break;
-    }
-
-
-    const duplicate =
-      photos.some(
-
-        item =>
-          item.file.name === file.name &&
-          item.file.size === file.size &&
-          item.file.lastModified === file.lastModified
-
-      );
-
-
-    if(!duplicate){
-
-      photos.push({
-        file,
-        rotation:0,
-        preview:URL.createObjectURL(file)
-      });
-
-    }
-
-  }
-
-
-  renderPhotos();
-
-  resetResult();
+ clearError();
+ for(const file of files){
+  if(file.type!=="image/jpeg"&&file.type!=="image/png"){showError("Elvin приймає тільки JPG, JPEG або PNG.");continue}
+  if(photos.length>=MAX_FILES){showError(`Максимум ${MAX_FILES} фото одного замовлення.`);break}
+  const duplicate=photos.some(item=>item.file.name===file.name&&item.file.size===file.size&&item.file.lastModified===file.lastModified);
+  if(!duplicate)photos.push({file,rotation:0,preview:URL.createObjectURL(file)});
+ }
+ renderPhotos();resetResult();
 }
-
-
-function removePhoto(index){
-
-  URL.revokeObjectURL(
-    photos[index].preview
-  );
-
-  photos.splice(index,1);
-
-  renderPhotos();
-
-  resetResult();
-}
-
-
-function rotatePhoto(index){
-
-  photos[index].rotation =
-    (photos[index].rotation + 90) % 360;
-
-  renderPhotos();
-
-  resetResult();
-}
-
+function removePhoto(index){URL.revokeObjectURL(photos[index].preview);photos.splice(index,1);renderPhotos();resetResult()}
+function rotatePhoto(index){photos[index].rotation=(photos[index].rotation+90)%360;renderPhotos();resetResult()}
 
 function renderPhotos(){
-
-  if(!photos.length){
-
-    $("photosWrap").classList.add("hidden");
-
-    $("photos").innerHTML = "";
-
-    return;
-  }
-
-
-  $("photosWrap").classList.remove("hidden");
-
-  $("photoCount").textContent =
-    `${photos.length} фото`;
-
-
-  $("photos").innerHTML =
-    photos.map(
-
-      (item,index) => {
-
-        const mb =
-          (item.file.size / 1024 / 1024)
-          .toFixed(2);
-
-
-        return `
-
-        <div class="photoCard">
-
-          <div class="previewBox">
-
-            <img
-              src="${item.preview}"
-              style="transform:rotate(${item.rotation}deg)"
-              alt="Фото ${index + 1}"
-            >
-
-          </div>
-
-
-          <div class="photoInfo">
-
-            <div class="photoName">
-
-              Фото ${index + 1}:
-              ${escapeHtml(item.file.name)}
-
-            </div>
-
-
-            <div class="photoMeta">
-
-              ${mb} МБ · поворот ${item.rotation}°
-
-            </div>
-
-
-            <div class="actions">
-
-              <button
-                class="secondary"
-                type="button"
-                data-rotate="${index}"
-              >
-                ↻ Повернути 90°
-              </button>
-
-
-              <button
-                class="danger"
-                type="button"
-                data-remove="${index}"
-              >
-                Видалити
-              </button>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        `;
-
-      }
-
-    ).join("");
-
-
-  document
-  .querySelectorAll("[data-rotate]")
-  .forEach(
-
-    button => {
-
-      button.onclick =
-        () => rotatePhoto(
-          Number(button.dataset.rotate)
-        );
-
-    }
-
-  );
-
-
-  document
-  .querySelectorAll("[data-remove]")
-  .forEach(
-
-    button => {
-
-      button.onclick =
-        () => removePhoto(
-          Number(button.dataset.remove)
-        );
-
-    }
-
-  );
+ if(!photos.length){$("photosWrap").classList.add("hidden");$("photos").innerHTML="";return}
+ $("photosWrap").classList.remove("hidden");$("photoCount").textContent=`${photos.length} фото`;
+ $("photos").innerHTML=photos.map((item,index)=>{
+  const mb=(item.file.size/1024/1024).toFixed(2);
+  return `<div class="photoCard"><div class="previewBox"><img src="${item.preview}" style="transform:rotate(${item.rotation}deg)" alt="Фото ${index+1}"></div><div class="photoInfo"><div class="photoName">Фото ${index+1}: ${escapeHtml(item.file.name)}</div><div class="photoMeta">${mb} МБ · поворот ${item.rotation}°</div><div class="actions"><button class="secondary" type="button" data-rotate="${index}">↻ Повернути 90°</button><button class="danger" type="button" data-remove="${index}">Видалити</button></div></div></div>`
+ }).join("");
+ document.querySelectorAll("[data-rotate]").forEach(b=>b.onclick=()=>rotatePhoto(Number(b.dataset.rotate)));
+ document.querySelectorAll("[data-remove]").forEach(b=>b.onclick=()=>removePhoto(Number(b.dataset.remove)));
 }
-
 
 function fileToImage(file){
-
-  return new Promise(
-
-    (resolve,reject) => {
-
-      const reader =
-        new FileReader();
-
-
-      reader.onload =
-        () => {
-
-          const image =
-            new Image();
-
-
-          image.onload =
-            () => resolve(image);
-
-
-          image.onerror =
-            () => reject(
-
-              new Error(
-                `Не вдалося прочитати ${file.name}`
-              )
-
-            );
-
-
-          image.src =
-            reader.result;
-        };
-
-
-      reader.onerror =
-        () => reject(
-
-          new Error(
-            `Не вдалося прочитати ${file.name}`
-          )
-
-        );
-
-
-      reader.readAsDataURL(file);
-
-    }
-
-  );
+ return new Promise((resolve,reject)=>{
+  const reader=new FileReader();
+  reader.onload=()=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error(`Не вдалося прочитати ${file.name}`));image.src=reader.result};
+  reader.onerror=()=>reject(new Error(`Не вдалося прочитати ${file.name}`));reader.readAsDataURL(file);
+ });
 }
-
 
 async function preparePhoto(item){
-
-  const image =
-    await fileToImage(
-      item.file
-    );
-
-
-  let width =
-    image.naturalWidth;
-
-
-  let height =
-    image.naturalHeight;
-
-
-  const MAX_SIDE =
-    2000;
-
-
-  const scale =
-    Math.min(
-
-      1,
-
-      MAX_SIDE /
-      Math.max(width,height)
-
-    );
-
-
-  width =
-    Math.round(
-      width * scale
-    );
-
-
-  height =
-    Math.round(
-      height * scale
-    );
-
-
-  const rotated =
-    item.rotation === 90 ||
-    item.rotation === 270;
-
-
-  const canvas =
-    document.createElement(
-      "canvas"
-    );
-
-
-  canvas.width =
-    rotated
-      ? height
-      : width;
-
-
-  canvas.height =
-    rotated
-      ? width
-      : height;
-
-
-  const context =
-    canvas.getContext("2d");
-
-
-  context.fillStyle =
-    "#ffffff";
-
-
-  context.fillRect(
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-
-  context.translate(
-    canvas.width / 2,
-    canvas.height / 2
-  );
-
-
-  context.rotate(
-    item.rotation *
-    Math.PI /
-    180
-  );
-
-
-  context.drawImage(
-    image,
-    -width / 2,
-    -height / 2,
-    width,
-    height
-  );
-
-
-  return canvas.toDataURL(
-    "image/jpeg",
-    0.82
-  );
+ const image=await fileToImage(item.file);
+ let width=image.naturalWidth,height=image.naturalHeight;
+ const MAX_SIDE=2000,scale=Math.min(1,MAX_SIDE/Math.max(width,height));
+ width=Math.round(width*scale);height=Math.round(height*scale);
+ const rotated=item.rotation===90||item.rotation===270;
+ const canvas=document.createElement("canvas");
+ canvas.width=rotated?height:width;canvas.height=rotated?width:height;
+ const ctx=canvas.getContext("2d");
+ ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
+ ctx.translate(canvas.width/2,canvas.height/2);ctx.rotate(item.rotation*Math.PI/180);
+ ctx.drawImage(image,-width/2,-height/2,width,height);
+ return canvas.toDataURL("image/jpeg",0.82);
 }
-
 
 async function prepareImages(){
-
-  const images = [];
-
-
-  for(const item of photos){
-
-    images.push({
-
-      fileName:
-        item.file.name,
-
-      mimeType:
-        "image/jpeg",
-
-      dataUrl:
-        await preparePhoto(item)
-
-    });
-
-  }
-
-
-  return images;
+ const images=[];
+ for(const item of photos)images.push({fileName:item.file.name,mimeType:"image/jpeg",dataUrl:await preparePhoto(item)});
+ return images;
 }
 
-
-function setBusy(busy){
-
-  $("analyse").disabled =
-    busy;
-
-
-  $("addMore").disabled =
-    busy;
-
-
-  if(!busy){
-
-    $("analyse").textContent =
-      "Аналізувати замовлення";
-
-  }
+function setBusy(busy,label){
+ $("analyse").disabled=busy;$("addMore").disabled=busy;$("continueAnalysis").disabled=busy;
+ document.querySelectorAll(".option,.answerInput").forEach(el=>el.disabled=busy);
+ if(label)$("analyse").innerHTML=`<span class="loader"></span>${escapeHtml(label)}`;
+ else if(!busy)$("analyse").textContent="Аналізувати замовлення";
 }
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
-
-function sleep(ms){
-
-  return new Promise(
-    resolve =>
-      setTimeout(resolve,ms)
-  );
+async function startAnalysis(extra={}){
+ if(!photos.length)throw new Error("Спочатку додайте хоча б одне фото.");
+ const images=await prepareImages();
+ const response=await fetch("/.netlify/functions/analyze-start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({images,note:$("note").value.trim(),...extra})});
+ const raw=await response.text();let data=null;try{data=raw?JSON.parse(raw):null}catch{}
+ if(!response.ok)throw new Error(data?.error||raw||"Не вдалося запустити аналіз.");
+ if(!data?.job_id)throw new Error("Elvin не отримав ID аналізу.");
+ return data.job_id;
 }
-
-
-async function startAnalysis(){
-
-  if(!photos.length){
-
-    throw new Error(
-      "Спочатку додайте хоча б одне фото."
-    );
-
-  }
-
-
-  const images =
-    await prepareImages();
-
-
-  const response =
-    await fetch(
-
-      "/.netlify/functions/analyze-start",
-
-      {
-        method:"POST",
-
-        headers:{
-          "Content-Type":
-            "application/json"
-        },
-
-        body:JSON.stringify({
-          images,
-          note:$("note").value.trim()
-        })
-      }
-
-    );
-
-
-  const raw =
-    await response.text();
-
-
-  let data = null;
-
-
-  try{
-
-    data =
-      raw
-        ? JSON.parse(raw)
-        : null;
-
-  }catch{}
-
-
-  if(!response.ok){
-
-    throw new Error(
-
-      data?.error ||
-      raw ||
-      "Не вдалося запустити аналіз."
-
-    );
-
-  }
-
-
-  if(!data?.job_id){
-
-    throw new Error(
-      "Elvin не отримав ID аналізу."
-    );
-
-  }
-
-
-  return data.job_id;
-}
-
 
 async function getAnalysisStatus(jobId){
-
-  const response =
-    await fetch(
-
-      "/.netlify/functions/analyze-status?id=" +
-      encodeURIComponent(jobId),
-
-      {
-        method:"GET",
-        cache:"no-store"
-      }
-
-    );
-
-
-  const raw =
-    await response.text();
-
-
-  let data = null;
-
-
-  try{
-
-    data =
-      raw
-        ? JSON.parse(raw)
-        : null;
-
-  }catch{}
-
-
-  if(!response.ok){
-
-    throw new Error(
-
-      data?.error ||
-      raw ||
-      "Помилка перевірки статусу."
-
-    );
-
-  }
-
-
-  return data;
+ const response=await fetch("/.netlify/functions/analyze-status?id="+encodeURIComponent(jobId),{method:"GET",cache:"no-store"});
+ const raw=await response.text();let data=null;try{data=raw?JSON.parse(raw):null}catch{}
+ if(!response.ok)throw new Error(data?.error||raw||"Помилка перевірки статусу.");
+ return data;
 }
-
 
 async function waitForAnalysis(jobId){
-
-  const started =
-    Date.now();
-
-
-  const MAX_WAIT =
-    10 * 60 * 1000;
-
-
-  while(
-    Date.now() - started <
-    MAX_WAIT
-  ){
-
-    const data =
-      await getAnalysisStatus(
-        jobId
-      );
-
-
-    if(
-      data.status === "completed"
-    ){
-
-      return data.result;
-    }
-
-
-    if(
-      data.status === "failed" ||
-      data.status === "cancelled" ||
-      data.status === "incomplete"
-    ){
-
-      throw new Error(
-
-        data.error ||
-        "Аналіз не завершився."
-
-      );
-
-    }
-
-
-    if(
-      data.status === "queued"
-    ){
-
-      $("analyse").innerHTML =
-        '<span class="loader"></span>Elvin готує аналіз…';
-
-    }
-    else{
-
-      $("analyse").innerHTML =
-        '<span class="loader"></span>Elvin аналізує всі фото…';
-
-    }
-
-
-    await sleep(
-      3000
-    );
-  }
-
-
-  throw new Error(
-    "Аналіз займає занадто багато часу."
-  );
+ const started=Date.now(),MAX_WAIT=10*60*1000;
+ while(Date.now()-started<MAX_WAIT){
+  const data=await getAnalysisStatus(jobId);
+  if(data.status==="completed")return data.result;
+  if(["failed","cancelled","incomplete"].includes(data.status))throw new Error(data.error||"Аналіз не завершився.");
+  $("analyse").innerHTML='<span class="loader"></span>'+(data.status==="queued"?"Elvin готує аналіз…":"Elvin аналізує всі фото…");
+  await sleep(3000);
+ }
+ throw new Error("Аналіз займає занадто багато часу.");
 }
 
+function qKey(q,i){return String(q.id||q.key||q.title||`question_${i}`)}
+
+function renderQuestions(questions){
+ selectedAnswers={};
+ $("questions").innerHTML=questions.map((q,i)=>{
+  const key=qKey(q,i),options=Array.isArray(q.options)?q.options:[];
+  const buttons=options.map((o,j)=>{
+   const label=typeof o==="string"?o:o.label;
+   const value=typeof o==="string"?o:(o.value??o.label);
+   const rec=typeof o==="object"&&o.recommended;
+   return `<button class="option" type="button" data-q="${escapeHtml(key)}" data-v="${escapeHtml(value)}">${escapeHtml(label)}${rec?" · рекомендовано Elvin":""}</button>`
+  }).join("");
+  return `<div class="question" data-card="${escapeHtml(key)}"><b>${escapeHtml(q.title||"Уточнення")}</b><p>${escapeHtml(q.question||"")}</p>${buttons}<input class="answerInput" type="text" data-input="${escapeHtml(key)}" placeholder="Або введіть свою відповідь..."><div class="answerStatus" data-status="${escapeHtml(key)}">Відповідь ще не вибрана</div></div>`
+ }).join("");
+
+ document.querySelectorAll(".option").forEach(button=>button.addEventListener("click",()=>{
+  const key=button.dataset.q,value=button.dataset.v;
+  document.querySelectorAll(".option").forEach(el=>{if(el.dataset.q===key)el.classList.remove("selected")});
+  button.classList.add("selected");
+  const input=[...document.querySelectorAll(".answerInput")].find(el=>el.dataset.input===key);if(input)input.value="";
+  selectedAnswers[key]=value;updateAnswer(key,value);
+ }));
+
+ document.querySelectorAll(".answerInput").forEach(input=>input.addEventListener("input",()=>{
+  const key=input.dataset.input,value=input.value.trim();
+  document.querySelectorAll(".option").forEach(el=>{if(el.dataset.q===key)el.classList.remove("selected")});
+  if(value)selectedAnswers[key]=value;else delete selectedAnswers[key];
+  updateAnswer(key,value);
+ }));
+}
+
+function updateAnswer(key,value){
+ const status=[...document.querySelectorAll(".answerStatus")].find(el=>el.dataset.status===key);
+ const card=[...document.querySelectorAll(".question")].find(el=>el.dataset.card===key);
+ if(status){status.textContent=value?`Вибрано: ${value}`:"Відповідь ще не вибрана";status.classList.toggle("done",!!value)}
+ if(card&&value)card.classList.remove("missing");
+}
+
+function validateAnswers(){
+ const qs=currentAnalysis?.questions||[];let first=null;
+ qs.forEach((q,i)=>{
+  const key=qKey(q,i),ok=typeof selectedAnswers[key]==="string"&&selectedAnswers[key].trim();
+  const card=[...document.querySelectorAll(".question")].find(el=>el.dataset.card===key);
+  if(card)card.classList.toggle("missing",!ok);if(!ok&&!first)first=card;
+ });
+ if(first){first.scrollIntoView({behavior:"smooth",block:"center"});showError("Дайте відповідь на всі питання Elvin перед продовженням.");return false}
+ return true;
+}
 
 function showAnalysis(data){
-
-  $("result")
-    .classList
-    .remove("hidden");
-
-
-  $("summary").textContent =
-    data.summary || "";
-
-
-  const project =
-    data.project || {};
-
-
-  const rows = [
-
-    [
-      "Назва замовлення",
-      project.name
-    ],
-
-    [
-      "Тип виробу",
-      project.furniture_type
-    ],
-
-    [
-      "Ширина",
-      project.width_mm
-        ? project.width_mm + " мм"
-        : "—"
-    ],
-
-    [
-      "Висота",
-      project.height_mm
-        ? project.height_mm + " мм"
-        : "—"
-    ],
-
-    [
-      "Глибина",
-      project.depth_mm
-        ? project.depth_mm + " мм"
-        : "—"
-    ],
-
-    [
-      "Секції",
-      project.sections_description
-    ],
-
-    [
-      "Матеріал",
-      project.material
-    ],
-
-    [
-      "Задня стінка",
-      project.back_panel
-    ]
-
-  ];
-
-
-  $("project").innerHTML =
-    rows.map(
-
-      ([key,value]) => `
-
-      <div class="kv">
-
-        <div class="k">
-          ${escapeHtml(key)}
-        </div>
-
-        <div class="v">
-          ${escapeHtml(value || "—")}
-        </div>
-
-      </div>
-
-      `
-
-    ).join("");
-
-
-  const warnings =
-    data.warnings || [];
-
-
-  $("warningsBlock")
-    .classList
-    .toggle(
-      "hidden",
-      !warnings.length
-    );
-
-
-  $("warnings").innerHTML =
-    warnings.map(
-
-      warning => `
-
-      <div class="question">
-        ${escapeHtml(warning)}
-      </div>
-
-      `
-
-    ).join("");
-
-
-  const questions =
-    data.questions || [];
-
-
-  $("questionsBlock")
-    .classList
-    .toggle(
-      "hidden",
-      !questions.length
-    );
-
-
-  $("ready")
-    .classList
-    .toggle(
-
-      "hidden",
-
-      !(
-        data.status === "ready" &&
-        questions.length === 0
-      )
-
-    );
-
-
-  $("questions").innerHTML =
-    questions.map(
-
-      question => `
-
-      <div class="question">
-
-        <b>
-          ${escapeHtml(question.title)}
-        </b>
-
-        <p>
-          ${escapeHtml(question.question)}
-        </p>
-
-        ${
-          (question.options || [])
-          .map(
-
-            option => `
-
-            <button
-              class="option"
-              type="button"
-            >
-
-              ${escapeHtml(option.label)}
-
-              ${
-                option.recommended
-                  ? " · рекомендовано Elvin"
-                  : ""
-              }
-
-            </button>
-
-            `
-
-          )
-          .join("")
-        }
-
-      </div>
-
-      `
-
-    ).join("");
-
-
-  $("result")
-    .scrollIntoView(
-      {
-        behavior:"smooth",
-        block:"start"
-      }
-    );
+ currentAnalysis=data;$("result").classList.remove("hidden");$("summary").textContent=data.summary||"";
+ const p=data.project||{};
+ const rows=[["Назва замовлення",p.name],["Тип виробу",p.furniture_type],["Ширина",p.width_mm?p.width_mm+" мм":"—"],["Висота",p.height_mm?p.height_mm+" мм":"—"],["Глибина",p.depth_mm?p.depth_mm+" мм":"—"],["Секції",p.sections_description],["Матеріал",p.material],["Задня стінка",p.back_panel]];
+ $("project").innerHTML=rows.map(([k,v])=>`<div class="kv"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v||"—")}</div></div>`).join("");
+ const warnings=data.warnings||[];$("warningsBlock").classList.toggle("hidden",!warnings.length);$("warnings").innerHTML=warnings.map(w=>`<div class="question">${escapeHtml(w)}</div>`).join("");
+ const questions=data.questions||[];$("questionsBlock").classList.toggle("hidden",!questions.length);$("ready").classList.toggle("hidden",!(data.status==="ready"&&questions.length===0));
+ if(questions.length)renderQuestions(questions);else $("questions").innerHTML="";
+ $("result").scrollIntoView({behavior:"smooth",block:"start"});
 }
 
-
-$("file")
-.addEventListener(
-
-  "change",
-
-  event => {
-
-    addFiles(
-
-      Array.from(
-        event.target.files || []
-      )
-
-    );
-
-
-    event.target.value = "";
-
-  }
-
-);
-
-
-$("addMore")
-.addEventListener(
-
-  "click",
-
-  () =>
-    $("file").click()
-
-);
-
-
-const drop =
-  $("drop");
-
-
-drop.addEventListener(
-
-  "dragover",
-
-  event => {
-
-    event.preventDefault();
-
-    drop.classList.add("drag");
-
-  }
-
-);
-
-
-drop.addEventListener(
-
-  "dragleave",
-
-  () =>
-    drop.classList.remove("drag")
-
-);
-
-
-drop.addEventListener(
-
-  "drop",
-
-  event => {
-
-    event.preventDefault();
-
-    drop.classList.remove("drag");
-
-
-    addFiles(
-
-      Array.from(
-        event.dataTransfer.files || []
-      )
-
-    );
-
-  }
-
-);
-
-
-$("analyse")
-.addEventListener(
-
-  "click",
-
-  async () => {
-
-    clearError();
-
-    resetResult();
-
-    setBusy(true);
-
-
-    try{
-
-      $("analyse").innerHTML =
-        '<span class="loader"></span>Передаю фото Elvin…';
-
-
-      const jobId =
-        await startAnalysis();
-
-
-      $("analyse").innerHTML =
-        '<span class="loader"></span>Elvin аналізує всі фото…';
-
-
-      const result =
-        await waitForAnalysis(
-          jobId
-        );
-
-
-      showAnalysis(
-        result
-      );
-
-    }
-    catch(error){
-
-      showError(
-
-        error?.message ||
-        String(error)
-
-      );
-
-    }
-    finally{
-
-      setBusy(false);
-
-    }
-
-  }
-
-);
-
+$("file").addEventListener("change",e=>{addFiles(Array.from(e.target.files||[]));e.target.value=""});
+$("addMore").addEventListener("click",()=>$("file").click());
+const drop=$("drop");
+drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("drag")});
+drop.addEventListener("dragleave",()=>drop.classList.remove("drag"));
+drop.addEventListener("drop",e=>{e.preventDefault();drop.classList.remove("drag");addFiles(Array.from(e.dataTransfer.files||[]))});
+
+$("analyse").addEventListener("click",async()=>{
+ clearError();resetResult();setBusy(true,"Передаю фото Elvin…");
+ try{
+  const jobId=await startAnalysis();
+  $("analyse").innerHTML='<span class="loader"></span>Elvin аналізує всі фото…';
+  showAnalysis(await waitForAnalysis(jobId));
+ }catch(error){showError(error?.message||String(error))}
+ finally{setBusy(false)}
+});
+
+$("continueAnalysis").addEventListener("click",async()=>{
+ clearError();
+ if(!validateAnswers())return;
+ setBusy(true);
+ const original=$("continueAnalysis").textContent;
+ $("continueAnalysis").innerHTML='<span class="loader"></span>Elvin враховує відповіді…';
+ try{
+  const jobId=await startAnalysis({answers:selectedAnswers,previousAnalysis:currentAnalysis});
+  const result=await waitForAnalysis(jobId);
+  showAnalysis(result);
+ }catch(error){showError(error?.message||String(error))}
+ finally{$("continueAnalysis").textContent=original;setBusy(false)}
+});
 </script>
-
 </body>
 </html>
