@@ -442,6 +442,9 @@ export default async (request) => {
     }
 
 
+    const isClarification =
+  previousAnalysis &&
+  Object.keys(answers).length > 0;
     const prompt =
   getWardrobeRulesForAI() +
   "\n\n" +
