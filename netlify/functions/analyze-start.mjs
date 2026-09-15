@@ -1,3 +1,5 @@
+import { getWardrobeRulesForAI } from "../../rules/wardrobe-rules.js";
+
 const MAX_IMAGES = 8;
 const MAX_TOTAL_CHARS = 5_500_000;
 
@@ -9,9 +11,8 @@ function jsonResponse(data, status = 200) {
       "cache-control": "no-store"
     }
   });
-}
-
-function safeString(value) {
+  }
+  function safeString(value) {
   if (value === null || value === undefined) return "";
   if (typeof value === "string") return value;
 
@@ -441,24 +442,20 @@ export default async (request) => {
     }
 
 
-    const isClarification =
-      previousAnalysis &&
-      Object.keys(answers).length > 0;
-
-
     const prompt =
-      isClarification
-
-        ? clarificationPrompt(
-            previousAnalysis,
-            answers,
-            note
-          )
-
-        : initialPrompt(
-            note
-          );
-
+  getWardrobeRulesForAI() +
+  "\n\n" +
+  (
+    isClarification
+      ? clarificationPrompt(
+          previousAnalysis,
+          answers,
+          note
+        )
+      : initialPrompt(
+          note
+        )
+  );
 
     const content = [
       {
