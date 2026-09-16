@@ -1,5 +1,5 @@
 import { getWardrobeRulesForAI } from "../../rules/wardrobe-rules.js";
-
+import { buildWardrobe } from "../../engine/wardrobe-engine.js";
 const MAX_IMAGES = 8;
 const MAX_TOTAL_CHARS = 5_500_000;
 
