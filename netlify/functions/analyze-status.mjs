@@ -1,3 +1,4 @@
+import { buildWardrobe } from "../../engine/wardrobe-engine.js";
 function jsonResponse(data, status = 200) {
   return new Response(
     JSON.stringify(data),
@@ -199,7 +200,17 @@ export default async (request) => {
         }
       );
     }
+const wardrobe = buildWardrobe(result);
 
+if (!wardrobe.ok) {
+  return jsonResponse({
+    status: "needs_clarification",
+    result,
+    wardrobe
+  });
+}
+
+result.wardrobe = wardrobe;
 
     return jsonResponse(
       {
