@@ -185,6 +185,7 @@ async function waitForAnalysis(jobId){
  while(Date.now()-started<MAX_WAIT){
   const data=await getAnalysisStatus(jobId);
   if(data.status==="completed")return data.result;
+   if(data.status==="needs_clarification")return data.result;
   if(["failed","cancelled","incomplete"].includes(data.status))throw new Error(data.error||"Аналіз не завершився.");
   $("analyse").innerHTML='<span class="loader"></span>'+(data.status==="queued"?"Elvin готує аналіз…":"Elvin аналізує всі фото…");
   await sleep(3000);
