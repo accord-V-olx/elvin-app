@@ -74,13 +74,14 @@ function normalizeAnalysis(analysis = {}) {
       analysis.material ??
       analysis.carcassMaterial ??
       analysis.carcass_material ??
-      null,
+     "DSP 18 mm",
 
-    materialThickness: positiveNumber(
-      analysis.materialThickness ??
-      analysis.material_thickness ??
-      analysis.thickness
-    ),
+   materialThickness: positiveNumber(
+    analysis.materialThickness ??
+    analysis.material_thickness ??
+    analysis.thickness ??
+    18
+),
 
     sections:
       analysis.sections ?? null,
@@ -144,21 +145,7 @@ function validateRequiredData(data) {
     );
   }
 
-  if (!hasValue(data.material)) {
-    addMissing(
-      missing,
-      "material",
-      "Який матеріал корпусу?"
-    );
-  }
-
-  if (!data.materialThickness) {
-    addMissing(
-      missing,
-      "materialThickness",
-      "Яка товщина матеріалу корпусу?"
-    );
-  }
+ 
 
   if (!hasValue(data.sections)) {
     addMissing(
