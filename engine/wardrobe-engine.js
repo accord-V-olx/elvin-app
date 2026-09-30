@@ -1,5 +1,5 @@
 // ============================================================
-// ELVIN WARDROBE ENGINE v1.1
+// ELVIN WARDROBE ENGINE v1.1.1
 // ============================================================
 // Purpose:
 // Convert CONFIRMED wardrobe analysis into deterministic
@@ -10,9 +10,10 @@
 // - Factory rules define construction.
 // - Engine calculates.
 // - Engine must NEVER invent missing production data.
+// - Engine output must always be JSON-safe.
 // ============================================================
 
-export const WARDROBE_ENGINE_VERSION = "1.1.0";
+export const WARDROBE_ENGINE_VERSION = "1.1.1";
 
 function hasValue(value) {
   return (
@@ -44,7 +45,12 @@ function addMissing(list, field, question) {
 // ============================================================
 
 function normalizeAnalysis(analysis = {}) {
-  const project = analysis.project ?? {};
+  const project =
+    analysis &&
+    typeof analysis.project === "object" &&
+    analysis.project !== null
+      ? analysis.project
+      : {};
 
   return {
     // --------------------------------------------------------
@@ -92,8 +98,7 @@ function normalizeAnalysis(analysis = {}) {
     // Factory default:
     // DSP 18 mm.
     //
-    // If the drawing explicitly specifies another material
-    // or thickness, the drawing value has priority.
+    // Explicit confirmed project data has priority.
     // --------------------------------------------------------
 
     material:
@@ -114,11 +119,6 @@ function normalizeAnalysis(analysis = {}) {
 
     // --------------------------------------------------------
     // SECTIONS / INTERNAL CONSTRUCTION
-    //
-    // analyze.mjs currently returns:
-    // project.sections_description
-    //
-    // Keep support for old/new field names.
     // --------------------------------------------------------
 
     sections:
@@ -175,10 +175,7 @@ function normalizeAnalysis(analysis = {}) {
       analysis.furnitureType ??
       analysis.furniture_type ??
       project.furniture_type ??
-      null,
-
-    // Keep original AI result for debugging / later stages.
-    source: analysis
+      null
   };
 }
 
@@ -223,8 +220,7 @@ function validateRequiredData(data) {
     );
   }
 
-  // Sections must come from the drawing / confirmed analysis.
-  // Engine must not invent internal construction.
+  // Sections must come from drawing / confirmed analysis.
   if (!hasValue(data.sections)) {
     addMissing(
       missing,
