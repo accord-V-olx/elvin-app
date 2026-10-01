@@ -1,20 +1,12 @@
+import { getStore } from "@netlify/blobs";
+
 // ============================================================
-// ELVIN ADMIN RULES API v1
+// ELVIN ADMIN RULES API v2
+// Persistent storage: Netlify Blobs
 // ============================================================
-// Password is stored in Netlify Environment Variables:
-// ELVIN_ADMIN_PASSWORD
-//
-// Rules are currently stored as the approved factory defaults
-// inside this server-side file.
-//
-// IMPORTANT:
-// This version gives us:
-// - protected admin login
-// - viewing all rules
-// - editing rules during the current admin session/API request
-//
-// Permanent database storage will be connected next.
-// ============================================================
+
+const STORE_NAME = "elvin-rules";
+const RULES_KEY = "wardrobe-rules";
 
 const DEFAULT_RULES = [
   {
@@ -24,7 +16,6 @@ const DEFAULT_RULES = [
     text: "Стандартний матеріал корпусу — ДСП 18 мм. Якщо на кресленні явно вказана інша товщина, Elvin повинен зупинитися та попросити підтвердження.",
     active: true
   },
-
   {
     id: "exact_project_name",
     category: "general",
@@ -32,7 +23,6 @@ const DEFAULT_RULES = [
     text: "Назва проєкту повинна точно відповідати назві на замовленні або кресленні. Якщо точну назву неможливо визначити — STOP → ASK.",
     active: true
   },
-
   {
     id: "unknown_data",
     category: "general",
@@ -40,7 +30,6 @@ const DEFAULT_RULES = [
     text: "Якщо критичні виробничі дані відсутні або неоднозначні, Elvin не має права їх вигадувати. Потрібно зупинити розрахунок і поставити конкретне питання технологу.",
     active: true
   },
-
   {
     id: "multiple_photos",
     category: "general",
@@ -48,7 +37,6 @@ const DEFAULT_RULES = [
     text: "Усі завантажені фотографії потрібно аналізувати разом як аркуші одного замовлення. Не ставити питання, якщо відповідь присутня на іншому фото.",
     active: true
   },
-
   {
     id: "overall_dimensions",
     category: "construction",
@@ -56,7 +44,6 @@ const DEFAULT_RULES = [
     text: "Не можна автоматично складати окремі видимі розміри та вважати результат загальним габаритом. Загальна ширина, висота та глибина повинні бути однозначно визначені з креслення або підтверджені технологом.",
     active: true
   },
-
   {
     id: "back_panel_material",
     category: "back",
@@ -64,7 +51,6 @@ const DEFAULT_RULES = [
     text: "Стандартна задня стінка — ХДФ 3 мм, якщо інше не вказано в замовленні.",
     active: true
   },
-
   {
     id: "back_panel_gap",
     category: "back",
@@ -72,7 +58,6 @@ const DEFAULT_RULES = [
     text: "Для задньої стінки ХДФ використовується технологічний зазор 2 мм по периметру, якщо інше не визначено конкретною конструкцією.",
     active: true
   },
-
   {
     id: "back_panel_type",
     category: "back",
@@ -80,7 +65,6 @@ const DEFAULT_RULES = [
     text: "Задня стінка може бути накладною або встановленою в паз. Якщо тип не видно з креслення або не вказаний — Elvin повинен запитати.",
     active: true
   },
-
   {
     id: "back_panel_groove_offset",
     category: "back",
@@ -88,7 +72,6 @@ const DEFAULT_RULES = [
     text: "Якщо задня стінка встановлюється в паз, а відступ паза від заднього краю не визначений затвердженим правилом або кресленням — потрібно запитати технолога.",
     active: true
   },
-
   {
     id: "edge_visible",
     category: "edge",
@@ -96,7 +79,6 @@ const DEFAULT_RULES = [
     text: "Видимі сторони корпусних деталей кромкуються кромкою 0.8 мм KR08.",
     active: true
   },
-
   {
     id: "edge_technical",
     category: "edge",
@@ -104,7 +86,6 @@ const DEFAULT_RULES = [
     text: "Технічні задні сторони корпусних деталей кромкуються паперовою кромкою 0.2 мм BUM02.",
     active: true
   },
-
   {
     id: "horizontal_edges",
     category: "edge",
@@ -112,7 +93,6 @@ const DEFAULT_RULES = [
     text: "Для стандартних горизонтальних деталей передня сторона — KR08 0.8 мм, задня технічна сторона — BUM02 0.2 мм, якщо конструкція не вимагає іншого.",
     active: true
   },
-
   {
     id: "facade_default",
     category: "facade",
@@ -120,7 +100,6 @@ const DEFAULT_RULES = [
     text: "Якщо фасади показані на кресленні без окремої примітки, вони вважаються накладними. Вкладні фасади застосовуються лише коли це явно вказано.",
     active: true
   },
-
   {
     id: "facade_edges",
     category: "facade",
@@ -128,7 +107,6 @@ const DEFAULT_RULES = [
     text: "Фасади з ДСП кромкуються кромкою 0.8 мм з усіх чотирьох сторін.",
     active: true
   },
-
   {
     id: "facade_vertical_gaps",
     category: "facade",
@@ -136,7 +114,6 @@ const DEFAULT_RULES = [
     text: "Стандартний верхній зазор фасаду — 3 мм. Стандартний нижній зазор фасаду — 3 мм.",
     active: true
   },
-
   {
     id: "facade_side_gaps",
     category: "facade",
@@ -144,7 +121,6 @@ const DEFAULT_RULES = [
     text: "Стандартний боковий зазор фасадів — 3 мм.",
     active: true
   },
-
   {
     id: "facade_between_gap",
     category: "facade",
@@ -152,7 +128,6 @@ const DEFAULT_RULES = [
     text: "Стандартний зазор між сусідніми фасадами — 3 мм.",
     active: true
   },
-
   {
     id: "facade_floating_gap",
     category: "facade",
@@ -160,7 +135,6 @@ const DEFAULT_RULES = [
     text: "Якщо стандартний зазор не дозволяє отримати однакові фасади цілим числом міліметрів, допускається рівномірний плаваючий зазор у межах 1.5–4.0 мм.",
     active: true
   },
-
   {
     id: "facade_texture",
     category: "facade",
@@ -168,7 +142,6 @@ const DEFAULT_RULES = [
     text: "Стандартний напрям текстури фасадів — вертикальний, якщо інше не вказано.",
     active: true
   },
-
   {
     id: "plinth_unknown",
     category: "plinth",
@@ -176,7 +149,6 @@ const DEFAULT_RULES = [
     text: "Якщо на кресленні не видно цоколя або способу опори виробу, Elvin повинен запитати конструкцію низу, а не вигадувати її.",
     active: true
   },
-
   {
     id: "plinth_setback",
     category: "plinth",
@@ -184,7 +156,6 @@ const DEFAULT_RULES = [
     text: "Якщо відступ цоколя від переднього краю не визначений кресленням або затвердженим правилом конкретної конструкції — потрібно запитати технолога.",
     active: true
   },
-
   {
     id: "support_type",
     category: "construction",
@@ -192,7 +163,6 @@ const DEFAULT_RULES = [
     text: "Якщо не визначено, чи боковини стоять на підлозі, чи корпус стоїть на ніжках або цоколі — Elvin повинен запитати.",
     active: true
   },
-
   {
     id: "top_type",
     category: "construction",
@@ -200,7 +170,6 @@ const DEFAULT_RULES = [
     text: "Якщо конструкція кришки не визначена кресленням або правилом конкретного типу виробу, потрібно уточнити: накладна чи вкладна.",
     active: true
   },
-
   {
     id: "bottom_type",
     category: "construction",
@@ -208,7 +177,6 @@ const DEFAULT_RULES = [
     text: "Якщо конструкція низу не визначена, потрібно уточнити: дно на ніжках, дно на цоколі, вкладне дно або інша конструкція.",
     active: true
   },
-
   {
     id: "mount_scheme",
     category: "drilling",
@@ -216,7 +184,6 @@ const DEFAULT_RULES = [
     text: "Для підтверджених з'єднань у BAZIS використовувати перевірений MountScheme(). Не замінювати його неперевіреним ручним API свердління.",
     active: true
   },
-
   {
     id: "panel_contact",
     category: "drilling",
@@ -224,7 +191,6 @@ const DEFAULT_RULES = [
     text: "Свердління та схема кріплення можуть створюватися лише там, де деталі фізично контактують відповідно до конструкції.",
     active: true
   },
-
   {
     id: "no_unrequested_elements",
     category: "general",
@@ -232,7 +198,6 @@ const DEFAULT_RULES = [
     text: "Не додавати фасади, ручки, шухляди, алюмінієві рамки, освітлення, розетки, стільниці або інші елементи без прямої вказівки в замовленні або підтвердження технолога.",
     active: true
   },
-
   {
     id: "sliding_doors",
     category: "facade",
@@ -240,7 +205,6 @@ const DEFAULT_RULES = [
     text: "Двері-купе та дзеркальні алюмінієві системи Elvin поки не конструює автоматично. Elvin лише фіксує їх наявність.",
     active: true
   },
-
   {
     id: "rule_change",
     category: "general",
@@ -248,7 +212,6 @@ const DEFAULT_RULES = [
     text: "Elvin не має права самостійно змінювати виробничі правила. Він може лише запропонувати зміну. Нове правило стає виробничим тільки після підтвердження.",
     active: true
   },
-
   {
     id: "bazis_verified_code",
     category: "general",
@@ -257,21 +220,6 @@ const DEFAULT_RULES = [
     active: true
   }
 ];
-
-
-// ============================================================
-// TEMPORARY IN-MEMORY RULE STORAGE
-// ============================================================
-//
-// This is intentionally temporary.
-// Netlify functions may restart, so changes are NOT guaranteed
-// to survive a new function instance/deploy.
-//
-// Next step: persistent storage.
-// ============================================================
-
-let currentRules = structuredClone(DEFAULT_RULES);
-
 
 // ============================================================
 // HELPERS
@@ -288,27 +236,20 @@ function json(statusCode, body) {
   };
 }
 
-
 function getAdminPassword() {
   return process.env.ELVIN_ADMIN_PASSWORD || "";
 }
 
-
 function validPassword(password) {
   const adminPassword = getAdminPassword();
 
-  if (!adminPassword) {
-    return false;
-  }
+  if (!adminPassword) return false;
 
   return password === adminPassword;
 }
 
-
 function sanitizeRules(input) {
-  if (!Array.isArray(input)) {
-    return null;
-  }
+  if (!Array.isArray(input)) return null;
 
   return input
     .filter(rule => rule && typeof rule === "object")
@@ -319,7 +260,7 @@ function sanitizeRules(input) {
           : `rule_${Date.now()}_${index}`,
 
       category:
-        typeof rule.category === "string"
+        typeof rule.category === "string" && rule.category.trim()
           ? rule.category.trim()
           : "general",
 
@@ -339,13 +280,68 @@ function sanitizeRules(input) {
     .filter(rule => rule.title && rule.text);
 }
 
+function getRulesStore() {
+  return getStore({
+    name: STORE_NAME,
+    consistency: "strong"
+  });
+}
+
+// ============================================================
+// STORAGE
+// ============================================================
+
+async function loadRules() {
+  const store = getRulesStore();
+
+  const saved = await store.get(RULES_KEY, {
+    type: "json"
+  });
+
+  if (
+    saved &&
+    Array.isArray(saved.rules)
+  ) {
+    return saved.rules;
+  }
+
+  // First run: create persistent rules from defaults.
+  const initialRules = structuredClone(DEFAULT_RULES);
+
+  await store.setJSON(RULES_KEY, {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    rules: initialRules
+  });
+
+  return initialRules;
+}
+
+async function saveRules(rules) {
+  const store = getRulesStore();
+
+  const data = {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    rules
+  };
+
+  await store.setJSON(RULES_KEY, data);
+
+  return data;
+}
+
+async function resetRules() {
+  const rules = structuredClone(DEFAULT_RULES);
+
+  return await saveRules(rules);
+}
 
 // ============================================================
 // HANDLER
 // ============================================================
 
 export async function handler(event) {
-
   if (event.httpMethod !== "POST") {
     return json(405, {
       ok: false,
@@ -364,27 +360,20 @@ export async function handler(event) {
     });
   }
 
-
   const action = body.action;
   const password = body.password;
 
-
   // ----------------------------------------------------------
-  // PASSWORD CONFIGURATION CHECK
+  // PASSWORD CHECK
   // ----------------------------------------------------------
 
   if (!getAdminPassword()) {
     return json(500, {
       ok: false,
       error:
-        "На сервері ще не встановлено ELVIN_ADMIN_PASSWORD."
+        "На сервері не встановлено ELVIN_ADMIN_PASSWORD."
     });
   }
-
-
-  // ----------------------------------------------------------
-  // AUTH
-  // ----------------------------------------------------------
 
   if (!validPassword(password)) {
     return json(401, {
@@ -393,74 +382,90 @@ export async function handler(event) {
     });
   }
 
+  try {
+    // --------------------------------------------------------
+    // LOGIN
+    // --------------------------------------------------------
 
-  // ----------------------------------------------------------
-  // LOGIN
-  // ----------------------------------------------------------
-
-  if (action === "login") {
-    return json(200, {
-      ok: true
-    });
-  }
-
-
-  // ----------------------------------------------------------
-  // GET RULES
-  // ----------------------------------------------------------
-
-  if (action === "get") {
-    return json(200, {
-      ok: true,
-      version: "1.0.0",
-      rules: currentRules
-    });
-  }
-
-
-  // ----------------------------------------------------------
-  // SAVE RULES
-  // ----------------------------------------------------------
-
-  if (action === "save") {
-
-    const sanitized = sanitizeRules(body.rules);
-
-    if (!sanitized) {
-      return json(400, {
-        ok: false,
-        error: "Правила мають неправильний формат."
+    if (action === "login") {
+      return json(200, {
+        ok: true
       });
     }
 
-    currentRules = sanitized;
+    // --------------------------------------------------------
+    // GET RULES
+    // --------------------------------------------------------
 
-    return json(200, {
-      ok: true,
-      saved: true,
-      rules: currentRules
+    if (action === "get") {
+      const rules = await loadRules();
+
+      return json(200, {
+        ok: true,
+        storage: "netlify-blobs",
+        version: "2.0.0",
+        rules
+      });
+    }
+
+    // --------------------------------------------------------
+    // SAVE RULES
+    // --------------------------------------------------------
+
+    if (action === "save") {
+      const sanitized = sanitizeRules(body.rules);
+
+      if (!sanitized) {
+        return json(400, {
+          ok: false,
+          error: "Правила мають неправильний формат."
+        });
+      }
+
+      const saved = await saveRules(sanitized);
+
+      return json(200, {
+        ok: true,
+        saved: true,
+        storage: "netlify-blobs",
+        updatedAt: saved.updatedAt,
+        rules: saved.rules
+      });
+    }
+
+    // --------------------------------------------------------
+    // RESET RULES
+    // --------------------------------------------------------
+
+    if (action === "reset") {
+      const saved = await resetRules();
+
+      return json(200, {
+        ok: true,
+        reset: true,
+        storage: "netlify-blobs",
+        updatedAt: saved.updatedAt,
+        rules: saved.rules
+      });
+    }
+
+    return json(400, {
+      ok: false,
+      error: "Невідома дія."
+    });
+
+  } catch (error) {
+    console.error("ELVIN ADMIN RULES ERROR:", error);
+
+    return json(500, {
+      ok: false,
+      error:
+        "Помилка сховища правил: " +
+        (
+          error instanceof Error
+            ? error.message
+            : String(error)
+        )
     });
   }
-
-
-  // ----------------------------------------------------------
-  // RESET TO DEFAULTS
-  // ----------------------------------------------------------
-
-  if (action === "reset") {
-
-    currentRules = structuredClone(DEFAULT_RULES);
-
-    return json(200, {
-      ok: true,
-      reset: true,
-      rules: currentRules
-    });
-  }
-
-
-  return json(400, {
-    ok: false,
-    error: "Невідома дія."
-  });
 }
