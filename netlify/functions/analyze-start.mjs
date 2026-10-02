@@ -1,7 +1,38 @@
 import { getWardrobeRulesForAI } from "../../rules/wardrobe-rules.js";
+import { getStore } from "@netlify/blobs";
 import { buildWardrobe } from "../../engine/wardrobe-engine.js";
 const MAX_IMAGES = 8;
 const MAX_TOTAL_CHARS = 5_500_000;
+const RULES_STORE_NAME = "elvin-rules";
+const RULES_KEY = "wardrobe-rules";
+async function getActiveWardrobeRulesForAI() {
+  try {
+    const store = getStore({
+      name: RULES_STORE_NAME,
+      consistency: "strong"
+    });
+
+    const saved = await store.get(RULES_KEY, {
+      type: "json"
+    });
+
+    if (saved && Array.isArray(saved.rules)) {
+      const activeRules = saved.rules.filter(
+        (rule) => rule && rule.active !== false
+      );
+
+      if (activeRules.length > 0) {
+        return activeRules
+          .map((rule) => `- ${rule.title}: ${rule.text}`)
+          .join("\n");
+      }
+    }
+  } catch (error) {
+    console.error("ELVIN RULES BLOB ERROR:", error);
+  }
+
+  return getWardrobeRulesForAI();
+}
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -446,7 +477,7 @@ export default async (request) => {
   previousAnalysis &&
   Object.keys(answers).length > 0;
     const prompt =
-  getWardrobeRulesForAI() +
+ (await getActiveWardrobeRulesForAI()) +
   "\n\n" +
   (
     isClarification
