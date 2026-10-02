@@ -1,5 +1,5 @@
 // ============================================================
-// ELVIN WARDROBE ENGINE v1.1.1
+// ELVIN WARDROBE ENGINE v1.2.0
 // ============================================================
 // Purpose:
 // Convert CONFIRMED wardrobe analysis into deterministic
@@ -8,12 +8,18 @@
 // IMPORTANT:
 // - AI analyzes the order.
 // - Factory rules define construction.
-// - Engine calculates.
+// - Engine validates and calculates.
 // - Engine must NEVER invent missing production data.
+// - Factory defaults must come from active Elvin rules,
+//   not be hardcoded inside the Engine.
 // - Engine output must always be JSON-safe.
 // ============================================================
 
-export const WARDROBE_ENGINE_VERSION = "1.1.1";
+export const WARDROBE_ENGINE_VERSION = "1.2.0";
+
+// ============================================================
+// HELPERS
+// ============================================================
 
 function hasValue(value) {
   return (
@@ -55,6 +61,7 @@ function normalizeAnalysis(analysis = {}) {
   return {
     // --------------------------------------------------------
     // PROJECT NAME
+    //
     // Exact name from the order/drawing.
     // Never invent a name.
     // --------------------------------------------------------
@@ -69,6 +76,10 @@ function normalizeAnalysis(analysis = {}) {
 
     // --------------------------------------------------------
     // OVERALL DIMENSIONS
+    //
+    // Must come from confirmed analysis.
+    // Never calculate overall dimensions from an
+    // unconfirmed chain of dimensions.
     // --------------------------------------------------------
 
     width: positiveNumber(
@@ -95,10 +106,14 @@ function normalizeAnalysis(analysis = {}) {
     // --------------------------------------------------------
     // MATERIAL
     //
-    // Factory default:
-    // DSP 18 mm.
+    // IMPORTANT:
+    // No factory default is hardcoded here.
     //
-    // Explicit confirmed project data has priority.
+    // Example:
+    // "DSP 18 mm" may be a factory rule,
+    // but that rule must come from Elvin Rules / AI analysis.
+    //
+    // Engine only accepts confirmed production data.
     // --------------------------------------------------------
 
     material:
@@ -106,15 +121,14 @@ function normalizeAnalysis(analysis = {}) {
       analysis.carcassMaterial ??
       analysis.carcass_material ??
       project.material ??
-      "DSP 18 mm",
+      null,
 
     materialThickness: positiveNumber(
       analysis.materialThickness ??
       analysis.material_thickness ??
       analysis.thickness ??
       project.materialThickness ??
-      project.material_thickness ??
-      18
+      project.material_thickness
     ),
 
     // --------------------------------------------------------
@@ -186,7 +200,10 @@ function normalizeAnalysis(analysis = {}) {
 function validateRequiredData(data) {
   const missing = [];
 
-  // Exact project/order name is mandatory.
+  // --------------------------------------------------------
+  // PROJECT NAME
+  // --------------------------------------------------------
+
   if (!hasValue(data.projectName)) {
     addMissing(
       missing,
@@ -195,7 +212,10 @@ function validateRequiredData(data) {
     );
   }
 
-  // Overall dimensions are mandatory.
+  // --------------------------------------------------------
+  // OVERALL DIMENSIONS
+  // --------------------------------------------------------
+
   if (!data.width) {
     addMissing(
       missing,
@@ -220,7 +240,35 @@ function validateRequiredData(data) {
     );
   }
 
-  // Sections must come from drawing / confirmed analysis.
+  // --------------------------------------------------------
+  // MATERIAL
+  //
+  // Material must already be confirmed by analysis/rules.
+  // Engine does not invent a default.
+  // --------------------------------------------------------
+
+  if (!hasValue(data.material)) {
+    addMissing(
+      missing,
+      "material",
+      "Не визначений матеріал корпусу."
+    );
+  }
+
+  if (!data.materialThickness) {
+    addMissing(
+      missing,
+      "materialThickness",
+      "Не визначена товщина матеріалу корпусу."
+    );
+  }
+
+  // --------------------------------------------------------
+  // SECTIONS
+  //
+  // Must come from drawing / confirmed analysis.
+  // --------------------------------------------------------
+
   if (!hasValue(data.sections)) {
     addMissing(
       missing,
@@ -241,6 +289,13 @@ export function buildWardrobe(confirmedAnalysis = {}) {
 
   const missing = validateRequiredData(data);
 
+  // --------------------------------------------------------
+  // STOP -> ASK
+  //
+  // If critical production data is missing,
+  // Engine must stop instead of guessing.
+  // --------------------------------------------------------
+
   if (missing.length > 0) {
     return {
       ok: false,
@@ -256,6 +311,13 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     };
   }
 
+  // --------------------------------------------------------
+  // READY
+  //
+  // At this point the minimum confirmed input exists.
+  // Construction calculation will be added separately.
+  // --------------------------------------------------------
+
   return {
     ok: true,
     status: "READY",
@@ -266,15 +328,30 @@ export function buildWardrobe(confirmedAnalysis = {}) {
 
     project: data,
 
+    // ------------------------------------------------------
+    // PARTS
+    //
     // Parts calculation will be added only from
     // confirmed factory construction rules.
+    // ------------------------------------------------------
+
     parts: [],
 
-    // Machining/drilling will be added separately
+    // ------------------------------------------------------
+    // MACHINING
+    //
+    // Drilling/mounting will be added separately
     // from confirmed BAZIS rules.
+    // ------------------------------------------------------
+
     machining: [],
 
+    // ------------------------------------------------------
+    // BAZIS
+    //
     // BAZIS generation is the next layer.
+    // ------------------------------------------------------
+
     bazis: null
   };
 }
