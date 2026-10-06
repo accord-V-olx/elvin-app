@@ -1,5 +1,5 @@
 // ============================================================
-// ELVIN WARDROBE ENGINE v1.2.0
+// ELVIN WARDROBE ENGINE v1.3.0
 // ============================================================
 // Purpose:
 // Convert CONFIRMED wardrobe analysis into deterministic
@@ -15,7 +15,7 @@
 // - Engine output must always be JSON-safe.
 // ============================================================
 
-export const WARDROBE_ENGINE_VERSION = "1.2.0";
+export const WARDROBE_ENGINE_VERSION = "1.3.0";
 
 // ============================================================
 // HELPERS
@@ -128,7 +128,8 @@ function normalizeAnalysis(analysis = {}) {
       analysis.material_thickness ??
       analysis.thickness ??
       project.materialThickness ??
-      project.material_thickness
+      project.material_thickness ??
+      project.material_thickness_mm
     ),
 
     // --------------------------------------------------------
@@ -169,6 +170,11 @@ function normalizeAnalysis(analysis = {}) {
     plinth:
       analysis.plinth ??
       project.plinth ??
+      null,
+
+    construction:
+      analysis.construction ??
+      project.construction ??
       null,
 
     // --------------------------------------------------------
@@ -275,6 +281,29 @@ function validateRequiredData(data) {
       "sections",
       "Не визначена конструкція або розміри секцій."
     );
+  }
+
+  if (!data.construction || typeof data.construction !== "object") {
+    addMissing(missing, "construction", "Не визначені структуровані параметри конструкції.");
+  } else {
+    const c = data.construction;
+    const requiredConstruction = [
+      ["top_type", "Не визначена конструкція верху."],
+      ["bottom_type", "Не визначена конструкція дна."],
+      ["support_type", "Не визначений тип опори."],
+      ["back_panel_type", "Не визначений спосіб встановлення задньої стінки."],
+      ["facade_type", "Не визначений тип фасадів."]
+    ];
+    for (const [field, question] of requiredConstruction) {
+      if (!hasValue(c[field])) addMissing(missing, `construction.${field}`, question);
+    }
+    if (
+      typeof c.back_panel_type === "string" &&
+      c.back_panel_type.toLowerCase().includes("паз") &&
+      !hasValue(c.back_groove_offset_mm)
+    ) {
+      addMissing(missing, "construction.back_groove_offset_mm", "Для ХДФ у паз не визначений відступ паза.");
+    }
   }
 
   return missing;
