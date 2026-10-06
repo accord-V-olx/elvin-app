@@ -309,6 +309,41 @@ function validateRequiredData(data) {
   return missing;
 }
 
+function buildParts(data) {
+  const t = data.materialThickness;
+  const c = data.construction || {};
+  const parts = [];
+
+  // Only deterministic parts whose construction is explicitly known.
+  // Unknown internal module geometry remains STOP -> ASK upstream.
+  if (c.side_panels === "full_height" && data.height && data.depth) {
+    parts.push(
+      { id: "side_left", type: "side", qty: 1, width_mm: data.depth, height_mm: data.height, thickness_mm: t, material: data.material,
+        edges: { front: "KR08", rear: "BUM02", top: null, bottom: null } },
+      { id: "side_right", type: "side", qty: 1, width_mm: data.depth, height_mm: data.height, thickness_mm: t, material: data.material,
+        edges: { front: "KR08", rear: "BUM02", top: null, bottom: null } }
+    );
+  }
+
+  return parts;
+}
+
+function buildMachining(parts) {
+  // MountScheme is emitted only after exact physical contacts are known.
+  return [];
+}
+
+function buildBazisPlan(data, parts, machining) {
+  return {
+    status: parts.length ? "PARTIAL" : "WAITING_FOR_PART_GEOMETRY",
+    projectName: data.projectName,
+    verifiedMethods: ["moveMin", "SetupActiveMaterial", "AddButt", "TextureOrientation", "MountScheme"],
+    parts,
+    machining,
+    script: null
+  };
+}
+
 // ============================================================
 // ENGINE
 // ============================================================
@@ -347,6 +382,10 @@ export function buildWardrobe(confirmedAnalysis = {}) {
   // Construction calculation will be added separately.
   // --------------------------------------------------------
 
+  const parts = buildParts(data);
+  const machining = buildMachining(parts);
+  const bazis = buildBazisPlan(data, parts, machining);
+
   return {
     ok: true,
     status: "READY",
@@ -364,7 +403,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     // confirmed factory construction rules.
     // ------------------------------------------------------
 
-    parts: [],
+    parts,
 
     // ------------------------------------------------------
     // MACHINING
@@ -373,7 +412,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     // from confirmed BAZIS rules.
     // ------------------------------------------------------
 
-    machining: [],
+    machining,
 
     // ------------------------------------------------------
     // BAZIS
@@ -381,7 +420,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     // BAZIS generation is the next layer.
     // ------------------------------------------------------
 
-    bazis: null
+    bazis
   };
 }
 
