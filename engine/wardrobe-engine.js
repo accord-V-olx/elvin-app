@@ -1,5 +1,5 @@
 // ============================================================
-// ELVIN WARDROBE ENGINE v1.2.0
+// ELVIN WARDROBE ENGINE v1.3.0
 // ============================================================
 // Purpose:
 // Convert CONFIRMED wardrobe analysis into deterministic
@@ -15,7 +15,7 @@
 // - Engine output must always be JSON-safe.
 // ============================================================
 
-export const WARDROBE_ENGINE_VERSION = "1.2.0";
+export const WARDROBE_ENGINE_VERSION = "1.3.0";
 
 // ============================================================
 // HELPERS
@@ -128,7 +128,8 @@ function normalizeAnalysis(analysis = {}) {
       analysis.material_thickness ??
       analysis.thickness ??
       project.materialThickness ??
-      project.material_thickness
+      project.material_thickness ??
+      project.material_thickness_mm
     ),
 
     // --------------------------------------------------------
@@ -169,6 +170,11 @@ function normalizeAnalysis(analysis = {}) {
     plinth:
       analysis.plinth ??
       project.plinth ??
+      null,
+
+    construction:
+      analysis.construction ??
+      project.construction ??
       null,
 
     // --------------------------------------------------------
@@ -277,7 +283,66 @@ function validateRequiredData(data) {
     );
   }
 
+  if (!data.construction || typeof data.construction !== "object") {
+    addMissing(missing, "construction", "Не визначені структуровані параметри конструкції.");
+  } else {
+    const c = data.construction;
+    const requiredConstruction = [
+      ["top_type", "Не визначена конструкція верху."],
+      ["bottom_type", "Не визначена конструкція дна."],
+      ["support_type", "Не визначений тип опори."],
+      ["back_panel_type", "Не визначений спосіб встановлення задньої стінки."],
+      ["facade_type", "Не визначений тип фасадів."],
+      ["side_panels", "Не визначена схема боковин."]
+    ];
+    for (const [field, question] of requiredConstruction) {
+      if (!hasValue(c[field])) addMissing(missing, `construction.${field}`, question);
+    }
+    if (
+      typeof c.back_panel_type === "string" &&
+      c.back_panel_type.toLowerCase().includes("паз") &&
+      !hasValue(c.back_groove_offset_mm)
+    ) {
+      addMissing(missing, "construction.back_groove_offset_mm", "Для ХДФ у паз не визначений відступ паза.");
+    }
+  }
+
   return missing;
+}
+
+function buildParts(data) {
+  const t = data.materialThickness;
+  const c = data.construction || {};
+  const parts = [];
+
+  // Only deterministic parts whose construction is explicitly known.
+  // Unknown internal module geometry remains STOP -> ASK upstream.
+  if (c.side_panels === "full_height" && data.height && data.depth) {
+    parts.push(
+      { id: "side_left", type: "side", qty: 1, width_mm: data.depth, height_mm: data.height, thickness_mm: t, material: data.material,
+        edges: { front: "KR08", rear: "BUM02", top: null, bottom: null } },
+      { id: "side_right", type: "side", qty: 1, width_mm: data.depth, height_mm: data.height, thickness_mm: t, material: data.material,
+        edges: { front: "KR08", rear: "BUM02", top: null, bottom: null } }
+    );
+  }
+
+  return parts;
+}
+
+function buildMachining(parts) {
+  // MountScheme is emitted only after exact physical contacts are known.
+  return [];
+}
+
+function buildBazisPlan(data, parts, machining) {
+  return {
+    status: parts.length ? "PARTIAL" : "WAITING_FOR_PART_GEOMETRY",
+    projectName: data.projectName,
+    verifiedMethods: ["moveMin", "SetupActiveMaterial", "AddButt", "TextureOrientation", "MountScheme"],
+    parts,
+    machining,
+    script: null
+  };
 }
 
 // ============================================================
@@ -318,6 +383,10 @@ export function buildWardrobe(confirmedAnalysis = {}) {
   // Construction calculation will be added separately.
   // --------------------------------------------------------
 
+  const parts = buildParts(data);
+  const machining = buildMachining(parts);
+  const bazis = buildBazisPlan(data, parts, machining);
+
   return {
     ok: true,
     status: "READY",
@@ -335,7 +404,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     // confirmed factory construction rules.
     // ------------------------------------------------------
 
-    parts: [],
+    parts,
 
     // ------------------------------------------------------
     // MACHINING
@@ -344,7 +413,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     // from confirmed BAZIS rules.
     // ------------------------------------------------------
 
-    machining: [],
+    machining,
 
     // ------------------------------------------------------
     // BAZIS
@@ -352,7 +421,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     // BAZIS generation is the next layer.
     // ------------------------------------------------------
 
-    bazis: null
+    bazis
   };
 }
 

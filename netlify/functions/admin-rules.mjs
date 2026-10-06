@@ -7,6 +7,8 @@ import { getStore } from "@netlify/blobs";
 
 const STORE_NAME = "elvin-rules";
 const RULES_KEY = "wardrobe-rules";
+const HISTORY_KEY = "wardrobe-rules-history";
+const MAX_HISTORY = 50;
 
 // ============================================================
 // DEFAULT RULES
@@ -242,6 +244,10 @@ function getAdminPassword() {
   return Netlify.env.get("ELVIN_ADMIN_PASSWORD") || "";
 }
 
+function safeReason(value) {
+  return typeof value === "string" && value.trim() ? value.trim().slice(0, 120) : "manual-save";
+}
+
 function validPassword(password) {
   const adminPassword = getAdminPassword();
   return Boolean(adminPassword) && password === adminPassword;
@@ -313,23 +319,38 @@ async function loadRules() {
   return initialRules;
 }
 
-async function saveRules(rules) {
+async function loadHistory() {
   const store = getRulesStore();
+  const saved = await store.get(HISTORY_KEY, { type: "json" });
+  return saved && Array.isArray(saved.entries) ? saved.entries : [];
+}
 
-  const data = {
-    version: 1,
-    updatedAt: new Date().toISOString(),
-    rules
-  };
+async function saveRules(rules, reason = "manual-save") {
+  const store = getRulesStore();
+  const current = await store.get(RULES_KEY, { type: "json" });
+  const nextVersion = Number(current?.version || 0) + 1;
+  const updatedAt = new Date().toISOString();
 
+  if (current && Array.isArray(current.rules)) {
+    const history = await loadHistory();
+    history.unshift({
+      version: Number(current.version || 1),
+      updatedAt: current.updatedAt || null,
+      archivedAt: updatedAt,
+      reason,
+      rules: current.rules
+    });
+    await store.setJSON(HISTORY_KEY, { entries: history.slice(0, MAX_HISTORY) });
+  }
+
+  const data = { version: nextVersion, updatedAt, rules };
   await store.setJSON(RULES_KEY, data);
-
   return data;
 }
 
 async function resetRules() {
   const rules = structuredClone(DEFAULT_RULES);
-  return saveRules(rules);
+  return saveRules(rules, "reset-defaults");
 }
 
 // ============================================================
@@ -404,6 +425,25 @@ export default async (req) => {
     }
 
     // ========================================================
+    // HISTORY
+    // ========================================================
+
+    if (action === "history") {
+      const history = await loadHistory();
+      return json(200, { ok: true, history });
+    }
+
+    if (action === "rollback") {
+      const history = await loadHistory();
+      const target = history.find(entry => Number(entry.version) === Number(body.version));
+      if (!target || !Array.isArray(target.rules)) {
+        return json(404, { ok: false, error: "Версію правил не знайдено." });
+      }
+      const saved = await saveRules(sanitizeRules(target.rules), `rollback-to-${target.version}`);
+      return json(200, { ok: true, rollback: true, version: saved.version, updatedAt: saved.updatedAt, rules: saved.rules });
+    }
+
+    // ========================================================
     // SAVE
     // ========================================================
 
@@ -417,7 +457,7 @@ export default async (req) => {
         });
       }
 
-      const saved = await saveRules(rules);
+      const saved = await saveRules(rules, safeReason(body.reason));
 
       return json(200, {
         ok: true,

@@ -158,6 +158,27 @@ const RESPONSE_SCHEMA = {
 
         back_panel: {
           type: ["string", "null"]
+        },
+
+        material_thickness_mm: {
+          type: ["number", "null"]
+        },
+
+        construction: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            top_type: { type: ["string", "null"] },
+            bottom_type: { type: ["string", "null"] },
+            support_type: { type: ["string", "null"] },
+            plinth_height_mm: { type: ["number", "null"] },
+            plinth_setback_mm: { type: ["number", "null"] },
+            back_panel_type: { type: ["string", "null"] },
+            back_groove_offset_mm: { type: ["number", "null"] },
+            facade_type: { type: ["string", "null"] },
+            side_panels: { type: ["string", "null"] }
+          },
+          required: ["top_type","bottom_type","support_type","plinth_height_mm","plinth_setback_mm","back_panel_type","back_groove_offset_mm","facade_type","side_panels"]
         }
       },
 
@@ -169,7 +190,9 @@ const RESPONSE_SCHEMA = {
         "depth_mm",
         "sections_description",
         "material",
-        "back_panel"
+        "back_panel",
+        "material_thickness_mm",
+        "construction"
       ]
     },
 
@@ -280,11 +303,17 @@ function initialPrompt(note) {
 
 10. Не дублюй питання.
 
-11. Якщо критичних питань немає:
+11. ОДНЕ питання = ОДНЕ виробниче рішення. Не об'єднуй ширину, висоту, значення добору, тип дна, опору, цоколь чи інші незалежні параметри в одному питанні.
+
+12. Для невідомих використовуй стабільні id: project_name, overall_width, overall_height, overall_depth, filler_meaning, top_type, bottom_type, support_type, plinth_height, plinth_setback, back_panel_type, back_groove_offset, facade_type, side_panels.
+
+13. Заповнюй project.material_thickness_mm та project.construction лише з креслення, підтверджених відповідей або активних правил. Невідоме залишай null.
+
+14. Якщо критичних питань немає:
 status="ready"
 questions=[]
 
-12. Якщо питання є:
+15. Якщо питання є:
 status="needs_clarification"
 
 Примітка технолога:
@@ -343,6 +372,12 @@ questions=[]
 11. Усі фото — аркуші ОДНОГО замовлення.
 
 12. Не плутати загальний габарит із сумою модулів, доборів або інших елементів без явного підтвердження.
+
+13. ОДНЕ питання = ОДНЕ виробниче рішення. Якщо старе питання містило кілька рішень, розділи невирішені частини.
+
+14. Онови project.material_thickness_mm та project.construction з підтверджених відповідей; невідоме залишай null.
+
+15. Recommended не є підтвердженням, доки технолог не вибрав варіант.
 
 ПОПЕРЕДНІЙ АНАЛІЗ:
 
