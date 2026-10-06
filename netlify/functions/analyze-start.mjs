@@ -175,9 +175,10 @@ const RESPONSE_SCHEMA = {
             plinth_setback_mm: { type: ["number", "null"] },
             back_panel_type: { type: ["string", "null"] },
             back_groove_offset_mm: { type: ["number", "null"] },
-            facade_type: { type: ["string", "null"] }
+            facade_type: { type: ["string", "null"] },
+            side_panels: { type: ["string", "null"] }
           },
-          required: ["top_type","bottom_type","support_type","plinth_height_mm","plinth_setback_mm","back_panel_type","back_groove_offset_mm","facade_type"]
+          required: ["top_type","bottom_type","support_type","plinth_height_mm","plinth_setback_mm","back_panel_type","back_groove_offset_mm","facade_type","side_panels"]
         }
       },
 
@@ -304,7 +305,7 @@ function initialPrompt(note) {
 
 11. ОДНЕ питання = ОДНЕ виробниче рішення. Не об'єднуй ширину, висоту, значення добору, тип дна, опору, цоколь чи інші незалежні параметри в одному питанні.
 
-12. Для невідомих використовуй стабільні id: project_name, overall_width, overall_height, overall_depth, filler_meaning, top_type, bottom_type, support_type, plinth_height, plinth_setback, back_panel_type, back_groove_offset, facade_type.
+12. Для невідомих використовуй стабільні id: project_name, overall_width, overall_height, overall_depth, filler_meaning, top_type, bottom_type, support_type, plinth_height, plinth_setback, back_panel_type, back_groove_offset, facade_type, side_panels.
 
 13. Заповнюй project.material_thickness_mm та project.construction лише з креслення, підтверджених відповідей або активних правил. Невідоме залишай null.
 
