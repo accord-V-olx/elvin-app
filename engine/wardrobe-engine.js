@@ -292,7 +292,8 @@ function validateRequiredData(data) {
       ["bottom_type", "Не визначена конструкція дна."],
       ["support_type", "Не визначений тип опори."],
       ["back_panel_type", "Не визначений спосіб встановлення задньої стінки."],
-      ["facade_type", "Не визначений тип фасадів."]
+      ["facade_type", "Не визначений тип фасадів."],
+      ["side_panels", "Не визначена схема боковин."]
     ];
     for (const [field, question] of requiredConstruction) {
       if (!hasValue(c[field])) addMissing(missing, `construction.${field}`, question);
