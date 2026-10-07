@@ -203,6 +203,21 @@ export default async (request) => {
 const wardrobe = buildWardrobe(result);
 
 if (!wardrobe.ok) {
+  const existing = Array.isArray(result.questions) ? result.questions : [];
+  const existingIds = new Set(existing.map(q => String(q.id || q.key || "")));
+  const engineQuestions = (wardrobe.missing || [])
+    .filter(item => !existingIds.has(String(item.field)))
+    .map(item => ({
+      id: String(item.field),
+      title: "Потрібне уточнення для Wardrobe Engine",
+      question: item.question,
+      options: []
+    }));
+
+  result.status = "needs_clarification";
+  result.questions = [...existing, ...engineQuestions];
+  result.wardrobe = wardrobe;
+
   return jsonResponse({
     status: "needs_clarification",
     result,
