@@ -15,7 +15,7 @@
 // - Engine output must always be JSON-safe.
 // ============================================================
 
-export const WARDROBE_ENGINE_VERSION = "1.3.0";
+export const WARDROBE_ENGINE_VERSION = "1.4.0";
 
 // ============================================================
 // HELPERS
@@ -315,14 +315,14 @@ function buildParts(data) {
   const c = data.construction || {};
   const parts = [];
 
-  // Only deterministic parts whose construction is explicitly known.
-  // Unknown internal module geometry remains STOP -> ASK upstream.
+  // Geometry is emitted only when the Engine has exact dimensions.
+  // Edging is intentionally NOT hardcoded here: it must come from active rules.
   if (c.side_panels === "full_height" && data.height && data.depth) {
     parts.push(
-      { id: "side_left", type: "side", qty: 1, width_mm: data.depth, height_mm: data.height, thickness_mm: t, material: data.material,
-        edges: { front: "KR08", rear: "BUM02", top: null, bottom: null } },
-      { id: "side_right", type: "side", qty: 1, width_mm: data.depth, height_mm: data.height, thickness_mm: t, material: data.material,
-        edges: { front: "KR08", rear: "BUM02", top: null, bottom: null } }
+      { id: "side_left", name: "ST_L", type: "side", qty: 1, size_x_mm: t, size_y_mm: data.depth, size_z_mm: data.height,
+        x_mm: 0, y_mm: 0, z_mm: 0, thickness_mm: t, material: data.material, edges: null },
+      { id: "side_right", name: "ST_R", type: "side", qty: 1, size_x_mm: t, size_y_mm: data.depth, size_z_mm: data.height,
+        x_mm: data.width - t, y_mm: 0, z_mm: 0, thickness_mm: t, material: data.material, edges: null }
     );
   }
 
@@ -334,14 +334,56 @@ function buildMachining(parts) {
   return [];
 }
 
+function safeBazisName(value) {
+  return String(value || "").replace(/[\\"]/g, "_");
+}
+
+function generateBazisScript(data, parts) {
+  if (!parts.length) return null;
+
+  const lines = [
+    "// ELVIN -> BAZIS 10",
+    "// Project: " + safeBazisName(data.projectName),
+    "// Generated only from confirmed Wardrobe Engine geometry.",
+    "",
+    "function moveMin(obj, x, y, z) {",
+    "  obj.Build();",
+    "  let g = obj.GabMin;",
+    "  obj.Translate(x - g.x, y - g.y, z - g.z);",
+    "  obj.Build();",
+    "}",
+    ""
+  ];
+
+  for (const part of parts) {
+    const v = "P_" + String(part.id).replace(/[^a-zA-Z0-9_]/g, "_");
+    // For now the verified NewPanel API is used only for vertical Y-Z side panels.
+    if (part.type !== "side") continue;
+    lines.push(
+      "let " + v + " = objects3d.NewPanel(" + part.size_y_mm + ", " + part.size_z_mm + ", objects3d.PanelOrientation.vertical);",
+      v + ".Name = \"" + safeBazisName(part.name || part.id) + " " + part.size_y_mm + "x" + part.size_z_mm + "\";",
+      "moveMin(" + v + ", " + part.x_mm + ", " + part.y_mm + ", " + part.z_mm + ");",
+      ""
+    );
+  }
+
+  lines.push("// Edging and MountScheme are added only when their exact rule/contact data is confirmed.");
+  return lines.join("\n");
+}
+
 function buildBazisPlan(data, parts, machining) {
+  const script = generateBazisScript(data, parts);
   return {
-    status: parts.length ? "PARTIAL" : "WAITING_FOR_PART_GEOMETRY",
+    status: script ? "PREVIEW_CODE_READY" : "WAITING_FOR_PART_GEOMETRY",
     projectName: data.projectName,
-    verifiedMethods: ["moveMin", "SetupActiveMaterial", "AddButt", "TextureOrientation", "MountScheme"],
+    verifiedMethods: ["objects3d.NewPanel", "moveMin", "SetupActiveMaterial", "AddButt", "TextureOrientation", "MountScheme"],
     parts,
     machining,
-    script: null
+    script,
+    productionReady: false,
+    note: script
+      ? "Код геометрії доступний для перевірки. Виробничі кромки/кріплення додаються тільки з підтверджених правил."
+      : "Немає достатньої підтвердженої геометрії для коду."
   };
 }
 

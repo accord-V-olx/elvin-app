@@ -43,7 +43,12 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .error{background:#421c1c;color:#ffd4d4;border:1px solid #703232;padding:14px;border-radius:11px;margin-top:14px;white-space:pre-wrap;overflow-wrap:anywhere}
 .loader{display:inline-block;width:15px;height:15px;border:2px solid #777;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-right:7px;vertical-align:-2px}
 @keyframes spin{to{transform:rotate(360deg)}}
-@media(max-width:700px){.photos,.grid{grid-template-columns:1fr}h1{font-size:30px}.previewBox{height:300px}}
+.productionGrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:16px;margin-top:16px}
+#viewer3d{width:100%;height:420px;background:#090c10;border:1px solid #303844;border-radius:12px;display:block;touch-action:none}
+.codeBox{width:100%;min-height:420px;background:#090c10;color:#d9f7df;border:1px solid #303844;border-radius:12px;padding:14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;white-space:pre;overflow:auto}
+.partList{margin-top:12px;font-size:13px;color:#cbd3dc}
+@media(max-width:800px){.productionGrid{grid-template-columns:1fr}}
+@media(max-width:700px){.photos,.grid{grid-template-columns:1fr}h1{font-size:30px}.previewBox{height:300px}#viewer3d{height:330px}}
 </style>
 </head>
 <body>
@@ -85,8 +90,24 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </div>
 
 <div id="ready" class="card hidden">
-<h2>Готово до наступного етапу</h2>
-<div class="ok">Критичних питань не залишилося.</div>
+<h2>Перевірка перед BAZIS</h2>
+<div class="ok">Критичних питань не залишилося. Нижче показано те, що реально порахував Wardrobe Engine.</div>
+<div class="productionGrid">
+  <div>
+    <h3>3D-перегляд</h3>
+    <canvas id="viewer3d" width="700" height="420" aria-label="3D-перегляд деталей"></canvas>
+    <div class="muted" style="margin-top:8px">Тягніть мишкою/пальцем, щоб повернути модель.</div>
+    <div id="partList" class="partList"></div>
+  </div>
+  <div>
+    <h3>Код BAZIS</h3>
+    <pre id="bazisCode" class="codeBox">Код ще не сформовано.</pre>
+    <div class="actions">
+      <button id="downloadBazis" class="primary" type="button">Скачати .txt</button>
+    </div>
+    <p id="bazisNote" class="muted"></p>
+  </div>
+</div>
 </div>
 </main>
 
@@ -99,7 +120,7 @@ let selectedAnswers={};
 
 function showError(message){$("error").textContent=message;$("error").classList.remove("hidden")}
 function clearError(){$("error").textContent="";$("error").classList.add("hidden")}
-function resetResult(){currentAnalysis=null;selectedAnswers={};$("result").classList.add("hidden");$("questionsBlock").classList.add("hidden");$("ready").classList.add("hidden")}
+function resetResult(){currentAnalysis=null;selectedAnswers={};$("result").classList.add("hidden");$("questionsBlock").classList.add("hidden");$("ready").classList.add("hidden");if($("bazisCode"))$("bazisCode").textContent="Код ще не сформовано."}
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 
 function addFiles(files){
@@ -242,15 +263,66 @@ function validateAnswers(){
  return true;
 }
 
+function renderProduction(wardrobe){
+ const ready=$("ready"),parts=Array.isArray(wardrobe?.parts)?wardrobe.parts:[],bazis=wardrobe?.bazis||{},script=bazis.script||"";
+ ready.classList.remove("hidden");
+ $("bazisCode").textContent=script||"Код ще не сформовано: Elvin не має достатньої підтвердженої геометрії.";
+ $("bazisNote").textContent=bazis.note||"";
+ $("downloadBazis").disabled=!script;
+ $("partList").innerHTML=parts.length
+   ? "<b>Деталі:</b><br>"+parts.map(p=>escapeHtml((p.name||p.id)+" · "+p.size_x_mm+"×"+p.size_y_mm+"×"+p.size_z_mm+" мм")).join("<br>")
+   : "Деталі ще не розраховані.";
+ $("downloadBazis").onclick=()=>{
+   if(!script)return;
+   const name=String(wardrobe?.project?.projectName||"elvin-bazis").replace(/[\\/:*?"<>|]+/g,"_");
+   const blob=new Blob([script],{type:"text/plain;charset=utf-8"});
+   const url=URL.createObjectURL(blob),a=document.createElement("a");
+   a.href=url;a.download=name+".txt";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ };
+ init3DViewer(parts);
+}
+
+function init3DViewer(parts){
+ const canvas=$("viewer3d"),ctx=canvas.getContext("2d");
+ let yaw=-0.65,pitch=0.45,drag=false,lastX=0,lastY=0;
+ const resize=()=>{const r=canvas.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.max(320,Math.round(r.width*d));canvas.height=Math.max(260,Math.round(r.height*d));ctx.setTransform(d,0,0,d,0,0);draw()};
+ const project=(x,y,z,cx,cy,s)=>{
+   const cyaw=Math.cos(yaw),syaw=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+   const rx=x*cyaw-y*syaw, ry=x*syaw+y*cyaw;
+   const rz=z*cp-ry*sp, depth=z*sp+ry*cp;
+   return {x:cx+rx*s,y:cy-rz*s,d:depth};
+ };
+ function draw(){
+   const w=canvas.clientWidth||700,h=canvas.clientHeight||420;ctx.clearRect(0,0,w,h);
+   if(!parts.length){ctx.fillStyle="#9da7b4";ctx.font="14px Arial";ctx.fillText("Немає розрахованих деталей для 3D.",20,32);return}
+   const maxX=Math.max(...parts.map(p=>(p.x_mm||0)+(p.size_x_mm||0)),1);
+   const maxY=Math.max(...parts.map(p=>(p.y_mm||0)+(p.size_y_mm||0)),1);
+   const maxZ=Math.max(...parts.map(p=>(p.z_mm||0)+(p.size_z_mm||0)),1);
+   const s=Math.min((w*.65)/(maxX+maxY*.55),(h*.72)/(maxZ+maxY*.35),.7);
+   const cx=w*.5,cy=h*.82;
+   const faces=[];
+   for(const p of parts){
+     const x=p.x_mm||0,y=p.y_mm||0,z=p.z_mm||0,dx=p.size_x_mm||0,dy=p.size_y_mm||0,dz=p.size_z_mm||0;
+     const v=[[x,y,z],[x+dx,y,z],[x+dx,y+dy,z],[x,y+dy,z],[x,y,z+dz],[x+dx,y,z+dz],[x+dx,y+dy,z+dz],[x,y+dy,z+dz]].map(q=>project(q[0]-maxX/2,q[1]-maxY/2,q[2],cx,cy,s));
+     [[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7],[4,5,6,7]].forEach(ids=>faces.push({pts:ids.map(i=>v[i]),d:ids.reduce((a,i)=>a+v[i].d,0)/4,name:p.name||p.id}));
+   }
+   faces.sort((a,b)=>a.d-b.d);
+   for(const f of faces){ctx.beginPath();ctx.moveTo(f.pts[0].x,f.pts[0].y);for(let i=1;i<f.pts.length;i++)ctx.lineTo(f.pts[i].x,f.pts[i].y);ctx.closePath();ctx.fillStyle="rgba(205,214,224,.16)";ctx.fill();ctx.strokeStyle="rgba(235,240,245,.72)";ctx.lineWidth=1;ctx.stroke()}
+ }
+ canvas.onpointerdown=e=>{drag=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId)};
+ canvas.onpointermove=e=>{if(!drag)return;yaw+=(e.clientX-lastX)*.008;pitch=Math.max(-1.1,Math.min(1.1,pitch+(e.clientY-lastY)*.006));lastX=e.clientX;lastY=e.clientY;draw()};
+ canvas.onpointerup=canvas.onpointercancel=()=>{drag=false};
+ resize();
+}
+
 function showAnalysis(data){
  currentAnalysis=data;$("result").classList.remove("hidden");$("summary").textContent=data.summary||"";
- const p=data.project||{};
- const c=p.construction||{};
+ const p=data.project||{},c=p.construction||{};
  const rows=[["Назва замовлення",p.name],["Тип виробу",p.furniture_type],["Ширина",p.width_mm?p.width_mm+" мм":"—"],["Висота",p.height_mm?p.height_mm+" мм":"—"],["Глибина",p.depth_mm?p.depth_mm+" мм":"—"],["Секції",p.sections_description],["Матеріал",p.material],["Товщина матеріалу",p.material_thickness_mm?p.material_thickness_mm+" мм":"—"],["Верх",c.top_type],["Дно",c.bottom_type],["Опора",c.support_type],["Цоколь",c.plinth_height_mm?c.plinth_height_mm+" мм":"—"],["Відступ цоколя",c.plinth_setback_mm!==null&&c.plinth_setback_mm!==undefined?c.plinth_setback_mm+" мм":"—"],["Задня стінка",p.back_panel],["Монтаж задньої стінки",c.back_panel_type],["Фасади",c.facade_type]];
  $("project").innerHTML=rows.map(([k,v])=>`<div class="kv"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v||"—")}</div></div>`).join("");
  const warnings=data.warnings||[];$("warningsBlock").classList.toggle("hidden",!warnings.length);$("warnings").innerHTML=warnings.map(w=>`<div class="question">${escapeHtml(w)}</div>`).join("");
- const questions=data.questions||[];$("questionsBlock").classList.toggle("hidden",!questions.length);$("ready").classList.toggle("hidden",!(data.status==="ready"&&questions.length===0));
- if(questions.length)renderQuestions(questions);else $("questions").innerHTML="";
+ const questions=data.questions||[];$("questionsBlock").classList.toggle("hidden",!questions.length);
+ if(questions.length){$("ready").classList.add("hidden");renderQuestions(questions)}else{$("questions").innerHTML="";if(data.wardrobe?.ok)renderProduction(data.wardrobe);else $("ready").classList.add("hidden")}
  $("result").scrollIntoView({behavior:"smooth",block:"start"});
 }
 
