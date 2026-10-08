@@ -218,13 +218,14 @@ async function waitForAnalysis(jobId){
 
 function qKey(q,i){return String(q.id||q.key||q.title||`question_${i}`)}
 
+function validAnswer(v){const t=String(v??"").trim();return t.length>1 && /[\p{L}\p{N}]/u.test(t) && !/^[^\p{L}\p{N}]+$/u.test(t)}
 function renderQuestions(questions){
  selectedAnswers={};
  $("questions").innerHTML=questions.map((q,i)=>{
   const key=qKey(q,i),options=Array.isArray(q.options)?q.options:[];
   const buttons=options.map((o,j)=>{
    const label=typeof o==="string"?o:o.label;
-   const value=typeof o==="string"?o:(o.value??o.label);
+   const value=typeof o==="string"?o:(o.label??o.value);
    const rec=typeof o==="object"&&o.recommended;
    return `<button class="option" type="button" data-q="${escapeHtml(key)}" data-v="${escapeHtml(value)}">${escapeHtml(label)}${rec?" · рекомендовано Elvin":""}</button>`
   }).join("");
@@ -236,13 +237,13 @@ function renderQuestions(questions){
   document.querySelectorAll(".option").forEach(el=>{if(el.dataset.q===key)el.classList.remove("selected")});
   button.classList.add("selected");
   const input=[...document.querySelectorAll(".answerInput")].find(el=>el.dataset.input===key);if(input)input.value="";
-  selectedAnswers[key]=value;updateAnswer(key,value);
+  if(validAnswer(value))selectedAnswers[key]=value;updateAnswer(key,value);
  }));
 
  document.querySelectorAll(".answerInput").forEach(input=>input.addEventListener("input",()=>{
   const key=input.dataset.input,value=input.value.trim();
   document.querySelectorAll(".option").forEach(el=>{if(el.dataset.q===key)el.classList.remove("selected")});
-  if(value)selectedAnswers[key]=value;else delete selectedAnswers[key];
+  if(validAnswer(value))selectedAnswers[key]=value;else delete selectedAnswers[key];
   updateAnswer(key,value);
  }));
 }
@@ -250,14 +251,14 @@ function renderQuestions(questions){
 function updateAnswer(key,value){
  const status=[...document.querySelectorAll(".answerStatus")].find(el=>el.dataset.status===key);
  const card=[...document.querySelectorAll(".question")].find(el=>el.dataset.card===key);
- if(status){status.textContent=value?`Вибрано: ${value}`:"Відповідь ще не вибрана";status.classList.toggle("done",!!value)}
+ if(status){status.textContent=validAnswer(value)?`Вибрано: ${value}`:"Введіть змістовну відповідь";status.classList.toggle("done",validAnswer(value))}
  if(card&&value)card.classList.remove("missing");
 }
 
 function validateAnswers(){
  const qs=currentAnalysis?.questions||[];let first=null;
  qs.forEach((q,i)=>{
-  const key=qKey(q,i),ok=typeof selectedAnswers[key]==="string"&&selectedAnswers[key].trim();
+  const key=qKey(q,i),ok=validAnswer(selectedAnswers[key]);
   const card=[...document.querySelectorAll(".question")].find(el=>el.dataset.card===key);
   if(card)card.classList.toggle("missing",!ok);if(!ok&&!first)first=card;
  });
