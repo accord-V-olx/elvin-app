@@ -15,7 +15,7 @@
 // - Engine output must always be JSON-safe.
 // ============================================================
 
-export const WARDROBE_ENGINE_VERSION = "1.5.1-demo";
+export const WARDROBE_ENGINE_VERSION = "1.5.2-demo";
 
 // ============================================================
 // HELPERS
@@ -319,7 +319,7 @@ function buildParts(data) {
 
   // Geometry is emitted only when the Engine has exact dimensions.
   // Edging is intentionally NOT hardcoded here: it must come from active rules.
-  if (c.side_panels === "full_height" && data.height && data.depth) {
+  if (["full_height","to_floor","підлога","на всю висоту"].includes(String(c.side_panels||"").toLowerCase()) && data.height && data.depth) {
     parts.push(
       { id: "side_left", name: "ST_L", type: "side", qty: 1, size_x_mm: t, size_y_mm: data.depth, size_z_mm: data.height,
         x_mm: 0, y_mm: 0, z_mm: 0, thickness_mm: t, material: data.material, edges: null },
@@ -431,7 +431,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
   if (!parts.length) {
     return { ok: false, status: "ASK", engineVersion: WARDROBE_ENGINE_VERSION,
       message: "Конструкція підтверджена частково, але схема панелей ще не підтримується.",
-      missing: [{field:"construction.side_panels",question:"Уточніть схему боковин. Для побудови зараз підтримується full_height."}], project:data };
+      missing: [{field:"construction.side_panels",question:"Боковини шафи йдуть на всю висоту від низу до верху чи стоять на дні?"}], project:data };
   }
   const machining = buildMachining(parts);
   const bazis = buildBazisPlan(data, parts, machining);
