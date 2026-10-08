@@ -15,7 +15,7 @@
 // - Engine output must always be JSON-safe.
 // ============================================================
 
-export const WARDROBE_ENGINE_VERSION = "1.4.1";
+export const WARDROBE_ENGINE_VERSION = "1.5.0-demo";
 
 // ============================================================
 // HELPERS
@@ -357,10 +357,10 @@ function generateBazisScript(data, parts) {
 
   for (const part of parts) {
     const v = "P_" + String(part.id).replace(/[^a-zA-Z0-9_]/g, "_");
-    // For now the verified NewPanel API is used only for vertical Y-Z side panels.
-    if (part.type !== "side") continue;
+    // Geometry preview only. Other orientations require BAZIS verification.
+    if (part.type !== "side" && part.type !== "horizontal") continue;
     lines.push(
-      "let " + v + " = objects3d.NewPanel(" + part.size_y_mm + ", " + part.size_z_mm + ", objects3d.PanelOrientation.vertical);",
+      "let " + v + " = objects3d.NewPanel(" + (part.type === "horizontal" ? part.size_x_mm : part.size_y_mm) + ", " + (part.type === "horizontal" ? part.size_y_mm : part.size_z_mm) + ", objects3d.PanelOrientation." + (part.type === "horizontal" ? "horizont" : "vertical") + ");",
       v + ".Name = \"" + safeBazisName(part.name || part.id) + " " + part.size_y_mm + "x" + part.size_z_mm + "\";",
       "moveMin(" + v + ", " + part.x_mm + ", " + part.y_mm + ", " + part.z_mm + ");",
       ""
@@ -470,6 +470,41 @@ export function buildWardrobe(confirmedAnalysis = {}) {
 
     bazis
   };
+}
+
+
+/**
+ * Isolated demonstration fixture, never a production order.
+ * Explicit assumptions: 18 mm DSP, 80 mm plinth, 20 mm setback,
+ * overlay HDF 3 mm, inset top/bottom, five equally spaced shelves.
+ */
+export function buildTestPenal() {
+  const W=400,H=1500,D=350,T=18,plinthH=80,backT=3;
+  const parts=[];
+  const add=(id,name,type,x,y,z,dx,dy,dz,material="ДСП 18 мм")=>
+    parts.push({id,name,type,qty:1,x_mm:x,y_mm:y,z_mm:z,
+      size_x_mm:dx,size_y_mm:dy,size_z_mm:dz,thickness_mm:type==="back"?backT:T,
+      material,edges:null});
+  add("side_left","ST_L","side",0,0,0,T,D,H);
+  add("side_right","ST_R","side",W-T,0,0,T,D,H);
+  add("bottom","DNO","horizontal",T,0,plinthH,W-2*T,D,T);
+  add("top","VERH","horizontal",T,0,H-T,W-2*T,D,T);
+  const lower=plinthH+T,upper=H-T;
+  for(let i=1;i<=5;i++){
+    const z=lower+(upper-lower)*i/6-T/2;
+    add("shelf_"+i,"POLKA_"+i,"horizontal",T,0,Math.round(z*100)/100,W-2*T,D-10,T);
+  }
+  add("plinth","COKOL","front",T,20,0,W-2*T,T,plinthH);
+  add("back","HDF","back",2,D,2,W-4,backT,H-4,"ХДФ 3 мм");
+  const project={projectName:"TEST-PENAL-400x1500x350",width:W,height:H,depth:D,
+    material:"ДСП 18 мм",materialThickness:T};
+  const machining=[];
+  return {ok:true,status:"DEMO_ONLY",engineVersion:WARDROBE_ENGINE_VERSION,
+    message:"Демонстраційна геометрія з припущеннями. Не для виробництва.",
+    project,parts,machining,bazis:buildBazisPlan(project,parts,machining),
+    assumptions:["Верх і дно вкладні","5 полиць розташовані рівномірно",
+      "Цоколь 80 мм, відступ 20 мм","ХДФ 3 мм накладна, зазор 2 мм",
+      "Кромкування та кріплення не розраховані"]};
 }
 
 // ============================================================
