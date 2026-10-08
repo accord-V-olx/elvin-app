@@ -203,7 +203,39 @@ export default async (request) => {
 // AI analysis is usable independently of future geometry/export readiness.
 // Wardrobe Engine reports production blockers, not extra questions for the operator.
 const wardrobe = buildWardrobe(result);
-const questions = Array.isArray(result.questions) ? result.questions : [];
+// Do not ask again for facts already resolved in the structured analysis.
+// Only explicit, meaningful values count; unknown placeholders do not.
+const project = result.project && typeof result.project === "object" ? result.project : {};
+const construction = project.construction && typeof project.construction === "object" ? project.construction : {};
+const resolved = value => {
+  if (value === null || value === undefined || value === "") return false;
+  if (typeof value === "number") return Number.isFinite(value) && value > 0;
+  const v = String(value).trim().toLowerCase();
+  return Boolean(v) && !/^(null|undefined|unknown|невідомо|не визначено|не визначена|не визначений|немає даних|n\\/a|\\?)$/.test(v);
+};
+const questionFields = {
+  project_name: project.name,
+  overall_width: project.width_mm,
+  overall_height: project.height_mm,
+  overall_depth: project.depth_mm,
+  top_type: construction.top_type,
+  bottom_type: construction.bottom_type,
+  support_type: construction.support_type,
+  plinth_height: construction.plinth_height_mm,
+  plinth_setback: construction.plinth_setback_mm,
+  back_panel_type: construction.back_panel_type,
+  back_groove_offset: construction.back_groove_offset_mm,
+  facade_type: construction.facade_type,
+  side_panels: construction.side_panels
+};
+const rawQuestions = Array.isArray(result.questions) ? result.questions : [];
+const seen = new Set();
+const questions = rawQuestions.filter(question => {
+  const id = String(question?.id || "").trim().toLowerCase();
+  if (!id || seen.has(id)) return false;
+  seen.add(id);
+  return !(Object.prototype.hasOwnProperty.call(questionFields, id) && resolved(questionFields[id]));
+});
 result.questions = questions;
 result.status = questions.length ? "needs_clarification" : "ready";
 result.wardrobe = wardrobe;
