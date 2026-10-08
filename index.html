@@ -336,12 +336,9 @@ function showAnalysis(data){
  const rows=[["Назва замовлення",p.name],["Тип виробу",p.furniture_type],["Ширина",p.width_mm?p.width_mm+" мм":"—"],["Висота",p.height_mm?p.height_mm+" мм":"—"],["Глибина",p.depth_mm?p.depth_mm+" мм":"—"],["Секції",p.sections_description],["Матеріал",p.material],["Товщина матеріалу",p.material_thickness_mm?p.material_thickness_mm+" мм":"—"],["Верх",c.top_type],["Дно",c.bottom_type],["Опора",c.support_type],["Цоколь",c.plinth_height_mm?c.plinth_height_mm+" мм":"—"],["Відступ цоколя",c.plinth_setback_mm!==null&&c.plinth_setback_mm!==undefined?c.plinth_setback_mm+" мм":"—"],["Задня стінка",p.back_panel],["Монтаж задньої стінки",c.back_panel_type],["Фасади",c.facade_type]];
  $("project").innerHTML=rows.map(([k,v])=>`<div class="kv"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v||"—")}</div></div>`).join("");
  const warnings=data.warnings||[];$("warningsBlock").classList.toggle("hidden",!warnings.length);$("warnings").innerHTML=warnings.map(w=>`<div class="question">${escapeHtml(w)}</div>`).join("");
+ // AI analysis questions are independent from the later production geometry.
+ // Missing Wardrobe Engine fields must NOT become mandatory operator questions.
  const questions=[...(Array.isArray(data.questions)?data.questions:[])];
- if(data.wardrobe?.ok===false){
-  for(const m of (data.wardrobe.missing||[])){
-   if(!questions.some(q=>String(q.id||q.key)===String(m.field)))questions.push({id:m.field,title:"Потрібне уточнення конструкції",question:m.question,options:[]});
-  }
- }
  $("questionsBlock").classList.toggle("hidden",!questions.length);
  if(questions.length){$("ready").classList.add("hidden");renderQuestions(questions)}else{$("questions").innerHTML="";if(data.wardrobe?.ok && data.wardrobe.parts?.length)renderProduction(data.wardrobe);else {$("ready").classList.add("hidden");showError(data.wardrobe?.message||"Wardrobe Engine ще не розрахував деталі.")}}
  $("result").scrollIntoView({behavior:"smooth",block:"start"});
