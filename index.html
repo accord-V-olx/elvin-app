@@ -55,6 +55,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <header>ELVIN · AI меблевий конструктор</header>
 <main>
 <h1>Нове замовлення</h1>
+<button id="demoPenal" class="secondary" type="button">3D демо: пенал 400×1500×350</button>
+<p class="muted">Демо використовує припущення, не є виробничим замовленням.</p>
 <p class="muted">Завантажте всі фото одного замовлення. Elvin проаналізує їх разом і зупиниться там, де потрібне уточнення.</p>
 
 <div class="card">
@@ -314,6 +316,18 @@ function init3DViewer(parts){
  canvas.onpointerup=canvas.onpointercancel=()=>{drag=false};
  resize();
 }
+
+$("demoPenal").addEventListener("click",async()=>{
+ try {
+  clearError();
+  const {buildTestPenal}=await import("./engine/wardrobe-engine.js");
+  const demo=buildTestPenal();
+  renderProduction(demo);
+  $("bazisNote").textContent="ДЕМО, НЕ ДЛЯ ВИРОБНИЦТВА. "+demo.assumptions.join("; ")+". "+demo.bazis.note;
+  $("result").classList.add("hidden");$("questionsBlock").classList.add("hidden");
+  $("ready").scrollIntoView({behavior:"smooth",block:"start"});
+ } catch(e){showError("Не вдалося відкрити демо: "+(e?.message||e))}
+});
 
 function showAnalysis(data){
  currentAnalysis=data;$("result").classList.remove("hidden");$("summary").textContent=data.summary||"";
