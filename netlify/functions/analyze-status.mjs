@@ -200,57 +200,19 @@ export default async (request) => {
         }
       );
     }
+// AI analysis is usable independently of future geometry/export readiness.
+// Wardrobe Engine reports production blockers, not extra questions for the operator.
 const wardrobe = buildWardrobe(result);
-
-if (!wardrobe.ok) {
-  const existing = Array.isArray(result.questions) ? result.questions : [];
-  const normalize = v => String(v||"").toLowerCase().replace(/[^a-zа-яіїєґ0-9]/gi,"");
-  // Keep one clarification per physical decision; AI questions take priority.
-  const related = {
-    "construction.support_type": /опор|цокол|ніжк|support|plinth/i,
-    "construction.side_panels": /боковин|стійк|side.panel/i,
-    "construction.top_type": /кришк|верх|top.type/i,
-    "construction.bottom_type": /дн[оа]|bottom.type/i,
-    "construction.back_panel_type": /задн|хдф|back.panel/i,
-    "construction.facade_type": /фасад|facade/i
-  };
-  const engineQuestions = (wardrobe.missing || [])
-    .filter(item => {
-      const field = String(item.field);
-      return !existing.some(q => {
-        const id = String(q.id||q.key||"");
-        const title = String(q.title||"");
-        const question = String(q.question||"");
-        return normalize(id)===normalize(field) ||
-          (related[field] && related[field].test(id+" "+title+" "+question));
-      });
-    })
-    .map(item => ({
-      id: String(item.field),
-      title: "Уточнення конструкції",
-      question: item.question,
-      options: []
-    }));
-
-  result.status = "needs_clarification";
-  result.questions = [...existing, ...engineQuestions];
-  result.wardrobe = wardrobe;
-
-  return jsonResponse({
-    status: "needs_clarification",
-    result,
-    wardrobe
-  });
-}
-
+const questions = Array.isArray(result.questions) ? result.questions : [];
+result.questions = questions;
+result.status = questions.length ? "needs_clarification" : "ready";
 result.wardrobe = wardrobe;
 
-    return jsonResponse(
-      {
-        status: "completed",
-        result
-      }
-    );
+return jsonResponse({
+  status: questions.length ? "needs_clarification" : "completed",
+  result,
+  wardrobe
+});
 
   }
   catch (error) {
