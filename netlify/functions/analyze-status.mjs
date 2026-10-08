@@ -205,6 +205,7 @@ const wardrobe = buildWardrobe(result);
 if (!wardrobe.ok) {
   const existing = Array.isArray(result.questions) ? result.questions : [];
   const normalize = v => String(v||"").toLowerCase().replace(/[^a-zа-яіїєґ0-9]/gi,"");
+  // Keep one clarification per physical decision; AI questions take priority.
   const related = {
     "construction.support_type": /опор|цокол|ніжк|support|plinth/i,
     "construction.side_panels": /боковин|стійк|side.panel/i,
