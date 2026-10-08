@@ -81,12 +81,13 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <h2>Що зрозумів Elvin</h2>
 <p id="summary" class="muted"></p>
 <div id="project" class="grid"></div>
+<p id="analysisState" class="muted"></p>
 <div id="warningsBlock" class="hidden"><h3>Попередження</h3><div id="warnings"></div></div>
 </div>
 
 <div id="questionsBlock" class="card hidden">
-<h2>Потрібне уточнення</h2>
-<p class="muted">Оберіть один із варіантів або введіть свою відповідь. Після відповіді на всі питання натисніть «Продовжити аналіз».</p>
+<h2>Питання для уточнення (не блокують перегляд аналізу)</h2>
+<p class="muted">Аналіз вище вже доступний. За потреби оберіть відповіді й натисніть «Продовжити аналіз». 3D та BAZIS опрацьовуються окремо.</p>
 <div id="questions"></div>
 <button id="continueAnalysis" class="primary" type="button">Продовжити аналіз</button>
 </div>
@@ -340,7 +341,8 @@ function showAnalysis(data){
  // Missing Wardrobe Engine fields must NOT become mandatory operator questions.
  const questions=[...(Array.isArray(data.questions)?data.questions:[])];
  $("questionsBlock").classList.toggle("hidden",!questions.length);
- if(questions.length){$("ready").classList.add("hidden");renderQuestions(questions)}else{$("questions").innerHTML="";if(data.wardrobe?.ok && data.wardrobe.parts?.length)renderProduction(data.wardrobe);else {$("ready").classList.add("hidden");showError(data.wardrobe?.message||"Wardrobe Engine ще не розрахував деталі.")}}
+ $("analysisState").textContent=questions.length ? `Попередній аналіз готовий. Залишилося уточнень: ${questions.length}. Це не заважає перегляду даних замовлення.` : "Аналіз завершено без додаткових питань. Перед виробництвом потрібне підтвердження технолога.";
+ if(questions.length){$("ready").classList.add("hidden");renderQuestions(questions)}else{$("questions").innerHTML="";if(data.wardrobe?.ok && data.wardrobe.parts?.length)renderProduction(data.wardrobe);else $("ready").classList.add("hidden")}
  $("result").scrollIntoView({behavior:"smooth",block:"start"});
 }
 
