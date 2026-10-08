@@ -15,7 +15,7 @@
 // - Engine output must always be JSON-safe.
 // ============================================================
 
-export const WARDROBE_ENGINE_VERSION = "1.5.0-demo";
+export const WARDROBE_ENGINE_VERSION = "1.5.1-demo";
 
 // ============================================================
 // HELPERS
@@ -287,14 +287,16 @@ function validateRequiredData(data) {
     addMissing(missing, "construction", "Не визначені структуровані параметри конструкції.");
   } else {
     const c = data.construction;
+    const backAbsent = /^(немає|відсутня|без|none|no|absent)$/i.test(String(data.backPanel||"").trim()) || /^(none|no_back|absent)$/i.test(String(c.back_panel_type||"").trim());
+    const facadesAbsent = /^(немає|відсутні|без|none|no|absent)$/i.test(String(data.facades||"").trim()) || /^(none|no_facades|absent)$/i.test(String(c.facade_type||"").trim());
     const requiredConstruction = [
       ["top_type", "Не визначена конструкція верху."],
       ["bottom_type", "Не визначена конструкція дна."],
       ["support_type", "Не визначений тип опори."],
-      ["back_panel_type", "Не визначений спосіб встановлення задньої стінки."],
-      ["facade_type", "Не визначений тип фасадів."],
       ["side_panels", "Не визначена схема боковин."]
     ];
+    if (!backAbsent) requiredConstruction.push(["back_panel_type","Не визначений спосіб встановлення задньої стінки."]);
+    if (!facadesAbsent) requiredConstruction.push(["facade_type","Не визначений тип фасадів."]);
     for (const [field, question] of requiredConstruction) {
       if (!hasValue(c[field])) addMissing(missing, `construction.${field}`, question);
     }
