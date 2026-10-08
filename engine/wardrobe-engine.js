@@ -15,7 +15,7 @@
 // - Engine output must always be JSON-safe.
 // ============================================================
 
-export const WARDROBE_ENGINE_VERSION = "1.4.0";
+export const WARDROBE_ENGINE_VERSION = "1.4.1";
 
 // ============================================================
 // HELPERS
@@ -426,6 +426,11 @@ export function buildWardrobe(confirmedAnalysis = {}) {
   // --------------------------------------------------------
 
   const parts = buildParts(data);
+  if (!parts.length) {
+    return { ok: false, status: "ASK", engineVersion: WARDROBE_ENGINE_VERSION,
+      message: "Конструкція підтверджена частково, але схема панелей ще не підтримується.",
+      missing: [{field:"construction.side_panels",question:"Уточніть схему боковин. Для побудови зараз підтримується full_height."}], project:data };
+  }
   const machining = buildMachining(parts);
   const bazis = buildBazisPlan(data, parts, machining);
 
