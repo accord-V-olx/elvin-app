@@ -204,12 +204,29 @@ const wardrobe = buildWardrobe(result);
 
 if (!wardrobe.ok) {
   const existing = Array.isArray(result.questions) ? result.questions : [];
-  const existingIds = new Set(existing.map(q => String(q.id || q.key || "")));
+  const normalize = v => String(v||"").toLowerCase().replace(/[^a-zа-яіїєґ0-9]/gi,"");
+  const related = {
+    "construction.support_type": /опор|цокол|ніжк|support|plinth/i,
+    "construction.side_panels": /боковин|стійк|side.panel/i,
+    "construction.top_type": /кришк|верх|top.type/i,
+    "construction.bottom_type": /дн[оа]|bottom.type/i,
+    "construction.back_panel_type": /задн|хдф|back.panel/i,
+    "construction.facade_type": /фасад|facade/i
+  };
   const engineQuestions = (wardrobe.missing || [])
-    .filter(item => !existingIds.has(String(item.field)))
+    .filter(item => {
+      const field = String(item.field);
+      return !existing.some(q => {
+        const id = String(q.id||q.key||"");
+        const title = String(q.title||"");
+        const question = String(q.question||"");
+        return normalize(id)===normalize(field) ||
+          (related[field] && related[field].test(id+" "+title+" "+question));
+      });
+    })
     .map(item => ({
       id: String(item.field),
-      title: "Потрібне уточнення для Wardrobe Engine",
+      title: "Уточнення конструкції",
       question: item.question,
       options: []
     }));
