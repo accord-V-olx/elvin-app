@@ -328,6 +328,20 @@ function buildParts(data) {
     );
   }
 
+  // Only build panels whose geometry follows explicitly confirmed construction.
+  // Unsupported constructions remain unresolved; never pretend a partial model is complete.
+  const fullHeight = ["full_height","to_floor","підлога","на всю висоту"].includes(String(c.side_panels||"").toLowerCase());
+  const insetTop = ["inset","inset_between_sides","вкладна","вкладний"].includes(String(c.top_type||"").toLowerCase());
+  const insetBottom = ["inset","inset_between_sides","вкладне","вкладний"].includes(String(c.bottom_type||"").toLowerCase());
+  if (fullHeight && insetTop && data.width>2*t && data.height>t) {
+    parts.push({id:"top",name:"VERH",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
+      x_mm:t,y_mm:0,z_mm:data.height-t,thickness_mm:t,material:data.material,edges:null});
+  }
+  if (fullHeight && insetBottom && data.width>2*t && Number.isFinite(Number(c.plinth_height_mm)) &&
+      Number(c.plinth_height_mm)>=0 && Number(c.plinth_height_mm)+t<data.height) {
+    parts.push({id:"bottom",name:"DNO",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
+      x_mm:t,y_mm:0,z_mm:Number(c.plinth_height_mm),thickness_mm:t,material:data.material,edges:null});
+  }
   return parts;
 }
 
