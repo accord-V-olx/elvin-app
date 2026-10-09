@@ -120,10 +120,11 @@ const MAX_FILES=8;
 let photos=[];
 let currentAnalysis=null;
 let selectedAnswers={};
+let confirmedAnswers={}; // Confirmed decisions for this upload session.
 
 function showError(message){$("error").textContent=message;$("error").classList.remove("hidden")}
 function clearError(){$("error").textContent="";$("error").classList.add("hidden")}
-function resetResult(){currentAnalysis=null;selectedAnswers={};$("result").classList.add("hidden");$("questionsBlock").classList.add("hidden");$("ready").classList.add("hidden");if($("bazisCode"))$("bazisCode").textContent="Код ще не сформовано."}
+function resetResult(){currentAnalysis=null;selectedAnswers={};confirmedAnswers={};$("result").classList.add("hidden");$("questionsBlock").classList.add("hidden");$("ready").classList.add("hidden");if($("bazisCode"))$("bazisCode").textContent="Код ще не сформовано."}
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 
 function addFiles(files){
@@ -339,7 +340,8 @@ function showAnalysis(data){
  const warnings=data.warnings||[];$("warningsBlock").classList.toggle("hidden",!warnings.length);$("warnings").innerHTML=warnings.map(w=>`<div class="question">${escapeHtml(w)}</div>`).join("");
  // AI analysis questions are independent from the later production geometry.
  // Missing Wardrobe Engine fields must NOT become mandatory operator questions.
- const questions=[...(Array.isArray(data.questions)?data.questions:[])];
+ const questions=[...(Array.isArray(data.questions)?data.questions:[])].filter(q=>!validAnswer(confirmedAnswers[qKey(q,0)]));
+ data.questions=questions;
  $("questionsBlock").classList.toggle("hidden",!questions.length);
  $("analysisState").textContent=questions.length ? `Попередній аналіз готовий. Залишилося уточнень: ${questions.length}. Це не заважає перегляду даних замовлення.` : "Аналіз завершено без додаткових питань. Перед виробництвом потрібне підтвердження технолога.";
  if(questions.length){$("ready").classList.add("hidden");renderQuestions(questions)}else{$("questions").innerHTML="";if(data.wardrobe?.ok && data.wardrobe.parts?.length)renderProduction(data.wardrobe);else $("ready").classList.add("hidden")}
@@ -370,8 +372,10 @@ $("continueAnalysis").addEventListener("click",async()=>{
  const original=$("continueAnalysis").textContent;
  $("continueAnalysis").innerHTML='<span class="loader"></span>Elvin враховує відповіді…';
  try{
-  const jobId=await startAnalysis({answers:selectedAnswers,previousAnalysis:currentAnalysis});
+  const allAnswers={...confirmedAnswers,...selectedAnswers};
+  const jobId=await startAnalysis({answers:allAnswers,previousAnalysis:currentAnalysis});
   const result=await waitForAnalysis(jobId);
+  confirmedAnswers={...confirmedAnswers,...selectedAnswers};
   showAnalysis(result);
  }catch(error){showError(error?.message||String(error))}
  finally{$("continueAnalysis").textContent=original;setBusy(false)}
