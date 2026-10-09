@@ -219,12 +219,28 @@ async function waitForAnalysis(jobId){
 }
 
 function qKey(q,i){return String(q.id||q.key||q.title||`question_${i}`)}
+// Normalize older AI question IDs using the actual question wording.
+function questionTopic(q){
+ const t=[q.id,q.title,q.question].join(" ").toLowerCase();
+ if(/боковин|side.panels|стоять на дн|всю висоту/.test(t))return "side_panels";
+ if(/задньої стінк|хдф|back.panel.type|спосіб встановлення задн/.test(t))return "back_panel_type";
+ if(/тип полиць|стаціонарн|знімні полиці|shelf.type/.test(t))return "shelf_type";
+ return String(q.id||"").toLowerCase();
+}
+function questionOptions(q){
+ if(Array.isArray(q.options)&&q.options.length)return q.options;
+ const topic=questionTopic(q);
+ if(topic==="side_panels")return ["Боковини на всю висоту, дно між боковинами","Боковини стоять на дні"];
+ if(topic==="back_panel_type")return ["ХДФ 3 мм, накладна (набивна)","ХДФ 3 мм, у паз"];
+ if(topic==="shelf_type")return ["Стаціонарні полиці","Знімні полиці на полицетримачах"];
+ return [];
+}
 
 function validAnswer(v){const t=String(v??"").trim();return t.length>1 && /[\p{L}\p{N}]/u.test(t) && !/^[^\p{L}\p{N}]+$/u.test(t)}
 function renderQuestions(questions){
  selectedAnswers={};
  $("questions").innerHTML=questions.map((q,i)=>{
-  const key=qKey(q,i),options=Array.isArray(q.options)?q.options:[];
+  const key=qKey(q,i),options=questionOptions(q);
   const buttons=options.map((o,j)=>{
    const label=typeof o==="string"?o:o.label;
    const value=typeof o==="string"?o:(o.label??o.value);
@@ -340,7 +356,7 @@ function showAnalysis(data){
  const warnings=data.warnings||[];$("warningsBlock").classList.toggle("hidden",!warnings.length);$("warnings").innerHTML=warnings.map(w=>`<div class="question">${escapeHtml(w)}</div>`).join("");
  // AI analysis questions are independent from the later production geometry.
  // Missing Wardrobe Engine fields must NOT become mandatory operator questions.
- const questions=[...(Array.isArray(data.questions)?data.questions:[])].filter(q=>!validAnswer(confirmedAnswers[qKey(q,0)]));
+ const questions=[...(Array.isArray(data.questions)?data.questions:[])].filter(q=>!validAnswer(confirmedAnswers[qKey(q,0)]) && !validAnswer(confirmedAnswers[questionTopic(q)]));
  data.questions=questions;
  $("questionsBlock").classList.toggle("hidden",!questions.length);
  $("analysisState").textContent=questions.length ? `Попередній аналіз готовий. Залишилося уточнень: ${questions.length}. Це не заважає перегляду даних замовлення.` : "Аналіз завершено без додаткових питань. Перед виробництвом потрібне підтвердження технолога.";
@@ -376,6 +392,10 @@ $("continueAnalysis").addEventListener("click",async()=>{
   const jobId=await startAnalysis({answers:allAnswers,previousAnalysis:currentAnalysis});
   const result=await waitForAnalysis(jobId);
   confirmedAnswers={...confirmedAnswers,...selectedAnswers};
+  for(const [i,q] of (currentAnalysis?.questions||[]).entries()){
+   const value=selectedAnswers[qKey(q,i)];
+   if(validAnswer(value))confirmedAnswers[questionTopic(q)]=value;
+  }
   showAnalysis(result);
  }catch(error){showError(error?.message||String(error))}
  finally{$("continueAnalysis").textContent=original;setBusy(false)}
