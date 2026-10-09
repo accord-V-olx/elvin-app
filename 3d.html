@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Elvin 3D — майстерня</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#0c1220;color:#eaf0fa;font:15px system-ui,-apple-system,Arial}.top{padding:17px 24px;background:#151f32;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.top b{font-size:22px}.tag{font-size:12px;background:#294766;border-radius:12px;padding:5px 10px}.layout{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 72px)}aside{padding:22px;background:#141d2d;border-right:1px solid #304056;display:flex;flex-direction:column;gap:14px}label{display:block;color:#aabbd0;font-size:13px;margin-bottom:5px}input,select,button{width:100%;background:#26364d;border:1px solid #465b76;color:white;border-radius:9px;padding:10px;font:inherit}input:focus,select:focus{outline:2px solid #4b9bec}button{cursor:pointer;background:#2362b1;font-weight:600}button.secondary{background:#26364d}section{position:relative;min-height:530px}canvas{display:block;width:100%;height:calc(100vh - 110px);min-height:510px;touch-action:none}.hint{position:absolute;left:22px;top:18px;color:#c7d6e8;background:#121e30c9;padding:10px 14px;border-radius:10px;pointer-events:none}.status{color:#aabbd0;font-size:13px;line-height:1.5}.footer{padding:12px 24px;color:#96a8be;background:#111a2a;font-size:12px}@media(max-width:760px){.layout{grid-template-columns:1fr}aside{display:grid;grid-template-columns:1fr 1fr;padding:14px;gap:9px}aside .wide{grid-column:1/-1}canvas{height:58vh;min-height:360px}.hint{font-size:12px;left:10px;top:10px}}</style></head>
+*{box-sizing:border-box}body{margin:0;background:#0c1220;color:#eaf0fa;font:15px system-ui,-apple-system,Arial}.top{padding:17px 24px;background:#151f32;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.top b{font-size:22px}.tag{font-size:12px;background:#294766;border-radius:12px;padding:5px 10px}.layout{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 72px)}aside{padding:22px;background:#141d2d;border-right:1px solid #304056;display:flex;flex-direction:column;gap:14px}label{display:block;color:#aabbd0;font-size:13px;margin-bottom:5px}input,select,button{width:100%;background:#26364d;border:1px solid #465b76;color:white;border-radius:9px;padding:10px;font:inherit}input:focus,select:focus{outline:2px solid #4b9bec}button{cursor:pointer;background:#2362b1;font-weight:600}button.secondary{background:#26364d}section{position:relative;min-height:530px}canvas{display:block;width:100%;height:calc(100vh - 110px);min-height:510px;touch-action:none}.hint{position:absolute;left:22px;top:18px;color:#c7d6e8;background:#121e30c9;padding:10px 14px;border-radius:10px;pointer-events:none}.status{color:#aabbd0;font-size:13px;line-height:1.5}.footer{padding:12px 24px;color:#96a8be;background:#111a2a;font-size:12px}@media(max-width:760px){.layout{grid-template-columns:1fr}aside{display:grid;grid-template-columns:1fr 1fr;padding:14px;gap:9px}aside .wide{grid-column:1/-1}canvas{height:58vh;min-height:360px}.hint{font-size:12px;left:10px;top:10px}}.parts-list{max-height:260px;overflow:auto;background:#0c1625;border:1px solid #304056;border-radius:8px;padding:8px;font-size:12px}.part-row{padding:6px 3px;border-bottom:1px solid #29394b}.part-row:last-child{border-bottom:0}.part-row strong{display:block;color:#f2f6fc}.part-row span{color:#9cb2ca}</style></head>
 <body><header class="top"><b>ELVIN <span style="color:#70b6ff">3D</span> майстерня</b><span class="tag">ТЕСТОВИЙ ПЕРЕГЛЯД · НЕ ДЛЯ ВИРОБНИЦТВА</span></header>
 <div class="layout"><aside>
 <div class="wide"><label for="type">Тип меблів</label><select id="type"><option value="penal">Пенал</option><option value="tumba">Тумбочка</option><option value="komod">Комод (без шухляд)</option></select></div>
@@ -15,11 +15,11 @@
 <div class="wide"><button id="reset" class="secondary">Скинути ракурс</button></div>
 <div class="wide status" id="details"></div>
 <div class="wide status">Модель умовна: вкладні верх і дно, боковини на всю висоту, полиці рівномірні. Кріплення, кромка та BAZIS не розраховуються.</div>
-</aside><section><canvas id="view" aria-label="Інтерактивна 3D модель меблів"></canvas><div class="hint">↔ Тягни мишкою або пальцем — обертання<br>↕ Коліщатко — наближення</div></section></div>
+<div class="wide"><label>Список деталей (оновлюється з 3D)</label><div id="partsList" class="parts-list"></div><button id="exportParts" class="secondary" type="button">Завантажити список деталей CSV</button><div class="status">CSV — лише для перевірки. Це не файл і не код BAZIS.</div></div></aside><section><canvas id="view" aria-label="Інтерактивна 3D модель меблів"></canvas><div class="hint">↔ Тягни мишкою або пальцем — обертання<br>↕ Коліщатко — наближення</div></section></div>
 <footer>Elvin 3D Lab · синтетичні тестові моделі, не виробничі креслення</footer>
 <script>
 const $=id=>document.getElementById(id), canvas=$('view'),ctx=canvas.getContext('2d');
-let yaw=-.72,pitch=.35,zoom=1,drag=false,px=0,py=0;
+let yaw=-.72,pitch=.35,zoom=1,drag=false,px=0,py=0;let currentParts=[];
 const num=(id,min,max)=>Math.min(max,Math.max(min,Number($(id).value)||min));
 function boxes(){
  const W=num('w',150,3000),H=num('h',200,3000),D=num('d',150,1200),T=num('t',10,40),N=num('shelves',0,15);
@@ -46,7 +46,7 @@ function draw(){
  const r=canvas.getBoundingClientRect(),w=r.width,h=r.height,dpr=Math.min(devicePixelRatio||1,2);
  if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr)}
  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
- const parts=boxes(),W=num('w',150,3000),H=num('h',200,3000),D=num('d',150,1200);
+ const parts=boxes();currentParts=parts;renderPartsList(parts);const W=num('w',150,3000),H=num('h',200,3000),D=num('d',150,1200);
  const scale=Math.min(w/(W+D)*1.05,h/(H+D)*1.15)*zoom;
  const faces=[];
  for(const p of parts){
@@ -62,6 +62,21 @@ function draw(){
  for(const f of faces){ctx.beginPath();ctx.moveTo(f.pts[0].x,f.pts[0].y);for(let i=1;i<4;i++)ctx.lineTo(f.pts[i].x,f.pts[i].y);ctx.closePath();ctx.fillStyle=f.color;ctx.globalAlpha=f.shade;ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle='#23354a';ctx.lineWidth=.85;ctx.stroke()}
  if(!parts.length){ctx.fillStyle='#fff';ctx.fillText('Некоректні габарити',30,50)}
 }
+function renderPartsList(parts){
+ const root=$('partsList');root.replaceChildren();
+ for(const p of parts){
+  const row=document.createElement('div');row.className='part-row';
+  const name=document.createElement('strong');name.textContent=p.id;
+  const dims=document.createElement('span');dims.textContent=[p.dx,p.dz,p.dy].map(n=>Number(n.toFixed(2))).join(' × ')+' мм (X × Z × Y)';
+  row.append(name,dims);root.append(row);
+ }
+}
+$('exportParts').addEventListener('click',()=>{
+ const rows=[['Назва','X мм','Z мм','Y мм','Позиція X','Позиція Y','Позиція Z'],...currentParts.map(p=>[p.id,p.dx,p.dz,p.dy,p.x,p.y,p.z])];
+ const csv='\uFEFF'+rows.map(row=>row.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+ const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+ const a=document.createElement('a');a.href=url;a.download='elvin-3d-demo-parts.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
 canvas.addEventListener('pointerdown',e=>{drag=true;px=e.clientX;py=e.clientY;canvas.setPointerCapture(e.pointerId)});
 canvas.addEventListener('pointermove',e=>{if(!drag)return;yaw+=(e.clientX-px)*.009;pitch=Math.max(-1.35,Math.min(1.35,pitch+(e.clientY-py)*.007));px=e.clientX;py=e.clientY;draw()});
 canvas.addEventListener('pointerup',()=>drag=false);canvas.addEventListener('pointercancel',()=>drag=false);
