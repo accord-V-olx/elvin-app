@@ -15,7 +15,7 @@
 // - Engine output must always be JSON-safe.
 // ============================================================
 
-export const WARDROBE_ENGINE_VERSION = "1.5.2-demo";
+export const WARDROBE_ENGINE_VERSION = "1.5.3-geometry-guard";
 
 // ============================================================
 // HELPERS
@@ -446,6 +446,26 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     return { ok: false, status: "ASK", engineVersion: WARDROBE_ENGINE_VERSION,
       message: "Конструкція підтверджена частково, але схема панелей ще не підтримується.",
       missing: [{field:"construction.side_panels",question:"Боковини шафи йдуть на всю висоту від низу до верху чи стоять на дні?"}], project:data };
+  }
+  // Never mark a partial carcass as READY. A 3D preview may be useful,
+  // but a missing bottom/top or unmodelled sections cannot become BAZIS-ready.
+  const requiredPartIds = ["side_left", "side_right", "bottom", "top"];
+  const absentParts = requiredPartIds.filter(id => !parts.some(p => p.id === id));
+  const sectionsStructured = Array.isArray(data.sections) && data.sections.length > 0 &&
+    data.sections.every(section => section && typeof section === "object" &&
+      positiveNumber(section.width_mm) && positiveNumber(section.depth_mm));
+  const geometryMissing = [
+    ...absentParts.map(id => ({field:"geometry."+id, question:"Не побудована обов'язкова деталь корпусу: "+id+"."})),
+    ...(!sectionsStructured ? [{field:"sections",question:"Для точної 3D-моделі потрібні структуровані секції з шириною та глибиною."}] : []),
+    {field:"geometry.internal_parts",question:"Розміщення внутрішніх полиць і перегородок ще не розраховується цим Engine."}
+  ];
+  if (geometryMissing.length) {
+    return {
+      ok: false, status: "GEOMETRY_INCOMPLETE", engineVersion: WARDROBE_ENGINE_VERSION,
+      message: "Геометрія часткова: не можна позначати замовлення готовим до BAZIS.",
+      missing: geometryMissing, project: data, parts,
+      machining: [], bazis: {status:"BLOCKED_INCOMPLETE_GEOMETRY",script:null,productionReady:false}
+    };
   }
   const machining = buildMachining(parts);
   const bazis = buildBazisPlan(data, parts, machining);
