@@ -15,7 +15,7 @@
 // - Engine output must always be JSON-safe.
 // ============================================================
 
-export const WARDROBE_ENGINE_VERSION = "1.5.3-geometry-guard";
+export const WARDROBE_ENGINE_VERSION = "1.5.4-bottom-supported";
 
 // ============================================================
 // HELPERS
@@ -341,6 +341,25 @@ function buildParts(data) {
       Number(c.plinth_height_mm)>=0 && Number(c.plinth_height_mm)+t<data.height) {
     parts.push({id:"bottom",name:"DNO",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
       x_mm:t,y_mm:0,z_mm:Number(c.plinth_height_mm),thickness_mm:t,material:data.material,edges:null});
+  }
+  // Bottom-supported carcass: sides stand ON the full-width bottom.
+  // Coordinates: X width, Y depth, Z height. Support height is explicit.
+  const bottomSupported = ["on_bottom","standing_on_bottom","на дні","стоять на дні"].includes(String(c.side_panels||"").toLowerCase());
+  const bottomFull = ["full_width","full","суцільне","на всю ширину"].includes(String(c.bottom_type||"").toLowerCase());
+  const supportH = Number(c.plinth_height_mm);
+  if (bottomSupported && bottomFull && insetTop && Number.isFinite(supportH) && supportH >= 0 &&
+      data.width > 2*t && data.height > supportH + 2*t) {
+    const sideH = data.height - supportH - t;
+    parts.push(
+      {id:"bottom",name:"DNO",type:"horizontal",qty:1,size_x_mm:data.width,size_y_mm:data.depth,size_z_mm:t,
+        x_mm:0,y_mm:0,z_mm:supportH,thickness_mm:t,material:data.material,edges:null},
+      {id:"side_left",name:"ST_L",type:"side",qty:1,size_x_mm:t,size_y_mm:data.depth,size_z_mm:sideH,
+        x_mm:0,y_mm:0,z_mm:supportH+t,thickness_mm:t,material:data.material,edges:null},
+      {id:"side_right",name:"ST_R",type:"side",qty:1,size_x_mm:t,size_y_mm:data.depth,size_z_mm:sideH,
+        x_mm:data.width-t,y_mm:0,z_mm:supportH+t,thickness_mm:t,material:data.material,edges:null},
+      {id:"top",name:"VERH",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
+        x_mm:t,y_mm:0,z_mm:data.height-t,thickness_mm:t,material:data.material,edges:null}
+    );
   }
   return parts;
 }
