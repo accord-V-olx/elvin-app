@@ -211,7 +211,7 @@ const resolved = value => {
   if (value === null || value === undefined || value === "") return false;
   if (typeof value === "number") return Number.isFinite(value) && value > 0;
   const v = String(value).trim().toLowerCase();
-  return Boolean(v) && !/^(null|undefined|unknown|невідомо|не визначено|не визначена|не визначений|немає даних|n\\/a|\\?)$/.test(v);
+  return Boolean(v) && !/^(null|undefined|unknown|невідомо|не визначено|не визначена|не визначений|немає даних|n\/a|\?)$/.test(v);
 };
 const questionFields = {
   project_name: project.name,
