@@ -45,5 +45,35 @@ try {
   assert.deepEqual([byId.top.x_mm,byId.top.z_mm,byId.top.size_x_mm],[18,1982,564]);
   console.log("PASS bottom-supported carcass: four correct panels, export blocked until internals");
 } catch(e) {failures++;console.error("FAIL bottom-supported carcass",e.message);}
+// Explicit internal geometry: no automatic guessing of shelf locations.
+const internals=buildWardrobe({
+  projectName:"TEST-INTERNAL-PANELS",width:600,height:2000,depth:500,
+  material:"ДСП",materialThickness:18,sections:[{width_mm:600,depth_mm:500}],
+  backPanel:"none",facades:"none",construction:{top_type:"inset",bottom_type:"full_width",
+    support_type:"legs",side_panels:"on_bottom",plinth_height_mm:100,
+    internal_panels:[
+      {id:"s1",type:"shelf",x_mm:18,y_mm:0,z_mm:800,width_mm:564,depth_mm:500,height_mm:18},
+      {id:"v1",type:"partition",x_mm:291,y_mm:0,z_mm:818,width_mm:18,depth_mm:500,height_mm:1164}
+    ]}
+});
+try {
+  assert.equal(internals.status,"GEOMETRY_INCOMPLETE");
+  assert.equal(internals.parts.length,6);
+  assert.deepEqual(internals.parts.filter(p=>p.id.startsWith("internal_")).map(p=>p.id),["internal_s1","internal_v1"]);
+  assert.equal(internals.bazis.script,null);
+  console.log("PASS explicit shelf and partition geometry; export safely blocked");
+} catch(e) {failures++;console.error("FAIL explicit internals",e.message);}
+const invalid=buildWardrobe({
+  projectName:"TEST-INVALID-INTERNAL",width:600,height:2000,depth:500,
+  material:"ДСП",materialThickness:18,sections:[{width_mm:600,depth_mm:500}],
+  backPanel:"none",facades:"none",construction:{top_type:"inset",bottom_type:"full_width",
+    support_type:"legs",side_panels:"on_bottom",plinth_height_mm:100,
+    internal_panels:[{id:"bad",type:"shelf",x_mm:18,y_mm:0,z_mm:800,width_mm:800,depth_mm:500,height_mm:18}]}
+});
+try {
+  assert.equal(invalid.parts.length,4);
+  assert.ok(invalid.missing.some(x=>x.field==="construction.internal_panels"));
+  console.log("PASS invalid oversized shelf rejected");
+} catch(e) {failures++;console.error("FAIL invalid internals",e.message);}
 console.log("NOT VERIFIED: actual image AI analysis, real-order 3D completeness, BAZIS execution in BAZIS.");
 if(failures)process.exitCode=1;
