@@ -15,7 +15,7 @@
 // - Engine output must always be JSON-safe.
 // ============================================================
 
-export const WARDROBE_ENGINE_VERSION = "1.3.0";
+export const WARDROBE_ENGINE_VERSION = "1.5.5-internal-panels";
 
 // ============================================================
 // HELPERS
@@ -287,14 +287,16 @@ function validateRequiredData(data) {
     addMissing(missing, "construction", "Не визначені структуровані параметри конструкції.");
   } else {
     const c = data.construction;
+    const backAbsent = /^(немає|відсутня|без|none|no|absent)$/i.test(String(data.backPanel||"").trim()) || /^(none|no_back|absent)$/i.test(String(c.back_panel_type||"").trim());
+    const facadesAbsent = /^(немає|відсутні|без|none|no|absent)$/i.test(String(data.facades||"").trim()) || /^(none|no_facades|absent)$/i.test(String(c.facade_type||"").trim());
     const requiredConstruction = [
       ["top_type", "Не визначена конструкція верху."],
       ["bottom_type", "Не визначена конструкція дна."],
       ["support_type", "Не визначений тип опори."],
-      ["back_panel_type", "Не визначений спосіб встановлення задньої стінки."],
-      ["facade_type", "Не визначений тип фасадів."],
       ["side_panels", "Не визначена схема боковин."]
     ];
+    if (!backAbsent) requiredConstruction.push(["back_panel_type","Не визначений спосіб встановлення задньої стінки."]);
+    if (!facadesAbsent) requiredConstruction.push(["facade_type","Не визначений тип фасадів."]);
     for (const [field, question] of requiredConstruction) {
       if (!hasValue(c[field])) addMissing(missing, `construction.${field}`, question);
     }
@@ -315,17 +317,67 @@ function buildParts(data) {
   const c = data.construction || {};
   const parts = [];
 
-  // Only deterministic parts whose construction is explicitly known.
-  // Unknown internal module geometry remains STOP -> ASK upstream.
-  if (c.side_panels === "full_height" && data.height && data.depth) {
+  // Geometry is emitted only when the Engine has exact dimensions.
+  // Edging is intentionally NOT hardcoded here: it must come from active rules.
+  if (["full_height","to_floor","підлога","на всю висоту"].includes(String(c.side_panels||"").toLowerCase()) && data.height && data.depth) {
     parts.push(
-      { id: "side_left", type: "side", qty: 1, width_mm: data.depth, height_mm: data.height, thickness_mm: t, material: data.material,
-        edges: { front: "KR08", rear: "BUM02", top: null, bottom: null } },
-      { id: "side_right", type: "side", qty: 1, width_mm: data.depth, height_mm: data.height, thickness_mm: t, material: data.material,
-        edges: { front: "KR08", rear: "BUM02", top: null, bottom: null } }
+      { id: "side_left", name: "ST_L", type: "side", qty: 1, size_x_mm: t, size_y_mm: data.depth, size_z_mm: data.height,
+        x_mm: 0, y_mm: 0, z_mm: 0, thickness_mm: t, material: data.material, edges: null },
+      { id: "side_right", name: "ST_R", type: "side", qty: 1, size_x_mm: t, size_y_mm: data.depth, size_z_mm: data.height,
+        x_mm: data.width - t, y_mm: 0, z_mm: 0, thickness_mm: t, material: data.material, edges: null }
     );
   }
 
+  // Only build panels whose geometry follows explicitly confirmed construction.
+  // Unsupported constructions remain unresolved; never pretend a partial model is complete.
+  const fullHeight = ["full_height","to_floor","підлога","на всю висоту"].includes(String(c.side_panels||"").toLowerCase());
+  const insetTop = ["inset","inset_between_sides","вкладна","вкладний"].includes(String(c.top_type||"").toLowerCase());
+  const insetBottom = ["inset","inset_between_sides","вкладне","вкладний"].includes(String(c.bottom_type||"").toLowerCase());
+  if (fullHeight && insetTop && data.width>2*t && data.height>t) {
+    parts.push({id:"top",name:"VERH",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
+      x_mm:t,y_mm:0,z_mm:data.height-t,thickness_mm:t,material:data.material,edges:null});
+  }
+  if (fullHeight && insetBottom && data.width>2*t && Number.isFinite(Number(c.plinth_height_mm)) &&
+      Number(c.plinth_height_mm)>=0 && Number(c.plinth_height_mm)+t<data.height) {
+    parts.push({id:"bottom",name:"DNO",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
+      x_mm:t,y_mm:0,z_mm:Number(c.plinth_height_mm),thickness_mm:t,material:data.material,edges:null});
+  }
+  // Bottom-supported carcass: sides stand ON the full-width bottom.
+  // Coordinates: X width, Y depth, Z height. Support height is explicit.
+  const bottomSupported = ["on_bottom","standing_on_bottom","на дні","стоять на дні"].includes(String(c.side_panels||"").toLowerCase());
+  const bottomFull = ["full_width","full","суцільне","на всю ширину"].includes(String(c.bottom_type||"").toLowerCase());
+  const supportH = Number(c.plinth_height_mm);
+  if (bottomSupported && bottomFull && insetTop && Number.isFinite(supportH) && supportH >= 0 &&
+      data.width > 2*t && data.height > supportH + 2*t) {
+    const sideH = data.height - supportH - t;
+    parts.push(
+      {id:"bottom",name:"DNO",type:"horizontal",qty:1,size_x_mm:data.width,size_y_mm:data.depth,size_z_mm:t,
+        x_mm:0,y_mm:0,z_mm:supportH,thickness_mm:t,material:data.material,edges:null},
+      {id:"side_left",name:"ST_L",type:"side",qty:1,size_x_mm:t,size_y_mm:data.depth,size_z_mm:sideH,
+        x_mm:0,y_mm:0,z_mm:supportH+t,thickness_mm:t,material:data.material,edges:null},
+      {id:"side_right",name:"ST_R",type:"side",qty:1,size_x_mm:t,size_y_mm:data.depth,size_z_mm:sideH,
+        x_mm:data.width-t,y_mm:0,z_mm:supportH+t,thickness_mm:t,material:data.material,edges:null},
+      {id:"top",name:"VERH",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
+        x_mm:t,y_mm:0,z_mm:data.height-t,thickness_mm:t,material:data.material,edges:null}
+    );
+  }
+  // Internal panels must be specified by confirmed coordinates, not guessed
+  // from a sketch or evenly distributed. X=width, Y=depth, Z=height.
+  // Supported: horizontal shelf and vertical partition parallel to depth.
+  for (const p of (Array.isArray(c.internal_panels) ? c.internal_panels : [])) {
+    if (!p || !["shelf","partition"].includes(p.type)) continue;
+    const x=Number(p.x_mm), y=Number(p.y_mm), z=Number(p.z_mm);
+    const w=Number(p.width_mm), d=Number(p.depth_mm), h=Number(p.height_mm);
+    const valid=[x,y,z,w,d,h].every(Number.isFinite) &&
+      x>=0 && y>=0 && z>=0 && w>0 && d>0 && h>0 &&
+      x+w<=data.width && y+d<=data.depth && z+h<=data.height &&
+      (p.type==="shelf" ? h===t : w===t);
+    if (!valid) continue;
+    parts.push({id:"internal_"+String(p.id),name:String(p.name||p.id),
+      type:p.type==="shelf"?"horizontal":"partition",qty:1,
+      x_mm:x,y_mm:y,z_mm:z,size_x_mm:w,size_y_mm:d,size_z_mm:h,
+      thickness_mm:t,material:data.material,edges:null});
+  }
   return parts;
 }
 
@@ -334,14 +386,56 @@ function buildMachining(parts) {
   return [];
 }
 
+function safeBazisName(value) {
+  return String(value || "").replace(/[\\"]/g, "_");
+}
+
+function generateBazisScript(data, parts) {
+  if (!parts.length) return null;
+
+  const lines = [
+    "// ELVIN -> BAZIS 10",
+    "// Project: " + safeBazisName(data.projectName),
+    "// Generated only from confirmed Wardrobe Engine geometry.",
+    "",
+    "function moveMin(obj, x, y, z) {",
+    "  obj.Build();",
+    "  let g = obj.GabMin;",
+    "  obj.Translate(x - g.x, y - g.y, z - g.z);",
+    "  obj.Build();",
+    "}",
+    ""
+  ];
+
+  for (const part of parts) {
+    const v = "P_" + String(part.id).replace(/[^a-zA-Z0-9_]/g, "_");
+    // Geometry preview only. Other orientations require BAZIS verification.
+    if (part.type !== "side" && part.type !== "horizontal") continue;
+    lines.push(
+      "let " + v + " = objects3d.NewPanel(" + (part.type === "horizontal" ? part.size_x_mm : part.size_y_mm) + ", " + (part.type === "horizontal" ? part.size_y_mm : part.size_z_mm) + ", objects3d.PanelOrientation." + (part.type === "horizontal" ? "horizont" : "vertical") + ");",
+      v + ".Name = \"" + safeBazisName(part.name || part.id) + " " + part.size_y_mm + "x" + part.size_z_mm + "\";",
+      "moveMin(" + v + ", " + part.x_mm + ", " + part.y_mm + ", " + part.z_mm + ");",
+      ""
+    );
+  }
+
+  lines.push("// Edging and MountScheme are added only when their exact rule/contact data is confirmed.");
+  return lines.join("\n");
+}
+
 function buildBazisPlan(data, parts, machining) {
+  const script = generateBazisScript(data, parts);
   return {
-    status: parts.length ? "PARTIAL" : "WAITING_FOR_PART_GEOMETRY",
+    status: script ? "PREVIEW_CODE_READY" : "WAITING_FOR_PART_GEOMETRY",
     projectName: data.projectName,
-    verifiedMethods: ["moveMin", "SetupActiveMaterial", "AddButt", "TextureOrientation", "MountScheme"],
+    verifiedMethods: ["objects3d.NewPanel", "moveMin", "SetupActiveMaterial", "AddButt", "TextureOrientation", "MountScheme"],
     parts,
     machining,
-    script: null
+    script,
+    productionReady: false,
+    note: script
+      ? "Код геометрії доступний для перевірки. Виробничі кромки/кріплення додаються тільки з підтверджених правил."
+      : "Немає достатньої підтвердженої геометрії для коду."
   };
 }
 
@@ -384,6 +478,41 @@ export function buildWardrobe(confirmedAnalysis = {}) {
   // --------------------------------------------------------
 
   const parts = buildParts(data);
+  if (!parts.length) {
+    return { ok: false, status: "ASK", engineVersion: WARDROBE_ENGINE_VERSION,
+      message: "Конструкція підтверджена частково, але схема панелей ще не підтримується.",
+      missing: [{field:"construction.side_panels",question:"Боковини шафи йдуть на всю висоту від низу до верху чи стоять на дні?"}], project:data };
+  }
+  // Never mark a partial carcass as READY. A 3D preview may be useful,
+  // but a missing bottom/top or unmodelled sections cannot become BAZIS-ready.
+  const requiredPartIds = ["side_left", "side_right", "bottom", "top"];
+  const absentParts = requiredPartIds.filter(id => !parts.some(p => p.id === id));
+  const sectionsStructured = Array.isArray(data.sections) && data.sections.length > 0 &&
+    data.sections.every(section => section && typeof section === "object" &&
+      positiveNumber(section.width_mm) && positiveNumber(section.depth_mm));
+  const internal = data.construction?.internal_panels;
+  const invalidInternal = !Array.isArray(internal) || internal.some((p,i) => {
+    if (!p || !["shelf","partition"].includes(p.type) || !hasValue(p.id)) return true;
+    const x=Number(p.x_mm),y=Number(p.y_mm),z=Number(p.z_mm);
+    const w=Number(p.width_mm),d=Number(p.depth_mm),h=Number(p.height_mm);
+    return ![x,y,z,w,d,h].every(Number.isFinite) || x<0 || y<0 || z<0 ||
+      w<=0 || d<=0 || h<=0 || x+w>data.width || y+d>data.depth || z+h>data.height ||
+      (p.type==="shelf" ? h!==data.materialThickness : w!==data.materialThickness);
+  }) || (Array.isArray(internal) && new Set(internal.map(p=>String(p?.id))).size!==internal.length);
+  const geometryMissing = [
+    ...absentParts.map(id => ({field:"geometry."+id, question:"Не побудована обов'язкова деталь корпусу: "+id+"."})),
+    ...(!sectionsStructured ? [{field:"sections",question:"Для точної 3D-моделі потрібні структуровані секції з шириною та глибиною."}] : []),
+    ...(invalidInternal ? [{field:"construction.internal_panels",question:"Передайте підтверджені внутрішні деталі з унікальними ID, координатами і розмірами в межах корпусу."}] : []),
+    {field:"geometry.internal_parts",question:"Повнота внутрішньої конструкції не перевірена за кресленням; експорт BAZIS заблоковано."}
+  ];
+  if (geometryMissing.length) {
+    return {
+      ok: false, status: "GEOMETRY_INCOMPLETE", engineVersion: WARDROBE_ENGINE_VERSION,
+      message: "Геометрія часткова: не можна позначати замовлення готовим до BAZIS.",
+      missing: geometryMissing, project: data, parts,
+      machining: [], bazis: {status:"BLOCKED_INCOMPLETE_GEOMETRY",script:null,productionReady:false}
+    };
+  }
   const machining = buildMachining(parts);
   const bazis = buildBazisPlan(data, parts, machining);
 
@@ -423,6 +552,41 @@ export function buildWardrobe(confirmedAnalysis = {}) {
 
     bazis
   };
+}
+
+
+/**
+ * Isolated demonstration fixture, never a production order.
+ * Explicit assumptions: 18 mm DSP, 80 mm plinth, 20 mm setback,
+ * overlay HDF 3 mm, inset top/bottom, five equally spaced shelves.
+ */
+export function buildTestPenal() {
+  const W=400,H=1500,D=350,T=18,plinthH=80,backT=3;
+  const parts=[];
+  const add=(id,name,type,x,y,z,dx,dy,dz,material="ДСП 18 мм")=>
+    parts.push({id,name,type,qty:1,x_mm:x,y_mm:y,z_mm:z,
+      size_x_mm:dx,size_y_mm:dy,size_z_mm:dz,thickness_mm:type==="back"?backT:T,
+      material,edges:null});
+  add("side_left","ST_L","side",0,0,0,T,D,H);
+  add("side_right","ST_R","side",W-T,0,0,T,D,H);
+  add("bottom","DNO","horizontal",T,0,plinthH,W-2*T,D,T);
+  add("top","VERH","horizontal",T,0,H-T,W-2*T,D,T);
+  const lower=plinthH+T,upper=H-T;
+  for(let i=1;i<=5;i++){
+    const z=lower+(upper-lower)*i/6-T/2;
+    add("shelf_"+i,"POLKA_"+i,"horizontal",T,0,Math.round(z*100)/100,W-2*T,D-10,T);
+  }
+  add("plinth","COKOL","front",T,20,0,W-2*T,T,plinthH);
+  add("back","HDF","back",2,D,2,W-4,backT,H-4,"ХДФ 3 мм");
+  const project={projectName:"TEST-PENAL-400x1500x350",width:W,height:H,depth:D,
+    material:"ДСП 18 мм",materialThickness:T};
+  const machining=[];
+  return {ok:true,status:"DEMO_ONLY",engineVersion:WARDROBE_ENGINE_VERSION,
+    message:"Демонстраційна геометрія з припущеннями. Не для виробництва.",
+    project,parts,machining,bazis:buildBazisPlan(project,parts,machining),
+    assumptions:["Верх і дно вкладні","5 полиць розташовані рівномірно",
+      "Цоколь 80 мм, відступ 20 мм","ХДФ 3 мм накладна, зазор 2 мм",
+      "Кромкування та кріплення не розраховані"]};
 }
 
 // ============================================================
