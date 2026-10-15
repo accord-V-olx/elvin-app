@@ -288,7 +288,8 @@ function renderProduction(wardrobe){
  const ready=$("ready"),parts=Array.isArray(wardrobe?.parts)?wardrobe.parts:[],bazis=wardrobe?.bazis||{},script=bazis.script||"";
  ready.classList.remove("hidden");
  $("bazisCode").textContent=script||"Код ще не сформовано: Elvin не має достатньої підтвердженої геометрії.";
- $("bazisNote").textContent=bazis.note||"";
+ const gaps=Array.isArray(wardrobe?.missing)?wardrobe.missing.map(m=>m.question||m.field):[];
+ $("bazisNote").textContent=(bazis.note||"")+(gaps.length?" Не вистачає: "+gaps.join(" · "):"");
  $("downloadBazis").disabled=!script;
  $("partList").innerHTML=parts.length
    ? "<b>Деталі:</b><br>"+parts.map(p=>escapeHtml((p.name||p.id)+" · "+p.size_x_mm+"×"+p.size_y_mm+"×"+p.size_z_mm+" мм")).join("<br>")
@@ -360,7 +361,9 @@ function showAnalysis(data){
  data.questions=questions;
  $("questionsBlock").classList.toggle("hidden",!questions.length);
  $("analysisState").textContent=questions.length ? `Попередній аналіз готовий. Залишилося уточнень: ${questions.length}. Це не заважає перегляду даних замовлення.` : "Аналіз завершено без додаткових питань. Перед виробництвом потрібне підтвердження технолога.";
- if(questions.length){$("ready").classList.add("hidden");renderQuestions(questions)}else{$("questions").innerHTML="";if(data.wardrobe?.ok && data.wardrobe.parts?.length)renderProduction(data.wardrobe);else $("ready").classList.add("hidden")}
+ if(questions.length)renderQuestions(questions);else $("questions").innerHTML="";
+ // Draft BAZIS code is shown whenever the Engine built any parts, even with open questions.
+ if(data.wardrobe?.parts?.length)renderProduction(data.wardrobe);else $("ready").classList.add("hidden");
  $("result").scrollIntoView({behavior:"smooth",block:"start"});
 }
 

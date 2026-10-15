@@ -424,13 +424,20 @@ function safeBazisName(value) {
   return String(value || "").replace(/[\\"\r\n]/g, "_");
 }
 
-function generateBazisScript(data, parts) {
+// draft = incomplete geometry: the code is still generated so the
+// technologist can open it in BAZIS, but every gap is listed on top.
+function generateBazisScript(data, parts, draft = null) {
   if (!parts.length) return null;
 
+  const comment = text => "//   - " + String(text).replace(/[\r\n]+/g, " ");
   const lines = [
     "// ELVIN -> BAZIS 10",
     "// Project: " + safeBazisName(data.projectName),
-    "// Generated only from confirmed Wardrobe Engine geometry.",
+    ...(draft
+      ? ["// ЧЕРНЕТКА — НЕ ДЛЯ ВИРОБНИЦТВА. Конструкція неповна, перевірте в BAZIS.",
+         "// Не вистачає / потребує уточнення:",
+         ...draft.missing.map(m => comment(m.question || m.field))]
+      : ["// Generated only from confirmed Wardrobe Engine geometry."]),
     "",
     "function moveMin(obj, x, y, z) {",
     "  obj.Build();",
@@ -444,11 +451,17 @@ function generateBazisScript(data, parts) {
   // Never silently drop a part: a script that misses panels is worse than
   // no script. Axis mapping Elvin -> BAZIS lives in bazis-axes.js.
   const placements = parts.map(part => toBazisPlacement(part, data.depth));
-  if (placements.some(pl => !pl)) return null;
+  if (placements.some(pl => !pl)) {
+    if (!draft) return null;
+    // In a draft an unplaceable part is listed, never silently dropped.
+    lines.push("// Пропущено (невизначена орієнтація або розміри): " +
+      parts.filter((_, i) => !placements[i]).map(p => safeBazisName(p.id)).join(", "), "");
+  }
 
   let activeMaterial = null;
   parts.forEach((part, i) => {
     const pl = placements[i];
+    if (!pl) return;
     const material = safeBazisName(part.material) + "|" + part.thickness_mm;
     if (material !== activeMaterial) {
       lines.push("materialData.SetupActiveMaterial(\"" + safeBazisName(part.material) + "\", " + part.thickness_mm + ");");
@@ -471,17 +484,19 @@ function generateBazisScript(data, parts) {
   return lines.join("\n");
 }
 
-function buildBazisPlan(data, parts, machining) {
-  const script = generateBazisScript(data, parts);
+function buildBazisPlan(data, parts, machining, draft = null) {
+  const script = generateBazisScript(data, parts, draft);
   return {
-    status: script ? "PREVIEW_CODE_READY" : "WAITING_FOR_PART_GEOMETRY",
+    status: !script ? "WAITING_FOR_PART_GEOMETRY" : draft ? "DRAFT_CODE" : "PREVIEW_CODE_READY",
     projectName: data.projectName,
     verifiedMethods: ["objects3d.NewPanel", "moveMin", "SetupActiveMaterial", "AddButt", "TextureOrientation", "MountScheme"],
     parts,
     machining,
     script,
     productionReady: false,
-    note: script
+    note: script && draft
+      ? "Чернетка коду BAZIS з неповної конструкції. Перелік того, чого бракує, — на початку коду."
+      : script
       ? "Код геометрії доступний для перевірки. Виробничі кромки/кріплення додаються тільки з підтверджених правил."
       : "Немає достатньої підтвердженої геометрії для коду."
   };
@@ -616,7 +631,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
       ok: false, status: "GEOMETRY_INCOMPLETE", engineVersion: WARDROBE_ENGINE_VERSION,
       message: "Геометрія часткова: не можна позначати замовлення готовим до BAZIS.",
       missing: geometryMissing, project: data, parts, sections, geometryCheck,
-      machining: [], bazis: {status:"BLOCKED_INCOMPLETE_GEOMETRY",script:null,productionReady:false}
+      machining: [], bazis: buildBazisPlan(data, parts, [], { missing: geometryMissing })
     };
   }
   const machining = buildMachining(parts);

@@ -122,7 +122,10 @@ test("dimension chain that does not close stops with a concrete question", () =>
     size_reference: "clear", split: "vertical", cells: [{ size_mm: 573 }, { size_mm: 580 }]
   } }));
   assert.equal(r.status, "GEOMETRY_INCOMPLETE");
-  assert.equal(r.bazis.script, null);
+  // Draft code is still produced; the chain question is listed on top of it.
+  assert.equal(r.bazis.status, "DRAFT_CODE");
+  assert.equal(r.bazis.productionReady, false);
+  assert.match(r.bazis.script, /ЧЕРНЕТКА[\s\S]*Ланцюжок розмірів/);
   const q = r.missing.find(m => m.field === "construction.interior.root.chain");
   assert.ok(q, JSON.stringify(r.missing));
   assert.match(q.question, /573 \+ 580 \+ 1×18 = 1171 мм, а доступно 1164 мм/);
@@ -238,4 +241,27 @@ test("HDF sheet larger than 2800x2070 (factory rule) must be split", async () =>
   const errs = checkSheetLimits([hdf("big", 2600, 2196)], limit);
   assert.deepEqual(errs.map(e => e.code), ["SHEET_TOO_LARGE"]);
   assert.match(errs[0].message, /2600×2196 мм.*2800×2070/);
+});
+
+test("draft BAZIS code: carcass without interior is still exported with a gap list", () => {
+  const r = buildWardrobe(order({ backPanel: "ХДФ 3 мм", construction: { back_panel_type: "overlay" }, interior: undefined,
+    sections: "4 секції" }));
+  assert.equal(r.status, "GEOMETRY_INCOMPLETE");
+  assert.equal(r.bazis.status, "DRAFT_CODE");
+  const s = r.bazis.script;
+  assert.equal((s.match(/objects3d\.NewPanel\(/g) || []).length, r.parts.length);
+  assert.match(s, /Задня стінка ще не розраховується/);
+  assert.match(s, /historyOperations\.CommitCurrentChanges/);
+  // Comment lines cannot break out into code.
+  assert.ok(s.split("\n").filter(l => l.startsWith("//   - ")).length >= 2);
+});
+
+test("draft BAZIS code: a part without orientation is listed, not silently dropped", () => {
+  const r = buildWardrobe(order({ width: 600, height: 2000, depth: 500, sections: [{ width_mm: 600, depth_mm: 500 }],
+    construction: { internal_panels: [
+      { id: "cube", type: "shelf", x_mm: 18, y_mm: 0, z_mm: 800, width_mm: 18, depth_mm: 18, height_mm: 18 }
+    ] }
+  }));
+  assert.equal(r.bazis.status, "DRAFT_CODE");
+  assert.match(r.bazis.script, /Пропущено .*internal_cube/);
 });
