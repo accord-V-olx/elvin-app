@@ -16,7 +16,7 @@
 // conflicting reference rules.
 // ============================================================
 
-export const WARDROBE_RULES_VERSION = "1.0";
+export const WARDROBE_RULES_VERSION = "1.1";
 
 export const WARDROBE_RULES = {
 
@@ -483,7 +483,7 @@ export const WARDROBE_RULES = {
         left: 2,
         right: 2,
         betweenAdjacentFacades: 2,
-        bottom: null
+        bottom: 3
       },
 
       floatingGapMm: {
@@ -499,7 +499,7 @@ export const WARDROBE_RULES = {
 
         "Preferred gap between adjacent facades is 2 mm.",
 
-        "Bottom gap is not yet finally confirmed.",
+        "Preferred bottom gap is 3 mm (confirmed 2026-10-15).",
 
         "If equal whole-number facade sizes cannot be achieved with preferred gaps, use a symmetric floating gap from 1.5 to 4 mm.",
 
@@ -708,8 +708,6 @@ export const WARDROBE_RULES = {
     status: "ASK",
 
     items: [
-      "Confirm bottom gap for standard overlay facade.",
-
       "Confirm top and bottom gaps/formula for inset facades.",
 
       "Confirm maximum HDF dimension for PAZ construction.",
@@ -810,8 +808,8 @@ FACADES:
 - Overlay preferred gaps:
   top 3 mm;
   left/right 2 mm;
-  between adjacent facades 2 mm.
-- Bottom overlay gap is not yet confirmed.
+  between adjacent facades 2 mm;
+  bottom 3 mm.
 - Floating symmetric gap 1.5-4 mm is allowed when needed to obtain equal whole-number facade sizes.
 - Inset facade:
   left/right clearance 2 mm;
