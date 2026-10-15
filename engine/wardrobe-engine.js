@@ -17,6 +17,7 @@
 
 import { validateGeometry, thicknessAxis } from "./geometry.js";
 import { buildInterior } from "./interior-layout.js";
+import { toBazisPlacement } from "./bazis-axes.js";
 
 export const WARDROBE_ENGINE_VERSION = "1.6.0-interior-layout";
 
@@ -419,7 +420,7 @@ function buildMachining(parts) {
 }
 
 function safeBazisName(value) {
-  return String(value || "").replace(/[\\"]/g, "_");
+  return String(value || "").replace(/[\\"\r\n]/g, "_");
 }
 
 function generateBazisScript(data, parts) {
@@ -440,25 +441,32 @@ function generateBazisScript(data, parts) {
   ];
 
   // Never silently drop a part: a script that misses panels is worse than
-  // no script. Frontal panels (back, facades) are not verified in BAZIS yet.
-  // NOTE: engine axes (X width, Y depth, Z height) are passed to moveMin
-  // unchanged. This axis mapping is NOT verified against BAZIS yet.
-  if (parts.some(part => thicknessAxis(part) !== "x" && thicknessAxis(part) !== "z")) return null;
+  // no script. Axis mapping Elvin -> BAZIS lives in bazis-axes.js.
+  const placements = parts.map(part => toBazisPlacement(part, data.depth));
+  if (placements.some(pl => !pl)) return null;
 
-  for (const part of parts) {
+  let activeMaterial = null;
+  parts.forEach((part, i) => {
+    const pl = placements[i];
+    const material = safeBazisName(part.material) + "|" + part.thickness_mm;
+    if (material !== activeMaterial) {
+      lines.push("materialData.SetupActiveMaterial(\"" + safeBazisName(part.material) + "\", " + part.thickness_mm + ");");
+      activeMaterial = material;
+    }
     const v = "P_" + String(part.id).replace(/[^a-zA-Z0-9_]/g, "_");
-    const horizontal = thicknessAxis(part) === "z";
-    const a = horizontal ? part.size_x_mm : part.size_y_mm;
-    const b = horizontal ? part.size_y_mm : part.size_z_mm;
     lines.push(
-      "let " + v + " = objects3d.NewPanel(" + a + ", " + b + ", objects3d.PanelOrientation." + (horizontal ? "horizont" : "vertical") + ");",
-      v + ".Name = \"" + safeBazisName(part.name || part.id) + " " + a + "x" + b + "\";",
-      "moveMin(" + v + ", " + part.x_mm + ", " + part.y_mm + ", " + part.z_mm + ");",
+      "let " + v + " = objects3d.NewPanel(" + pl.panel[0] + ", " + pl.panel[1] + ", objects3d.PanelOrientation." + pl.orientation + ");",
+      v + ".Name = \"" + safeBazisName(part.name || part.id) + "\";",
+      ...(pl.texture ? [v + ".TextureOrientation = panelOperations.textureOrientation." + pl.texture + ";"] : []),
+      "moveMin(" + v + ", " + pl.min.x + ", " + pl.min.y + ", " + pl.min.z + ");",
       ""
     );
-  }
+  });
 
-  lines.push("// Edging and MountScheme are added only when their exact rule/contact data is confirmed.");
+  lines.push(
+    "// Edging and MountScheme are added only when their exact rule/contact data is confirmed.",
+    "historyOperations.CommitCurrentChanges(\"" + safeBazisName(data.projectName) + "\");"
+  );
   return lines.join("\n");
 }
 

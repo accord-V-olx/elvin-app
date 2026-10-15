@@ -18,6 +18,10 @@
 //     ]
 //   }
 //
+// Optional on any node (inherited by nested cells unless overridden):
+//   shelf_front_setback_mm — shelves are recessed from the carcass front
+//   by this value (from the drawing); partitions keep full depth.
+//
 // Rules applied (from rules/wardrobe-rules.js, not invented here):
 // - Internal uprights stand on the panel below and connect to the
 //   panel above (top, bottom or shelf of the parent cell).
@@ -74,8 +78,16 @@ export function buildInterior(interior, cell, panel) {
     return { ok: false, parts, sections, errors };
   }
 
-  function walk(node, box, path, depth) {
+  function walk(node, box, path, depth, inherited) {
     const label = path ? "S" + path : "внутрішній простір";
+    let setback = inherited;
+    if (node.shelf_front_setback_mm !== undefined && node.shelf_front_setback_mm !== null) {
+      setback = Number(node.shelf_front_setback_mm);
+      if (!Number.isFinite(setback) || setback < 0 || setback >= box.y1 - box.y0) {
+        errors.push({ field: "construction.interior." + (path || "root") + ".shelf_front_setback_mm", question: "Некоректне втоплення полиць від переднього краю у " + label + "." });
+        return;
+      }
+    }
     if (depth > MAX_DEPTH) {
       errors.push({ field: "construction.interior", question: "Занадто глибока вкладеність секцій у " + label + "." });
       return;
@@ -133,7 +145,7 @@ export function buildInterior(interior, cell, panel) {
     cells.forEach((child, i) => {
       const childPath = path ? path + "." + (i + 1) : String(i + 1);
       const childBox = { ...box, [a + "0"]: cursor, [a + "1"]: cursor + sizes[i] };
-      walk(child, childBox, childPath, depth + 1);
+      walk(child, childBox, childPath, depth + 1, setback);
       cursor += sizes[i];
 
       if (i < cells.length - 1) {
@@ -153,6 +165,11 @@ export function buildInterior(interior, cell, panel) {
         };
         p[a + "_mm"] = cursor;
         p["size_" + a + "_mm"] = t;
+        if (split === "horizontal" && setback > 0) {
+          p.y_mm = box.y0 + setback;
+          p.size_y_mm = box.y1 - box.y0 - setback;
+          p.front_setback_mm = setback;
+        }
         for (const k of ["x_mm", "y_mm", "z_mm", "size_x_mm", "size_y_mm", "size_z_mm"]) p[k] = round2(p[k]);
         parts.push(p);
         cursor += t;
@@ -160,7 +177,7 @@ export function buildInterior(interior, cell, panel) {
     });
   }
 
-  walk(interior, cell, "", 0);
+  walk(interior, cell, "", 0, 0);
   return errors.length
     ? { ok: false, parts: [], sections: [], errors }
     : { ok: true, parts, sections, errors };
