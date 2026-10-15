@@ -22,6 +22,9 @@
 //   shelf_front_setback_mm — shelves are recessed from the carcass front
 //   by this value (from the drawing); partitions keep full depth.
 //
+// Part names follow the factory BAZIS convention (ST_SR, POLKA);
+// names may repeat, IDs are unique.
+//
 // Rules applied (from rules/wardrobe-rules.js, not invented here):
 // - Internal uprights stand on the panel below and connect to the
 //   panel above (top, bottom or shelf of the parent cell).
@@ -38,8 +41,8 @@
 import { GEOMETRY_EPS_MM } from "./geometry.js";
 
 const SPLITS = {
-  vertical: { axis: "x", role: "partition", idPrefix: "partition", namePrefix: "PEREG", label: "по ширині" },
-  horizontal: { axis: "z", role: "shelf", idPrefix: "shelf", namePrefix: "POLKA", label: "по висоті" }
+  vertical: { axis: "x", role: "partition", idPrefix: "partition", name: "ST_SR", label: "по ширині" },
+  horizontal: { axis: "z", role: "shelf", idPrefix: "shelf", name: "POLKA", label: "по висоті" }
 };
 
 const SUPPORTED_REFERENCES = ["clear"];
@@ -152,7 +155,7 @@ export function buildInterior(interior, cell, panel) {
         const suffix = (path ? path.replace(/\./g, "_") + "_" : "") + (i + 1);
         const p = {
           id: spec.idPrefix + "_" + suffix,
-          name: spec.namePrefix + "_" + suffix,
+          name: spec.name,
           type: split === "vertical" ? "partition" : "horizontal",
           role: spec.role,
           qty: 1,

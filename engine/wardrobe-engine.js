@@ -349,7 +349,7 @@ function buildParts(data) {
   const insetTop = ["inset","inset_between_sides","вкладна","вкладний"].includes(String(c.top_type||"").toLowerCase());
   const insetBottom = ["inset","inset_between_sides","вкладне","вкладний"].includes(String(c.bottom_type||"").toLowerCase());
   if (fullHeight && insetTop && data.width>2*t && data.height>t) {
-    parts.push({id:"top",name:"VERH",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
+    parts.push({id:"top",name:"KR",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
       x_mm:t,y_mm:0,z_mm:data.height-t,thickness_mm:t,material:data.material,edges:null});
   }
   if (fullHeight && insetBottom && data.width>2*t && Number.isFinite(Number(c.plinth_height_mm)) &&
@@ -372,7 +372,7 @@ function buildParts(data) {
         x_mm:0,y_mm:0,z_mm:supportH+t,thickness_mm:t,material:data.material,edges:null},
       {id:"side_right",name:"ST_R",type:"side",qty:1,size_x_mm:t,size_y_mm:data.depth,size_z_mm:sideH,
         x_mm:data.width-t,y_mm:0,z_mm:supportH+t,thickness_mm:t,material:data.material,edges:null},
-      {id:"top",name:"VERH",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
+      {id:"top",name:"KR",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
         x_mm:t,y_mm:0,z_mm:data.height-t,thickness_mm:t,material:data.material,edges:null}
     );
   }
@@ -673,14 +673,14 @@ export function buildTestPenal() {
   add("side_left","ST_L","side",0,0,0,T,D,H);
   add("side_right","ST_R","side",W-T,0,0,T,D,H);
   add("bottom","DNO","horizontal",T,0,plinthH,W-2*T,D,T);
-  add("top","VERH","horizontal",T,0,H-T,W-2*T,D,T);
+  add("top","KR","horizontal",T,0,H-T,W-2*T,D,T);
   const lower=plinthH+T,upper=H-T;
   for(let i=1;i<=5;i++){
     const z=lower+(upper-lower)*i/6-T/2;
-    add("shelf_"+i,"POLKA_"+i,"horizontal",T,0,Math.round(z*100)/100,W-2*T,D-10,T);
+    add("shelf_"+i,"POLKA","horizontal",T,0,Math.round(z*100)/100,W-2*T,D-10,T);
   }
   add("plinth","COKOL","front",T,20,0,W-2*T,T,plinthH);
-  add("back","HDF","back",2,D,2,W-4,backT,H-4,"ХДФ 3 мм");
+  add("back","TYL","back",2,D,2,W-4,backT,H-4,"ХДФ 3 мм");
   const project={projectName:"TEST-PENAL-400x1500x350",width:W,height:H,depth:D,
     material:"ДСП 18 мм",materialThickness:T};
   const machining=[];

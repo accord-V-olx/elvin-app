@@ -79,3 +79,13 @@ test("back HDF and plinth map to the reference BAZIS positions", () => {
   assert.deepEqual(strip(toBazisPlacement(hdf, D)), at("front", [630, 2196], 16, 102, -3));
   assert.deepEqual(strip(toBazisPlacement(cokol, D)), at("front", [2568, 100], 16, 0, 564));
 });
+
+test("part names follow the factory BAZIS convention", () => {
+  const r = reference(50);
+  const names = Object.fromEntries(r.parts.map(p => [p.id, p.name]));
+  assert.deepEqual([names.side_left, names.side_right, names.bottom, names.top], ["ST_L", "ST_R", "DNO", "KR"]);
+  assert.ok(r.parts.filter(p => p.role === "partition").every(p => p.name === "ST_SR"));
+  assert.ok(r.parts.filter(p => p.role === "shelf").every(p => p.name === "POLKA"));
+  assert.equal(new Set(r.parts.map(p => p.id)).size, r.parts.length);
+  assert.match(r.bazis.script, /P_partition_1\.Name = "ST_SR";/);
+});
