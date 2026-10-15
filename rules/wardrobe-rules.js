@@ -16,7 +16,7 @@
 // conflicting reference rules.
 // ============================================================
 
-export const WARDROBE_RULES_VERSION = "1.1";
+export const WARDROBE_RULES_VERSION = "1.2";
 
 export const WARDROBE_RULES = {
 
@@ -238,6 +238,7 @@ export const WARDROBE_RULES = {
       knownTypes: [
         "HDF_OVERLAY",
         "HDF_PAZ",
+        "HDF_REBATE",
         "DSP_BACK"
       ],
 
@@ -256,10 +257,47 @@ export const WARDROBE_RULES = {
       thicknessMm: 3,
       fastening: "NAILS",
 
+      // Confirmed 2026-10-15.
+      maxSheetMm: {
+        length: 2800,
+        width: 2070
+      },
+
+      layoutOptions: [
+        "PER_SECTION",
+        "SINGLE"
+      ],
+
+      // Not confirmed yet: how much smaller the sheet is than the
+      // carcass / section on each side. Engine must ASK until set.
+      edgeOffsetsMm: null,
+
       rules: [
         "Standard overlay HDF/DVP thickness is 3 mm.",
 
-        "Overlay HDF is nailed to the carcass."
+        "Overlay HDF is nailed to the carcass.",
+
+        "Normally a separate HDF sheet per section; one whole sheet is allowed for a small wardrobe.",
+
+        "One HDF sheet must not exceed 2800 x 2070 mm."
+      ]
+    },
+
+
+    rebate: {
+      status: "PAUSED",
+
+      // "Вибірка" (rebate along the rear edge). Known as a construction,
+      // all parameters still require the technologist.
+      operationName: null,
+      rebateWidthMm: null,
+      rebateDepthMm: null,
+      panels: null,
+
+      rules: [
+        "HDF in a rebate is a known construction but must NOT be generated automatically.",
+
+        "Rebate size, panels and BAZIS operation must be confirmed and tested in real BAZIS."
       ]
     },
 
@@ -712,6 +750,14 @@ export const WARDROBE_RULES = {
 
       "Confirm maximum HDF dimension for PAZ construction.",
 
+      "Overlay HDF: offsets of the sheet from carcass/section edges (top, bottom, left, right, overlap on partitions).",
+
+      "Overlay HDF: when exactly one whole sheet is used instead of one per section.",
+
+      "PAZ: how deep HDF enters the groove; top fixing (groove in top or under top); standard rear offset; BAZIS script for the groove.",
+
+      "Rebate (vybirka): width, depth, panels, HDF size and BAZIS script.",
+
       "Define exact DSP back geometry and fastening.",
 
       "Supply exact hardware name for approximately 7 mm low support.",
@@ -767,7 +813,11 @@ BACK:
 - Known options:
   1. HDF/DVP 3 mm overlay, nailed.
   2. HDF/DVP in PAZ.
-  3. DSP back as a separate furniture part.
+  3. HDF/DVP in a rebate (vybirka) - PAUSED, parameters not confirmed.
+  4. DSP back as a separate furniture part.
+- Overlay HDF: normally a separate sheet per section; one whole sheet for a small wardrobe.
+- One HDF sheet max 2800 x 2070 mm.
+- Overlay HDF offsets from edges are NOT confirmed -> ASK.
 - If back type is not defined -> ASK.
 - PAZ is currently PAUSED.
 

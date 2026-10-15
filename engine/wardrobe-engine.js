@@ -15,7 +15,8 @@
 // - Engine output must always be JSON-safe.
 // ============================================================
 
-import { validateGeometry, thicknessAxis } from "./geometry.js";
+import { validateGeometry, thicknessAxis, checkSheetLimits } from "./geometry.js";
+import { WARDROBE_RULES } from "../rules/wardrobe-rules.js";
 import { buildInterior } from "./interior-layout.js";
 import { toBazisPlacement } from "./bazis-axes.js";
 
@@ -571,6 +572,12 @@ export function buildWardrobe(confirmedAnalysis = {}) {
   // --------------------------------------------------------
 
   const geometryCheck = validateGeometry(parts, { width: data.width, depth: data.depth, height: data.height });
+  // Sheet limits come from factory rules, not from the Engine.
+  const hdfSheet = WARDROBE_RULES.backPanel?.hdfOverlay?.maxSheetMm;
+  if (hdfSheet) {
+    geometryCheck.errors.push(...checkSheetLimits(parts, { back: hdfSheet }));
+    geometryCheck.ok = geometryCheck.errors.length === 0;
+  }
 
   // Never mark a partial carcass as READY. A 3D preview may be useful,
   // but a missing bottom/top or unmodelled sections cannot become BAZIS-ready.

@@ -227,3 +227,15 @@ test("geometry check: part without a thickness axis is rejected", () => {
   const r = validateGeometry([{ id: "x", x_mm: 0, y_mm: 0, z_mm: 0, size_x_mm: 18, size_y_mm: 18, size_z_mm: 100, thickness_mm: 18 }]);
   assert.deepEqual(r.errors.map(e => e.code), ["THICKNESS_AXIS"]);
 });
+
+test("HDF sheet larger than 2800x2070 (factory rule) must be split", async () => {
+  const { checkSheetLimits } = await import("../engine/geometry.js");
+  const { WARDROBE_RULES } = await import("../rules/wardrobe-rules.js");
+  const limit = { back: WARDROBE_RULES.backPanel.hdfOverlay.maxSheetMm };
+  const hdf = (id, w, h) => ({ id, role: "back", x_mm: 0, y_mm: 600, z_mm: 0, size_x_mm: w, size_y_mm: 3, size_z_mm: h, thickness_mm: 3 });
+  // Rotation of the sheet is allowed: 2070 wide x 2800 high fits.
+  assert.deepEqual(checkSheetLimits([hdf("ok", 2070, 2800), hdf("ok2", 2800, 2070)], limit), []);
+  const errs = checkSheetLimits([hdf("big", 2600, 2196)], limit);
+  assert.deepEqual(errs.map(e => e.code), ["SHEET_TOO_LARGE"]);
+  assert.match(errs[0].message, /2600×2196 мм.*2800×2070/);
+});

@@ -160,3 +160,23 @@ export function validateGeometry(parts, envelope, options = {}) {
 
   return { ok: errors.length === 0, errors, checkedPairs };
 }
+
+/**
+ * Sheet size limits by part role, e.g. { back: { length: 2800, width: 2070 } }.
+ * Limits come from factory rules; parts over the limit must be split.
+ */
+export function checkSheetLimits(parts, limitsByRole) {
+  const errors = [];
+  for (const p of parts) {
+    const limit = limitsByRole[p.role];
+    const axis = thicknessAxis(p);
+    if (!limit || !axis) continue;
+    const [a, b] = AXES.filter(o => o !== axis).map(o => p["size_" + o + "_mm"]).sort((m, n) => n - m);
+    const [la, lb] = [limit.length, limit.width].sort((m, n) => n - m);
+    if (a > la + GEOMETRY_EPS_MM || b > lb + GEOMETRY_EPS_MM) {
+      errors.push({ code: "SHEET_TOO_LARGE", parts: [p.id],
+        message: "Деталь " + p.id + " (" + a + "×" + b + " мм) більша за лист " + la + "×" + lb + " мм — потрібно розділити." });
+    }
+  }
+  return errors;
+}
