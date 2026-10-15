@@ -15,7 +15,7 @@
 // - Engine output must always be JSON-safe.
 // ============================================================
 
-export const WARDROBE_ENGINE_VERSION = "1.5.4-bottom-supported";
+export const WARDROBE_ENGINE_VERSION = "1.5.5-internal-panels";
 
 // ============================================================
 // HELPERS
@@ -361,6 +361,23 @@ function buildParts(data) {
         x_mm:t,y_mm:0,z_mm:data.height-t,thickness_mm:t,material:data.material,edges:null}
     );
   }
+  // Internal panels must be specified by confirmed coordinates, not guessed
+  // from a sketch or evenly distributed. X=width, Y=depth, Z=height.
+  // Supported: horizontal shelf and vertical partition parallel to depth.
+  for (const p of (Array.isArray(c.internal_panels) ? c.internal_panels : [])) {
+    if (!p || !["shelf","partition"].includes(p.type)) continue;
+    const x=Number(p.x_mm), y=Number(p.y_mm), z=Number(p.z_mm);
+    const w=Number(p.width_mm), d=Number(p.depth_mm), h=Number(p.height_mm);
+    const valid=[x,y,z,w,d,h].every(Number.isFinite) &&
+      x>=0 && y>=0 && z>=0 && w>0 && d>0 && h>0 &&
+      x+w<=data.width && y+d<=data.depth && z+h<=data.height &&
+      (p.type==="shelf" ? h===t : w===t);
+    if (!valid) continue;
+    parts.push({id:"internal_"+String(p.id),name:String(p.name||p.id),
+      type:p.type==="shelf"?"horizontal":"partition",qty:1,
+      x_mm:x,y_mm:y,z_mm:z,size_x_mm:w,size_y_mm:d,size_z_mm:h,
+      thickness_mm:t,material:data.material,edges:null});
+  }
   return parts;
 }
 
@@ -473,10 +490,20 @@ export function buildWardrobe(confirmedAnalysis = {}) {
   const sectionsStructured = Array.isArray(data.sections) && data.sections.length > 0 &&
     data.sections.every(section => section && typeof section === "object" &&
       positiveNumber(section.width_mm) && positiveNumber(section.depth_mm));
+  const internal = data.construction?.internal_panels;
+  const invalidInternal = !Array.isArray(internal) || internal.some((p,i) => {
+    if (!p || !["shelf","partition"].includes(p.type) || !hasValue(p.id)) return true;
+    const x=Number(p.x_mm),y=Number(p.y_mm),z=Number(p.z_mm);
+    const w=Number(p.width_mm),d=Number(p.depth_mm),h=Number(p.height_mm);
+    return ![x,y,z,w,d,h].every(Number.isFinite) || x<0 || y<0 || z<0 ||
+      w<=0 || d<=0 || h<=0 || x+w>data.width || y+d>data.depth || z+h>data.height ||
+      (p.type==="shelf" ? h!==data.materialThickness : w!==data.materialThickness);
+  }) || (Array.isArray(internal) && new Set(internal.map(p=>String(p?.id))).size!==internal.length);
   const geometryMissing = [
     ...absentParts.map(id => ({field:"geometry."+id, question:"Не побудована обов'язкова деталь корпусу: "+id+"."})),
     ...(!sectionsStructured ? [{field:"sections",question:"Для точної 3D-моделі потрібні структуровані секції з шириною та глибиною."}] : []),
-    {field:"geometry.internal_parts",question:"Розміщення внутрішніх полиць і перегородок ще не розраховується цим Engine."}
+    ...(invalidInternal ? [{field:"construction.internal_panels",question:"Передайте підтверджені внутрішні деталі з унікальними ID, координатами і розмірами в межах корпусу."}] : []),
+    {field:"geometry.internal_parts",question:"Повнота внутрішньої конструкції не перевірена за кресленням; експорт BAZIS заблоковано."}
   ];
   if (geometryMissing.length) {
     return {
