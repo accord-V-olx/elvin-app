@@ -41,7 +41,8 @@ try {
   assert.equal(supported.parts.length,4);
   const byId=Object.fromEntries(supported.parts.map(p=>[p.id,p]));
   assert.deepEqual([byId.bottom.x_mm,byId.bottom.z_mm,byId.bottom.size_x_mm],[0,100,600]);
-  assert.deepEqual([byId.side_left.z_mm,byId.side_left.size_z_mm],[118,1864]);
+  // Sides stand on the bottom (z=118) and reach the overall height, because the top is inset between them: 2000-100-18=1882.
+  assert.deepEqual([byId.side_left.z_mm,byId.side_left.size_z_mm],[118,1882]);
   assert.deepEqual([byId.top.x_mm,byId.top.z_mm,byId.top.size_x_mm],[18,1982,564]);
   console.log("PASS bottom-supported carcass: four correct panels, export blocked until internals");
 } catch(e) {failures++;console.error("FAIL bottom-supported carcass",e.message);}
