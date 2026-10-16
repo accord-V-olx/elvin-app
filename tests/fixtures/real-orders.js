@@ -113,5 +113,33 @@ export const REAL_ORDERS = [
       }
     ],
     notModelledModules: ["lower cabinets with drawers and DSP back", "open green cabinet with LED grooves", "37 mm niche frame panels 2180x550, 2038x550"]
+  },
+  {
+    id: "REAL-F",
+    description: "Hallway wardrobe 1900: closed wardrobe 1400 (two sections) + open shelf unit 500 with DSP back + hanging drawer + mirror panel. Height 2763 incl. 100 plinth",
+    modules: [
+      {
+        id: "F-S140", width: 1401, height: 2663, depth: 580, thickness: 18,
+        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "overlay" },
+        interior: { size_reference: "clear", split: "vertical", cells: [
+          { size_mm: 907, split: "horizontal", cells: [{ size_mm: 863 }, { size_mm: 864 }, { size_mm: 864 }] },
+          { size_mm: 440, split: "horizontal", cells: [{ size_mm: 863 }, { size_mm: 864 }, { size_mm: 864 }] }] },
+        parts: [["KR", 1401, 580, 1], ["DNO", 1401, 580, 1], ["ST_L", 2627, 580, 1], ["ST_R", 2627, 580, 1],
+          ["ST_SR", 2627, 580, 1], ["POLKA", 907, 580, 2], ["POLKA", 440, 580, 2]],
+        // Removable shelf 906x579 (-1/-1): before the factory standard of 2026-10-16.
+        technologistVariant: [["POLKA", 906, 579, 1]],
+        pending: [["FASAD", 2607, 462, 3]],
+        notModelled: ["COKOL 1898x100, 558x100", "PLANKA 1397x50"]
+      },
+      {
+        id: "F-S50", width: 500, height: 2663, depth: 600, thickness: 18,
+        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "inset" },
+        parts: [["DNO", 500, 600, 1], ["ST_L", 2645, 600, 1], ["ST_R", 2645, 600, 1], ["KR", 464, 600, 1]],
+        // DSP back inside (ST_TYL 2627x464) makes shelves 581 deep.
+        pending: [["POLKA", 464, 581, 5], ["ST_TYL", 2627, 464, 1]],
+        notModelled: []
+      }
+    ],
+    notModelledModules: ["hanging cabinet with drawer 800x200x400", "mirror panels 800x1855, 800x700"]
   }
 ];
