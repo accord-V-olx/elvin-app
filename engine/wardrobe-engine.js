@@ -19,6 +19,7 @@ import { validateGeometry, thicknessAxis, checkSheetLimits } from "./geometry.js
 import { WARDROBE_RULES } from "../rules/wardrobe-rules.js";
 import { buildInterior } from "./interior-layout.js";
 import { toBazisPlacement } from "./bazis-axes.js";
+import { interiorFromAI } from "./interior-from-ai.js";
 
 export const WARDROBE_ENGINE_VERSION = "1.6.0-interior-layout";
 
@@ -59,6 +60,14 @@ function addMissing(list, field, question) {
     field,
     question
   });
+}
+
+// AI interior format (sections/openings) -> Engine split tree.
+function normalizeConstruction(c) {
+  if (!c || typeof c !== "object" || c.interior === undefined || c.interior === null) return c;
+  const interior = interiorFromAI(c.interior);
+  const { interior: _ai, ...rest } = c;
+  return interior === undefined ? rest : { ...rest, interior };
 }
 
 // ============================================================
@@ -187,10 +196,10 @@ function normalizeAnalysis(analysis = {}) {
       project.plinth ??
       null,
 
-    construction:
+    construction: normalizeConstruction(
       analysis.construction ??
       project.construction ??
-      null,
+      null),
 
     // --------------------------------------------------------
     // NOTES
@@ -318,7 +327,7 @@ function validateRequiredData(data) {
     }
     if (
       typeof c.back_panel_type === "string" &&
-      c.back_panel_type.toLowerCase().includes("паз") &&
+      /паз|groove/i.test(c.back_panel_type) &&
       !hasValue(c.back_groove_offset_mm)
     ) {
       addMissing(missing, "construction.back_groove_offset_mm", "Для ХДФ у паз не визначений відступ паза.");
@@ -623,8 +632,8 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     ...(!hasTree ? [{field:"geometry.internal_parts",question:"Повнота внутрішньої конструкції не перевірена за кресленням; експорт BAZIS заблоковано."}] : []),
     ...geometryCheck.errors.map(e => ({field:"geometry."+e.code, question:e.message, parts:e.parts})),
     // Parts the Engine does not model yet must block export instead of being silently omitted.
-    ...(!isBackAbsent(data) ? [{field:"geometry.back_panel",question:"Задня стінка ще не розраховується Wardrobe Engine; експорт BAZIS заблоковано."}] : []),
-    ...(!isFacadesAbsent(data) ? [{field:"geometry.facades",question:"Фасади ще не розраховуються Wardrobe Engine; експорт BAZIS заблоковано."}] : [])
+    ...(!isBackAbsent(data) ? [{field:"geometry.back_panel",question:"Задня стінка ще не розраховується Wardrobe Engine — у коді BAZIS її немає."}] : []),
+    ...(!isFacadesAbsent(data) ? [{field:"geometry.facades",question:"Фасади ще не розраховуються Wardrobe Engine — у коді BAZIS їх немає."}] : [])
   ];
   if (geometryMissing.length) {
     return {
