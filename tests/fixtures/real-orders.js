@@ -49,5 +49,23 @@ export const REAL_ORDERS = [
         notModelled: ["COKOL 1500x150", "COKOL 262x150 x2", "rasp_TYL 973x100", "ST_SR 834x298"]
       }
     ]
+  },
+  {
+    id: "REAL-C",
+    description: "Chest 1350 x 750 x 350 (overlay top, sides to the floor, HDF in groove 10 mm) + aquarium stand 600 x 850 x 400 (37 mm sides and top, DSP back)",
+    modules: [
+      {
+        id: "C-1350", width: 1350, height: 750, depth: 330, thickness: 18,
+        construction: { side_panels: "full_height", bottom_type: "inset", top_type: "overlay", plinth_height_mm: 60 },
+        interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 423 }, { size_mm: 873 }] },
+        parts: [["ST_L", 732, 330, 1], ["ST_R", 732, 330, 1]],
+        // KR overhangs the carcass (350 vs 330); inner panels are 2 mm narrower than the opening;
+        // partition and shelves stop in front of the HDF groove (316).
+        pending: [["KR", 1350, 350, 1], ["DNO", 1312, 330, 1], ["ST_SR", 654, 316, 1],
+          ["POLKA", 423, 316, 1], ["POLKA", 871, 316, 1], ["TYL", 1328, 670, 1], ["FASAD", 678, 445, 3], ["COKOL", 1312, 60, 2]],
+        notModelled: []
+      }
+    ],
+    notModelledModules: ["aquarium stand: sides and top glued 2x18 = 37 mm, DNO 524x380, ST_SR 795x361, ST_TYL 795x524, shelves 253x361 x2, inset facades 799x257 x2"]
   }
 ];

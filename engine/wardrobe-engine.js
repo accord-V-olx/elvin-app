@@ -344,11 +344,14 @@ function buildParts(data) {
 
   // Geometry is emitted only when the Engine has exact dimensions.
   // Edging is intentionally NOT hardcoded here: it must come from active rules.
+  // Full-height sides end under an overlay top, or at the top edge otherwise.
+  const topOverSides = ["overlay","накладна","накладний"].includes(String(c.top_type||"").toLowerCase());
+  const fullSideH = data.height - (topOverSides ? t : 0);
   if (["full_height","to_floor","підлога","на всю висоту"].includes(String(c.side_panels||"").toLowerCase()) && data.height && data.depth) {
     parts.push(
-      { id: "side_left", name: "ST_L", type: "side", qty: 1, size_x_mm: t, size_y_mm: data.depth, size_z_mm: data.height,
+      { id: "side_left", name: "ST_L", type: "side", qty: 1, size_x_mm: t, size_y_mm: data.depth, size_z_mm: fullSideH,
         x_mm: 0, y_mm: 0, z_mm: 0, thickness_mm: t, material: data.material, edges: null },
-      { id: "side_right", name: "ST_R", type: "side", qty: 1, size_x_mm: t, size_y_mm: data.depth, size_z_mm: data.height,
+      { id: "side_right", name: "ST_R", type: "side", qty: 1, size_x_mm: t, size_y_mm: data.depth, size_z_mm: fullSideH,
         x_mm: data.width - t, y_mm: 0, z_mm: 0, thickness_mm: t, material: data.material, edges: null }
     );
   }
@@ -358,6 +361,10 @@ function buildParts(data) {
   const fullHeight = ["full_height","to_floor","підлога","на всю висоту"].includes(String(c.side_panels||"").toLowerCase());
   const insetTop = ["inset","inset_between_sides","вкладна","вкладний"].includes(String(c.top_type||"").toLowerCase());
   const insetBottom = ["inset","inset_between_sides","вкладне","вкладний"].includes(String(c.bottom_type||"").toLowerCase());
+  if (fullHeight && topOverSides && data.height>t) {
+    parts.push({id:"top",name:"KR",type:"horizontal",qty:1,size_x_mm:data.width,size_y_mm:data.depth,size_z_mm:t,
+      x_mm:0,y_mm:0,z_mm:data.height-t,thickness_mm:t,material:data.material,edges:null});
+  }
   if (fullHeight && insetTop && data.width>2*t && data.height>t) {
     parts.push({id:"top",name:"KR",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
       x_mm:t,y_mm:0,z_mm:data.height-t,thickness_mm:t,material:data.material,edges:null});
