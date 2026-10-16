@@ -524,7 +524,7 @@ function generateBazisScript(data, parts, draft = null) {
   return lines.join("\n");
 }
 
-function buildBazisPlan(data, parts, machining, draft = null) {
+export function buildBazisPlan(data, parts, machining, draft = null) {
   const script = generateBazisScript(data, parts, draft);
   return {
     status: !script ? "WAITING_FOR_PART_GEOMETRY" : draft ? "DRAFT_CODE" : "PREVIEW_CODE_READY",

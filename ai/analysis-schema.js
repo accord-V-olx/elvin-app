@@ -10,6 +10,10 @@
 
 const nullableNumber = { type: ["number", "null"] };
 
+const TOP_TYPES = ["inset", "overlay", null];
+const BOTTOM_TYPES = ["inset", "full_width", null];
+const SIDE_PANELS = ["full_height", "on_bottom", null];
+
 const INTERIOR_SCHEMA = {
   type: ["object", "null"],
   additionalProperties: false,
@@ -49,6 +53,24 @@ const INTERIOR_SCHEMA = {
     }
   },
   required: ["size_reference", "shelf_front_setback_mm", "sections"]
+};
+
+// One carcass of a multi-module order. null = same as the project.
+const MODULE_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    name: { type: ["string", "null"] },
+    width_mm: nullableNumber,
+    height_mm: nullableNumber,
+    depth_mm: nullableNumber,
+    furniture_type: { type: ["string", "null"] },
+    top_type: { type: ["string", "null"], enum: TOP_TYPES },
+    bottom_type: { type: ["string", "null"], enum: BOTTOM_TYPES },
+    side_panels: { type: ["string", "null"], enum: SIDE_PANELS },
+    interior: INTERIOR_SCHEMA
+  },
+  required: ["name", "width_mm", "height_mm", "depth_mm", "furniture_type", "top_type", "bottom_type", "side_panels", "interior"]
 };
 
 export const RESPONSE_SCHEMA = {
@@ -114,19 +136,23 @@ export const RESPONSE_SCHEMA = {
           additionalProperties: false,
           properties: {
             // Fixed values: the Wardrobe Engine understands only these.
-            top_type: { type: ["string", "null"], enum: ["inset", "overlay", null] },
-            bottom_type: { type: ["string", "null"], enum: ["inset", "full_width", null] },
+            top_type: { type: ["string", "null"], enum: TOP_TYPES },
+            bottom_type: { type: ["string", "null"], enum: BOTTOM_TYPES },
             support_type: { type: ["string", "null"], enum: ["plinth", "legs", "none", null] },
             plinth_height_mm: { type: ["number", "null"] },
             plinth_setback_mm: { type: ["number", "null"] },
             back_panel_type: { type: ["string", "null"], enum: ["overlay", "groove", "rebate", "dsp", "none", null] },
             back_groove_offset_mm: { type: ["number", "null"] },
             facade_type: { type: ["string", "null"], enum: ["overlay", "inset", "none", null] },
-            side_panels: { type: ["string", "null"], enum: ["full_height", "on_bottom", null] },
+            side_panels: { type: ["string", "null"], enum: SIDE_PANELS },
             interior: INTERIOR_SCHEMA
           },
           required: ["top_type","bottom_type","support_type","plinth_height_mm","plinth_setback_mm","back_panel_type","back_groove_offset_mm","facade_type","side_panels","interior"]
-        }
+        },
+
+        // Separate carcasses standing side by side, left -> right.
+        // Empty array = the order is one carcass.
+        modules: { type: "array", items: MODULE_SCHEMA }
       },
 
       required: [
@@ -139,7 +165,8 @@ export const RESPONSE_SCHEMA = {
         "material",
         "back_panel",
         "material_thickness_mm",
-        "construction"
+        "construction",
+        "modules"
       ]
     },
 
