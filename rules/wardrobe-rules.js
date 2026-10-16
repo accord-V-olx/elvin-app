@@ -16,7 +16,7 @@
 // conflicting reference rules.
 // ============================================================
 
-export const WARDROBE_RULES_VERSION = "1.4";
+export const WARDROBE_RULES_VERSION = "1.5";
 
 export const WARDROBE_RULES = {
 
@@ -172,13 +172,17 @@ export const WARDROBE_RULES = {
       ]
     },
 
-    // Seen in real orders, depends on the technologist (not a factory rule):
-    // some make the inset bottom/top 2 mm narrower than the opening.
-    insetPanelClearance: {
-      status: "TECHNOLOGIST_CHOICE",
-      observedMm: [0, 2],
+    // FACTORY STANDARD fixed by the product owner 2026-10-16, to end
+    // differences between technologists seen in real orders (0/-1/-2 mm).
+    innerPanelFit: {
+      status: "AUTO",
+      lengthClearanceMm: 0,
+      depthClearanceMm: 0,
       rules: [
-        "Inset panels fit the opening exactly by default; a 2 mm smaller panel is a technologist's choice."
+        "Inset bottom, inset top, fixed shelves and partitions fit the opening exactly: no length clearance.",
+        "With overlay HDF they have the full carcass depth: no depth clearance.",
+        "Removable shelves on shelf supports follow the same rule as fixed shelves.",
+        "A technologist may deviate only by an explicit note in the order."
       ]
     },
 
@@ -240,7 +244,7 @@ export const WARDROBE_RULES = {
       formula: "shelfDepth = carcassDepth",
 
       rules: [
-        "Standard shelf depth equals carcass/side depth.",
+        "Standard shelf depth equals carcass/side depth (also for removable shelves; confirmed 2026-10-16).",
 
         "Do not automatically subtract 10 mm."
       ]
@@ -829,6 +833,12 @@ DEPTH:
   carcass depth = overall depth - facade thickness - 2 mm.
 - Example: 600 overall with 18 mm facade = 580 mm carcass.
 - Do not automatically subtract HDF.
+
+INNER PANELS (factory standard):
+- Inset bottom/top, fixed and removable shelves, partitions: exactly the opening size, full carcass depth (with overlay HDF). No 1-2 mm clearances unless the order says so.
+
+EDGING THICKNESS:
+- Default visible carcass edge KR08 0.8 mm; if the order names another edge (0.45, ABS 1 mm), use the order value.
 
 CHEST / TUMBA TOP:
 - Overlay top of a chest or low cabinet overhangs the carcass at the front by 20 mm.

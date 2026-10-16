@@ -13,7 +13,9 @@ export const REAL_ORDERS = [
         id: "A-104", width: 1040, height: 2786, depth: 576, thickness: 18,
         construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "overlay" },
         parts: [["KR", 1040, 576, 1], ["DNO", 1040, 576, 1], ["ST_L", 2750, 576, 1], ["ST_R", 2750, 576, 1]],
-        pending: [["POLKA", 1004, 575, 2], ["POLKA", 1004, 497, 1], ["TYL", 2782, 1036, 1],
+        // Factory standard (2026-10-16) would give 1004x576; 575 / 497 were the technologist's choice.
+        technologistVariant: [["POLKA", 1004, 575, 2], ["POLKA", 1004, 497, 1]],
+        pending: [["TYL", 2782, 1036, 1],
           ["FASAD", 521, 516, 2], ["FASAD", 2255, 516, 2]],
         notModelled: ["RAST 1004x60 x3", "RAST 930x60", "drawers 2x", "rod 995", "37 mm inner panels"]
       },
@@ -42,10 +44,11 @@ export const REAL_ORDERS = [
         id: "B-1500", width: 1500, height: 1850, depth: 300, thickness: 18,
         construction: { side_panels: "full_height", bottom_type: "inset", top_type: "inset" },
         interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 973 }, { size_mm: 473 }] },
-        parts: [["ST_L", 1850, 300, 1], ["ST_R", 1850, 300, 1]],
-        pending: [["KR", 1464, 299, 1], ["DNO", 1464, 299, 1], ["ST_SR", 1813, 298, 1],
-          ["POLKA", 473, 293, 1], ["POLKA", 472, 293, 4], ["POLKA", 472, 292, 1], ["POLKA_SR", 973, 298, 1],
-          ["TYL", 1832, 492, 1], ["FASAD", 1845, 496, 3]],
+        // Factory standard (2026-10-16): inner panels exactly in the opening, full depth.
+        parts: [["ST_L", 1850, 300, 1], ["ST_R", 1850, 300, 1], ["KR", 1464, 300, 1], ["DNO", 1464, 300, 1], ["ST_SR", 1814, 300, 1]],
+        technologistVariant: [["KR", 1464, 299, 1], ["DNO", 1464, 299, 1], ["ST_SR", 1813, 298, 1],
+          ["POLKA", 473, 293, 1], ["POLKA", 472, 293, 4], ["POLKA", 472, 292, 1], ["POLKA_SR", 973, 298, 1]],
+        pending: [["TYL", 1832, 492, 1], ["FASAD", 1845, 496, 3]],
         notModelled: ["COKOL 1500x150", "COKOL 262x150 x2", "rasp_TYL 973x100", "ST_SR 834x298"]
       }
     ]
