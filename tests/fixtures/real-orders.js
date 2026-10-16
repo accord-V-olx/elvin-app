@@ -89,5 +89,29 @@ export const REAL_ORDERS = [
         notModelled: ["drawer boxes 6x (sides 450x210.5, back 828x200.5, bottom 828x431)", "rails 872x60 x6"]
       }
     ]
+  },
+  {
+    id: "REAL-E",
+    description: "Wall unit around a niche: lower cabinets, upper cabinets, top boxes, 37 mm frame panels. Height 2575, depth 550 with facades",
+    modules: [
+      {
+        id: "E-S84", width: 840, height: 1570, depth: 528, thickness: 18, shelves: 4,
+        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "overlay" },
+        // New factory standard holds: shelves 804 = 840 - 36, full depth.
+        parts: [["KR", 840, 528, 1], ["DNO", 840, 528, 1], ["ST_L", 1534, 528, 1], ["ST_R", 1534, 528, 1], ["POLKA", 804, 528, 4]],
+        // Facades 2 + 416 + 4 + 416 + 2 = 840 (rule); height 1566 = 1570 - 2 - 2 (rule says 3 + 3).
+        pending: [["FASAD", 1566, 416, 2]],
+        notModelled: []
+      },
+      {
+        id: "E-A84", width: 840, height: 500, depth: 528, thickness: 18,
+        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "inset" },
+        parts: [["DNO", 840, 528, 1], ["ST_L", 482, 528, 1], ["ST_R", 482, 528, 1]],
+        // KR stops in front of the HDF (groove 14): 510; HDF 820 = opening 804 + 16.
+        pending: [["KR", 804, 510, 1], ["TYL", 820, 489, 1], ["FASAD", 496, 416, 2]],
+        notModelled: []
+      }
+    ],
+    notModelledModules: ["lower cabinets with drawers and DSP back", "open green cabinet with LED grooves", "37 mm niche frame panels 2180x550, 2038x550"]
   }
 ];
