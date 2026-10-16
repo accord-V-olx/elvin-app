@@ -67,5 +67,22 @@ export const REAL_ORDERS = [
       }
     ],
     notModelledModules: ["aquarium stand: sides and top glued 2x18 = 37 mm, DNO 524x380, ST_SR 795x361, ST_TYL 795x524, shelves 253x361 x2, inset facades 799x257 x2"]
+  },
+  {
+    id: "REAL-D",
+    description: "Chest of 6 drawers 1800 x 980 x 500 on plastic feet: overlay top, sides to the floor, inset bottom, HDF in groove 10 mm, two drawer columns",
+    modules: [
+      {
+        id: "D-1800", width: 1800, height: 980, depth: 480, thickness: 18,
+        construction: { side_panels: "full_height", bottom_type: "inset", top_type: "overlay", plinth_height_mm: 0 },
+        interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 873 }, { size_mm: 873 }] },
+        parts: [["ST_L", 962, 480, 1], ["ST_R", 962, 480, 1]],
+        // Same patterns as REAL-C: top 20 mm deeper than the carcass, inset bottom 2 mm narrower,
+        // partition stops in front of the HDF groove, HDF = opening + 14 (width) / + 16 (height).
+        pending: [["KR", 1800, 500, 1], ["DNO", 1762, 480, 1], ["ST_SR", 944, 465, 1], ["TYL", 1778, 960, 1],
+          ["FASAD", 896, 291, 4], ["FASAD", 896, 285, 2]],
+        notModelled: ["drawer boxes 6x (sides 450x210.5, back 828x200.5, bottom 828x431)", "rails 872x60 x6"]
+      }
+    ]
   }
 ];
