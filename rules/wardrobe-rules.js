@@ -16,7 +16,7 @@
 // conflicting reference rules.
 // ============================================================
 
-export const WARDROBE_RULES_VERSION = "1.2";
+export const WARDROBE_RULES_VERSION = "1.3";
 
 export const WARDROBE_RULES = {
 
@@ -520,7 +520,7 @@ export const WARDROBE_RULES = {
         top: 3,
         left: 2,
         right: 2,
-        betweenAdjacentFacades: 2,
+        betweenAdjacentFacades: 4,
         bottom: 3
       },
 
@@ -535,7 +535,7 @@ export const WARDROBE_RULES = {
 
         "Preferred left/right gaps are 2 mm.",
 
-        "Preferred gap between adjacent facades is 2 mm.",
+        "Preferred gap between adjacent facades is 4 mm, horizontally and vertically (confirmed 2026-10-16 from a real order).",
 
         "Preferred bottom gap is 3 mm (confirmed 2026-10-15).",
 
@@ -858,7 +858,7 @@ FACADES:
 - Overlay preferred gaps:
   top 3 mm;
   left/right 2 mm;
-  between adjacent facades 2 mm;
+  between adjacent facades 4 mm (horizontally and vertically);
   bottom 3 mm.
 - Floating symmetric gap 1.5-4 mm is allowed when needed to obtain equal whole-number facade sizes.
 - Inset facade:
