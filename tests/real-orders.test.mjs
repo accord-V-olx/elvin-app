@@ -18,7 +18,7 @@ function build(m) {
         cells: Array.from({ length: m.shelves + 1 }, () => ({ size_mm: (inner - m.shelves * t) / (m.shelves + 1) })) }
     : undefined);
   return buildWardrobe({
-    projectName: m.id, width: m.width, height: m.height, depth: m.depth,
+    projectName: m.id, furnitureType: m.furnitureType ?? "шафа", width: m.width, height: m.height, depth: m.depth,
     material: "ДСП", materialThickness: t, backPanel: "none", facades: "none",
     sections: interior ? undefined : "carcass only",
     construction: { support_type: "legs", plinth_height_mm: 0, ...m.construction, interior }

@@ -337,6 +337,15 @@ function validateRequiredData(data) {
   return missing;
 }
 
+function topFrontOverhang(data) {
+  const rule = WARDROBE_RULES.carcassConstruction?.overlayTopOverhang;
+  const c = data.construction || {};
+  if (!rule || !["overlay","накладна","накладний"].includes(String(c.top_type||"").toLowerCase())) return 0;
+  const type = String(data.furnitureType || "");
+  const kind = /комод|chest/i.test(type) ? "CHEST" : /тумб|tumba/i.test(type) ? "TUMBA" : null;
+  return kind && rule.appliesTo.includes(kind) ? rule.frontOverhangMm : 0;
+}
+
 function buildParts(data) {
   const t = data.materialThickness;
   const c = data.construction || {};
@@ -397,6 +406,16 @@ function buildParts(data) {
         : {id:"top",name:"KR",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
             x_mm:t,y_mm:0,z_mm:data.height-t,thickness_mm:t,material:data.material,edges:null}
     );
+  }
+  // Chest / tumba with an overlay top: the top overhangs the carcass at the
+  // front (factory rule). Overall depth = top depth; the carcass moves back.
+  const overhang = topFrontOverhang(data);
+  if (overhang > 0 && overhang < data.depth) {
+    for (const p of parts) {
+      if (p.id === "top") continue;
+      p.y_mm += overhang;
+      p.size_y_mm -= overhang;
+    }
   }
   // Internal panels must be specified by confirmed coordinates, not guessed
   // from a sketch or evenly distributed. X=width, Y=depth, Z=height.

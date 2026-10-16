@@ -16,7 +16,7 @@
 // conflicting reference rules.
 // ============================================================
 
-export const WARDROBE_RULES_VERSION = "1.3";
+export const WARDROBE_RULES_VERSION = "1.4";
 
 export const WARDROBE_RULES = {
 
@@ -157,6 +157,28 @@ export const WARDROBE_RULES = {
         "If the project explicitly requires an overlay top or another construction, use project data.",
 
         "If unclear, ASK."
+      ]
+    },
+
+    // Confirmed 2026-10-16 from two real orders (chests 1350 and 1800).
+    overlayTopOverhang: {
+      status: "AUTO",
+      appliesTo: ["CHEST", "TUMBA"],
+      frontOverhangMm: 20,
+      rules: [
+        "Chests and bedside/low cabinets with an overlay top: the top is 20 mm deeper than the carcass and overhangs at the front.",
+        "Overall depth on the drawing is the top depth; carcass depth = overall depth - 20.",
+        "Wardrobes keep the top flush with the carcass."
+      ]
+    },
+
+    // Seen in real orders, depends on the technologist (not a factory rule):
+    // some make the inset bottom/top 2 mm narrower than the opening.
+    insetPanelClearance: {
+      status: "TECHNOLOGIST_CHOICE",
+      observedMm: [0, 2],
+      rules: [
+        "Inset panels fit the opening exactly by default; a 2 mm smaller panel is a technologist's choice."
       ]
     },
 
@@ -752,6 +774,8 @@ export const WARDROBE_RULES = {
 
       "Overlay HDF: offsets of the sheet from carcass/section edges (top, bottom, left, right, overlap on partitions).",
 
+      "HDF in groove: is the sheet = opening + 14 mm (width) and + 16 mm (height)? Seen in two orders, needs confirmation.",
+
       "Overlay HDF: when exactly one whole sheet is used instead of one per section.",
 
       "PAZ: how deep HDF enters the groove; top fixing (groove in top or under top); standard rear offset; BAZIS script for the groove.",
@@ -805,6 +829,10 @@ DEPTH:
   carcass depth = overall depth - facade thickness - 2 mm.
 - Example: 600 overall with 18 mm facade = 580 mm carcass.
 - Do not automatically subtract HDF.
+
+CHEST / TUMBA TOP:
+- Overlay top of a chest or low cabinet overhangs the carcass at the front by 20 mm.
+- Overall depth on the drawing = top depth; carcass depth = overall depth - 20.
 
 SHELVES:
 - Standard shelf depth = carcass depth.

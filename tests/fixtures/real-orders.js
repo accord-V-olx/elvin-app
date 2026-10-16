@@ -55,13 +55,15 @@ export const REAL_ORDERS = [
     description: "Chest 1350 x 750 x 350 (overlay top, sides to the floor, HDF in groove 10 mm) + aquarium stand 600 x 850 x 400 (37 mm sides and top, DSP back)",
     modules: [
       {
-        id: "C-1350", width: 1350, height: 750, depth: 330, thickness: 18,
+        id: "C-1350", width: 1350, height: 750, depth: 350, thickness: 18, furnitureType: "комод",
         construction: { side_panels: "full_height", bottom_type: "inset", top_type: "overlay", plinth_height_mm: 60 },
         interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 423 }, { size_mm: 873 }] },
-        parts: [["ST_L", 732, 330, 1], ["ST_R", 732, 330, 1]],
-        // KR overhangs the carcass (350 vs 330); inner panels are 2 mm narrower than the opening;
-        // partition and shelves stop in front of the HDF groove (316).
-        pending: [["KR", 1350, 350, 1], ["DNO", 1312, 330, 1], ["ST_SR", 654, 316, 1],
+        // KR overhangs the carcass at the front by 20 mm (factory rule, 2026-10-16).
+        parts: [["ST_L", 732, 330, 1], ["ST_R", 732, 330, 1], ["KR", 1350, 350, 1], ["DNO", 1314, 330, 1]],
+        // This technologist made the inset bottom 2 mm narrower (technologist's choice, not a rule).
+        technologistVariant: [["DNO", 1312, 330, 1]],
+        // Partition and shelves stop in front of the HDF groove (316).
+        pending: [["ST_SR", 654, 316, 1],
           ["POLKA", 423, 316, 1], ["POLKA", 871, 316, 1], ["TYL", 1328, 670, 1], ["FASAD", 678, 445, 3], ["COKOL", 1312, 60, 2]],
         notModelled: []
       }
@@ -73,13 +75,13 @@ export const REAL_ORDERS = [
     description: "Chest of 6 drawers 1800 x 980 x 500 on plastic feet: overlay top, sides to the floor, inset bottom, HDF in groove 10 mm, two drawer columns",
     modules: [
       {
-        id: "D-1800", width: 1800, height: 980, depth: 480, thickness: 18,
+        id: "D-1800", width: 1800, height: 980, depth: 500, thickness: 18, furnitureType: "комод",
         construction: { side_panels: "full_height", bottom_type: "inset", top_type: "overlay", plinth_height_mm: 0 },
         interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 873 }, { size_mm: 873 }] },
-        parts: [["ST_L", 962, 480, 1], ["ST_R", 962, 480, 1]],
-        // Same patterns as REAL-C: top 20 mm deeper than the carcass, inset bottom 2 mm narrower,
-        // partition stops in front of the HDF groove, HDF = opening + 14 (width) / + 16 (height).
-        pending: [["KR", 1800, 500, 1], ["DNO", 1762, 480, 1], ["ST_SR", 944, 465, 1], ["TYL", 1778, 960, 1],
+        parts: [["ST_L", 962, 480, 1], ["ST_R", 962, 480, 1], ["KR", 1800, 500, 1], ["DNO", 1764, 480, 1]],
+        technologistVariant: [["DNO", 1762, 480, 1]],
+        // Partition stops in front of the HDF groove; HDF = opening + 14 (width) / + 16 (height), not confirmed yet.
+        pending: [["ST_SR", 944, 465, 1], ["TYL", 1778, 960, 1],
           ["FASAD", 896, 291, 4], ["FASAD", 896, 285, 2]],
         notModelled: ["drawer boxes 6x (sides 450x210.5, back 828x200.5, bottom 828x431)", "rails 872x60 x6"]
       }

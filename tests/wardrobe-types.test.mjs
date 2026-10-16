@@ -282,3 +282,19 @@ test("overlay top on a full bottom: sides stand between bottom and top (real fac
   assert.ok(shelves.every(s => s.size_x_mm === 484 && s.size_y_mm === 576));
   assertInteriorCovered(r);
 });
+
+test("chest with overlay top: top overhangs the carcass at the front by 20 mm (factory rule)", () => {
+  const r = buildWardrobe(order({ width: 1800, height: 980, depth: 500, furnitureType: "комод",
+    construction: { side_panels: "full_height", bottom_type: "inset", top_type: "overlay", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 873 }, { size_mm: 873 }] } }));
+  assert.equal(r.geometryCheck.ok, true, JSON.stringify(r.missing));
+  const p = byId(r);
+  assert.deepEqual(box(p.top), [0, 0, 962, 1800, 500, 18]);
+  assert.deepEqual(box(p.side_left), [0, 20, 0, 18, 480, 962]);
+  assert.deepEqual([p.partition_1.y_mm, p.partition_1.size_y_mm], [20, 480]);
+  // The same construction as a wardrobe keeps the top flush.
+  const w = buildWardrobe(order({ width: 1800, height: 980, depth: 500, furnitureType: "шафа",
+    construction: { side_panels: "full_height", bottom_type: "inset", top_type: "overlay", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 873 }, { size_mm: 873 }] } }));
+  assert.equal(byId(w).side_left.size_y_mm, 500);
+});
