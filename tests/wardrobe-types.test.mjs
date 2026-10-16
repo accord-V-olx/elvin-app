@@ -265,3 +265,20 @@ test("draft BAZIS code: a part without orientation is listed, not silently dropp
   assert.equal(r.bazis.status, "DRAFT_CODE");
   assert.match(r.bazis.script, /Пропущено .*internal_cube/);
 });
+
+test("overlay top on a full bottom: sides stand between bottom and top (real factory module)", () => {
+  // Module 520 x 2786 x 576, DSP 18: GibLab gives KR/DNO 520x576, sides 2750x576, 7 shelves 484x576.
+  const cells = [1, 2, 3, 4, 5, 6, 7, 8].map(() => ({ size_mm: (2750 - 7 * 18) / 8 }));
+  const r = buildWardrobe(order({ width: 520, height: 2786, depth: 576,
+    construction: { top_type: "overlay", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "horizontal", cells } }));
+  assert.equal(r.status, "READY", JSON.stringify(r.missing));
+  const p = byId(r);
+  assert.deepEqual(box(p.top), [0, 0, 2768, 520, 576, 18]);
+  assert.deepEqual(box(p.bottom), [0, 0, 0, 520, 576, 18]);
+  assert.deepEqual(box(p.side_left), [0, 0, 18, 18, 576, 2750]);
+  const shelves = r.parts.filter(x => x.role === "shelf");
+  assert.equal(shelves.length, 7);
+  assert.ok(shelves.every(s => s.size_x_mm === 484 && s.size_y_mm === 576));
+  assertInteriorCovered(r);
+});

@@ -372,9 +372,11 @@ function buildParts(data) {
   const bottomSupported = ["on_bottom","standing_on_bottom","на дні","стоять на дні"].includes(String(c.side_panels||"").toLowerCase());
   const bottomFull = ["full_width","full","суцільне","на всю ширину"].includes(String(c.bottom_type||"").toLowerCase());
   const supportH = Number(c.plinth_height_mm);
-  if (bottomSupported && bottomFull && insetTop && Number.isFinite(supportH) && supportH >= 0 &&
+  // Top over the sides (overlay): sides stand between the full bottom and the full top.
+  const overlayTop = ["overlay","накладна","накладний"].includes(String(c.top_type||"").toLowerCase());
+  if (bottomSupported && bottomFull && (insetTop || overlayTop) && Number.isFinite(supportH) && supportH >= 0 &&
       data.width > 2*t && data.height > supportH + 2*t) {
-    const sideH = data.height - supportH - t;
+    const sideH = data.height - supportH - t - (overlayTop ? t : 0);
     parts.push(
       {id:"bottom",name:"DNO",type:"horizontal",qty:1,size_x_mm:data.width,size_y_mm:data.depth,size_z_mm:t,
         x_mm:0,y_mm:0,z_mm:supportH,thickness_mm:t,material:data.material,edges:null},
@@ -382,8 +384,11 @@ function buildParts(data) {
         x_mm:0,y_mm:0,z_mm:supportH+t,thickness_mm:t,material:data.material,edges:null},
       {id:"side_right",name:"ST_R",type:"side",qty:1,size_x_mm:t,size_y_mm:data.depth,size_z_mm:sideH,
         x_mm:data.width-t,y_mm:0,z_mm:supportH+t,thickness_mm:t,material:data.material,edges:null},
-      {id:"top",name:"KR",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
-        x_mm:t,y_mm:0,z_mm:data.height-t,thickness_mm:t,material:data.material,edges:null}
+      overlayTop
+        ? {id:"top",name:"KR",type:"horizontal",qty:1,size_x_mm:data.width,size_y_mm:data.depth,size_z_mm:t,
+            x_mm:0,y_mm:0,z_mm:data.height-t,thickness_mm:t,material:data.material,edges:null}
+        : {id:"top",name:"KR",type:"horizontal",qty:1,size_x_mm:data.width-2*t,size_y_mm:data.depth,size_z_mm:t,
+            x_mm:t,y_mm:0,z_mm:data.height-t,thickness_mm:t,material:data.material,edges:null}
     );
   }
   // Internal panels must be specified by confirmed coordinates, not guessed
