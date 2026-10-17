@@ -161,7 +161,7 @@ test("groove back panel with an explicit offset from the drawing: setback = offs
     construction: { back_panel_type: "ХДФ у паз", back_groove_offset_mm: 16, facade_type: null },
     interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 573 }, { size_mm: 573 }] }
   }));
-  assert.ok(!r.missing.some(m => m.field === "construction.interior"), JSON.stringify(r.missing));
+  assert.ok(!(r.missing || []).some(m => m.field === "construction.interior"), JSON.stringify(r.missing));
   assert.equal(byId(r).partition_1.size_y_mm, 600 - 16 - 4);
 });
 
@@ -310,8 +310,14 @@ test("HDF in groove (factory standard 14 + 4): shelves, partitions and inset top
   assert.deepEqual([p.partition_1.y_mm, p.partition_1.size_y_mm], [0, 510]);
   assert.equal(p.side_left.size_y_mm, 528);
   assert.equal(p.bottom.size_y_mm, 528);
-  assert.ok(!r.missing.some(m => m.field === "construction.back_groove_offset_mm"));
+  assert.ok(!(r.missing || []).some(m => m.field === "construction.back_groove_offset_mm"));
   assert.equal(r.geometryCheck.ok, true, JSON.stringify(r.geometryCheck.errors));
+  // HDF in the groove (left, right, bottom): real order TYL 820 x 489.
+  const hdf = p.back;
+  assert.deepEqual([hdf.size_x_mm, hdf.size_z_mm, hdf.size_y_mm], [820, 489, 3]);
+  assert.deepEqual([hdf.x_mm, hdf.y_mm, hdf.z_mm], [10, 510, 10]);
+  assert.equal(r.status, "READY", JSON.stringify(r.missing));
+  assert.match(r.bazis.script, /P_back = objects3d\.NewPanel\(820, 489, objects3d\.PanelOrientation\.front\)/);
 });
 
 test("DSP other than 18 / 37 mm gives a warning (factory rule)", () => {
@@ -320,4 +326,12 @@ test("DSP other than 18 / 37 mm gives a warning (factory rule)", () => {
   assert.match(r.warnings.join(" "), /16 мм.*лише ДСП 18, 37/);
   const ok = buildWardrobe(order({ interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 1000 }, { size_mm: 1246 }] } }));
   assert.deepEqual(ok.warnings, []);
+});
+
+test("HDF in groove with an overlay top is asked (groove only in sides and bottom)", () => {
+  const r = buildWardrobe(order({ width: 840, height: 1570, depth: 528, backPanel: "ХДФ",
+    construction: { back_panel_type: "groove", top_type: "overlay", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 758 }, { size_mm: 758 }] } }));
+  assert.ok(r.missing.some(m => m.field === "construction.back_panel_type"), JSON.stringify(r.missing));
+  assert.ok(!r.parts.some(p => p.role === "back"));
 });

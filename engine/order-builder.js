@@ -88,7 +88,8 @@ export function buildOrder(analysis = {}) {
     const width = r.project?.width || 0;
     const dy = maxDepth - depths[i];
     for (const part of r.parts || []) {
-      parts.push({ ...part, id: prefixId(i, part.id), module: i + 1, x_mm: part.x_mm + x, y_mm: part.y_mm + dy });
+      parts.push({ ...part, id: prefixId(i, part.id), module: i + 1, x_mm: part.x_mm + x, y_mm: part.y_mm + dy,
+        ...(part.fits_into ? { fits_into: part.fits_into.map(id => prefixId(i, id)) } : {}) });
     }
     for (const s of r.sections || []) {
       sections.push({ ...s, id: "M" + (i + 1) + "." + s.id, module: i + 1, x_mm: s.x_mm + x, y_mm: s.y_mm + dy });

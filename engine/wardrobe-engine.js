@@ -358,6 +358,29 @@ function grooveSetback(data) {
   return Number.isFinite(offset) && Number.isFinite(width) ? offset + width : 0;
 }
 
+// HDF in the groove (factory standard): groove in both sides and the
+// bottom, the sheet slides in from the top behind an inset top.
+// Width = opening + 2 x (groove depth - 1); bottom edge 8 mm into the
+// bottom groove; top edge 1 mm below the carcass top.
+function buildGrooveBack(data, parts) {
+  const paz = WARDROBE_RULES.backPanel?.paz || {};
+  const byId = Object.fromEntries(parts.map(p => [p.id, p]));
+  const { side_left: l, side_right: r, bottom: b, top } = byId;
+  if (!l || !r || !b || !top || !(top.size_x_mm < data.width)) return null; // only with an inset top
+  const into = paz.grooveDepthMm - 1;
+  const back = Math.min(l.y_mm + l.size_y_mm, r.y_mm + r.size_y_mm);
+  const x0 = l.x_mm + l.size_x_mm - into;
+  const z0 = b.z_mm + b.size_z_mm - into;
+  const z1 = top.z_mm + top.size_z_mm - 1;
+  return {
+    id: "back", name: "TYL", type: "back", role: "back", qty: 1,
+    x_mm: x0, y_mm: back - grooveSetback(data), z_mm: z0,
+    size_x_mm: (r.x_mm + into) - x0, size_y_mm: paz.panelThicknessMm, size_z_mm: z1 - z0,
+    thickness_mm: paz.panelThicknessMm, material: "ХДФ", edges: null,
+    fits_into: ["side_left", "side_right", "bottom"]
+  };
+}
+
 function topFrontOverhang(data) {
   const rule = WARDROBE_RULES.carcassConstruction?.overlayTopOverhang;
   const c = data.construction || {};
@@ -652,6 +675,14 @@ export function buildWardrobe(confirmedAnalysis = {}) {
   // partitions. Runs on the SAME parts list that 3D and BAZIS use.
   // --------------------------------------------------------
 
+  // Back panel: HDF in the groove is built from the factory standard.
+  let backModelled = false;
+  if (!isBackAbsent(data) && grooveSetback(data) > 0) {
+    const hdf = buildGrooveBack(data, parts);
+    if (hdf) { parts.push(hdf); backModelled = true; }
+    else interiorMissing.push({field:"construction.back_panel_type",question:"ХДФ у паз при накладній кришці: до якої висоти доходить лист і чи є паз у кришці?"});
+  }
+
   const geometryCheck = validateGeometry(parts, { width: data.width, depth: data.depth, height: data.height });
   // Sheet limits come from factory rules, not from the Engine.
   const hdfSheet = WARDROBE_RULES.backPanel?.hdfOverlay?.maxSheetMm;
@@ -689,7 +720,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     ...(!hasTree ? [{field:"geometry.internal_parts",question:"Повнота внутрішньої конструкції не перевірена за кресленням; експорт BAZIS заблоковано."}] : []),
     ...geometryCheck.errors.map(e => ({field:"geometry."+e.code, question:e.message, parts:e.parts})),
     // Parts the Engine does not model yet must block export instead of being silently omitted.
-    ...(!isBackAbsent(data) ? [{field:"geometry.back_panel",question:"Задня стінка ще не розраховується Wardrobe Engine — у коді BAZIS її немає."}] : []),
+    ...(!isBackAbsent(data) && !backModelled ? [{field:"geometry.back_panel",question:"Задня стінка ще не розраховується Wardrobe Engine — у коді BAZIS її немає."}] : []),
     ...(!isFacadesAbsent(data) ? [{field:"geometry.facades",question:"Фасади ще не розраховуються Wardrobe Engine — у коді BAZIS їх немає."}] : [])
   ];
   if (geometryMissing.length) {

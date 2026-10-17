@@ -109,9 +109,9 @@ export const REAL_ORDERS = [
         id: "E-A84", width: 840, height: 500, depth: 528, thickness: 18,
         construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "inset", back_panel_type: "groove" },
         // Groove standard 2026-10-17 (14 + 4): inset KR 528 - 18 = 510, as in GibLab.
-        parts: [["DNO", 840, 528, 1], ["ST_L", 482, 528, 1], ["ST_R", 482, 528, 1], ["KR", 804, 510, 1]],
-        // HDF 820 = opening 804 + 16 (9 mm groove depth - 1 mm per side?) — to be confirmed.
-        pending: [["TYL", 820, 489, 1], ["FASAD", 496, 416, 2]],
+        // HDF in the groove (confirmed 2026-10-17): opening + 16 = 820, height 489.
+        parts: [["DNO", 840, 528, 1], ["ST_L", 482, 528, 1], ["ST_R", 482, 528, 1], ["KR", 804, 510, 1], ["TYL", 820, 489, 1]],
+        pending: [["FASAD", 496, 416, 2]],
         notModelled: []
       }
     ],

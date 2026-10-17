@@ -128,6 +128,9 @@ export function validateGeometry(parts, envelope, options = {}) {
   for (let i = 0; i < boxes.length; i++) {
     for (let j = i + 1; j < boxes.length; j++) {
       checkedPairs++;
+      // A panel set into a groove (HDF) overlaps the grooved parts by design.
+      const [pi, pj] = [boxes[i][0], boxes[j][0]];
+      if ((pi.fits_into || []).includes(pj.id) || (pj.fits_into || []).includes(pi.id)) continue;
       const v = overlapVolume(boxes[i][1], boxes[j][1]);
       if (v > 0) {
         add("COLLISION", [boxes[i][0].id, boxes[j][0].id],

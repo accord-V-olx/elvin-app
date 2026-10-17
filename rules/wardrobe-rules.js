@@ -16,7 +16,7 @@
 // conflicting reference rules.
 // ============================================================
 
-export const WARDROBE_RULES_VERSION = "1.7";
+export const WARDROBE_RULES_VERSION = "1.8";
 
 export const WARDROBE_RULES = {
 
@@ -353,6 +353,10 @@ export const WARDROBE_RULES = {
         "Shelves, partitions and an inset top stop in front of the groove: depth = carcass depth - 14 - 4 = carcass depth - 18.",
 
         "Sides, bottom and an overlay top keep the full depth and receive the groove.",
+
+        "The groove is made in three parts: left side, right side and bottom; HDF slides into it (confirmed 2026-10-17).",
+
+        "HDF sheet = opening + 16 mm in width (8 mm into each side groove); bottom edge 8 mm into the bottom groove; top edge 1 mm below the carcass top, behind an inset top.",
 
         "The BAZIS groove operation is not generated until it is tested in real BAZIS.",
 
@@ -780,8 +784,6 @@ export const WARDROBE_RULES = {
       "Confirm maximum HDF dimension for PAZ construction.",
 
       "Overlay HDF: offsets of the sheet from carcass/section edges (top, bottom, left, right, overlap on partitions).",
-
-      "HDF in groove: is the sheet = opening + 14 mm (width) and + 16 mm (height)? Seen in two orders, needs confirmation.",
 
       "Overlay HDF: when exactly one whole sheet is used instead of one per section.",
 
