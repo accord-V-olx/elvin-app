@@ -16,7 +16,7 @@
 // conflicting reference rules.
 // ============================================================
 
-export const WARDROBE_RULES_VERSION = "1.6";
+export const WARDROBE_RULES_VERSION = "1.7";
 
 export const WARDROBE_RULES = {
 
@@ -57,23 +57,24 @@ export const WARDROBE_RULES = {
       standardMaterial: "DSP",
       standardThicknessMm: 18,
 
-      // Confirmed 2026-10-17: the factory uses only DSP 18 mm
-      // (37 mm parts are two 18 mm sheets glued together).
+      // Confirmed 2026-10-17: the factory uses DSP 18 mm and glued
+      // 37 mm panels (two 18 mm sheets + 1 mm glue).
       allowedKnownThicknessesMm: [
-        18
+        18,
+        37
       ],
 
       laminatedConstruction: {
-        status: "ASK",
+        status: "AUTO",
         layersMm: [18, 18],
-        glueApproxMm: 1,
-        totalApproxMm: 37
+        glueMm: 1,
+        totalMm: 37
       },
 
       rules: [
         "Standard carcass DSP thickness is 18 mm.",
 
-        "The factory uses only DSP 18 mm; 37 mm parts are two glued 18 mm sheets. Any other thickness on a drawing must be confirmed by the technologist.",
+        "The factory uses DSP 18 mm and glued 37 mm panels (18 + 18 + 1 mm glue). Any other thickness on a drawing must be confirmed by the technologist.",
 
         "If another thickness is explicitly specified in the drawing/order, use the project value.",
 
@@ -819,7 +820,7 @@ PRIORITY:
 
 MATERIALS:
 - Standard carcass DSP: 18 mm.
-- The factory uses ONLY DSP 18 mm (37 mm = two glued 18 mm sheets). Set material_thickness_mm = 18 unless the drawing clearly says otherwise; another value must be confirmed.
+- The factory uses DSP 18 mm and glued 37 mm panels (18 + 18 + 1 mm glue). Set material_thickness_mm = 18 unless the drawing clearly says otherwise; 37 mm only for glued parts; any other value must be confirmed.
 - Standard DSP facade: 18 mm.
 - Other facade materials/thicknesses may be project-specific.
 - Laminated 18+18 construction exists but must be explicitly confirmed.

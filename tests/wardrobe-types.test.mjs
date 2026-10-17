@@ -314,10 +314,10 @@ test("HDF in groove (factory standard 14 + 4): shelves, partitions and inset top
   assert.equal(r.geometryCheck.ok, true, JSON.stringify(r.geometryCheck.errors));
 });
 
-test("DSP other than 18 mm gives a warning (factory uses only 18 mm)", () => {
+test("DSP other than 18 / 37 mm gives a warning (factory rule)", () => {
   const r = buildWardrobe(order({ materialThickness: 16, width: 600, height: 2000, depth: 500,
     interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 900 }, { size_mm: 1032 - 16 + 18 * 0 + 0 }] } }));
-  assert.match(r.warnings.join(" "), /16 мм.*лише ДСП 18/);
+  assert.match(r.warnings.join(" "), /16 мм.*лише ДСП 18, 37/);
   const ok = buildWardrobe(order({ interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 1000 }, { size_mm: 1246 }] } }));
   assert.deepEqual(ok.warnings, []);
 });
