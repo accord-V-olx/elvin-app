@@ -16,7 +16,7 @@
 // conflicting reference rules.
 // ============================================================
 
-export const WARDROBE_RULES_VERSION = "1.5";
+export const WARDROBE_RULES_VERSION = "1.6";
 
 export const WARDROBE_RULES = {
 
@@ -57,9 +57,9 @@ export const WARDROBE_RULES = {
       standardMaterial: "DSP",
       standardThicknessMm: 18,
 
+      // Confirmed 2026-10-17: the factory uses only DSP 18 mm
+      // (37 mm parts are two 18 mm sheets glued together).
       allowedKnownThicknessesMm: [
-        10,
-        16,
         18
       ],
 
@@ -73,7 +73,7 @@ export const WARDROBE_RULES = {
       rules: [
         "Standard carcass DSP thickness is 18 mm.",
 
-        "DSP 10 mm and 16 mm are also used when specified by the project.",
+        "The factory uses only DSP 18 mm; 37 mm parts are two glued 18 mm sheets. Any other thickness on a drawing must be confirmed by the technologist.",
 
         "If another thickness is explicitly specified in the drawing/order, use the project value.",
 
@@ -89,7 +89,6 @@ export const WARDROBE_RULES = {
       standardThicknessMm: 18,
 
       knownOptions: [
-        "DSP 16 mm",
         "DSP 18 mm",
         "MDF - thickness depends on project"
       ],
@@ -329,18 +328,17 @@ export const WARDROBE_RULES = {
 
 
     paz: {
-      status: "PAUSED",
+      // Factory standard confirmed 2026-10-17: groove 14 mm from the back,
+      // 4 mm wide, 9 mm deep. Geometry is AUTO; the BAZIS groove operation
+      // itself is not generated until a tested BAZIS script is supplied.
+      status: "AUTO_GEOMETRY",
 
       operationName: "PAZ",
 
       panelThicknessMm: 3,
       grooveWidthMm: 4,
       grooveDepthMm: 9,
-
-      rearOffsetMm: {
-        min: 5,
-        max: 20
-      },
+      rearOffsetMm: 14,
 
       grooveSides: [
         "LEFT_UPRIGHT",
@@ -349,9 +347,13 @@ export const WARDROBE_RULES = {
       ],
 
       rules: [
-        "PAZ is currently stored as a known construction but must NOT be generated automatically.",
+        "Standard groove: 14 mm from the rear edge, 4 mm wide, 9 mm deep.",
 
-        "PAZ must be tested in real BAZIS before activation.",
+        "Shelves, partitions and an inset top stop in front of the groove: depth = carcass depth - 14 - 4 = carcass depth - 18.",
+
+        "Sides, bottom and an overlay top keep the full depth and receive the groove.",
+
+        "The BAZIS groove operation is not generated until it is tested in real BAZIS.",
 
         "Maximum allowed HDF dimension for this construction still requires confirmation."
       ]
@@ -817,7 +819,7 @@ PRIORITY:
 
 MATERIALS:
 - Standard carcass DSP: 18 mm.
-- DSP 10 mm and 16 mm may be used when specified.
+- The factory uses ONLY DSP 18 mm (37 mm = two glued 18 mm sheets). Set material_thickness_mm = 18 unless the drawing clearly says otherwise; another value must be confirmed.
 - Standard DSP facade: 18 mm.
 - Other facade materials/thicknesses may be project-specific.
 - Laminated 18+18 construction exists but must be explicitly confirmed.
@@ -857,15 +859,13 @@ BACK:
 - One HDF sheet max 2800 x 2070 mm.
 - Overlay HDF offsets from edges are NOT confirmed -> ASK.
 - If back type is not defined -> ASK.
-- PAZ is currently PAUSED.
+- PAZ (groove) is the factory standard when HDF goes into a groove.
 
-PAZ REFERENCE ONLY:
+PAZ (factory standard):
 - Name: PAZ.
-- Width: 4 mm.
-- Depth: 9 mm.
-- Rear offset: 5-20 mm.
-- On left upright + right upright + bottom.
-- Do not generate automatically yet.
+- 14 mm from the rear edge, 4 mm wide, 9 mm deep.
+- Shelves, partitions and an inset top are 18 mm shallower than the carcass (14 + 4).
+- Do not ask for the groove offset: it is 14 mm unless the drawing says otherwise.
 
 PLINTH:
 - If plinth is not defined -> ASK.

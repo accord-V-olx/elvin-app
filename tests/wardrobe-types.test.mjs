@@ -156,12 +156,13 @@ test("interior and internal_panels together are a conflict", () => {
   assert.ok(fields(r).includes("construction.interior"));
 });
 
-test("groove back panel with interior is asked (shelf depth rule not approved)", () => {
+test("groove back panel with an explicit offset from the drawing: setback = offset + 4 mm groove", () => {
   const r = buildWardrobe(order({ backPanel: "ХДФ",
     construction: { back_panel_type: "ХДФ у паз", back_groove_offset_mm: 16, facade_type: null },
     interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 573 }, { size_mm: 573 }] }
   }));
-  assert.ok(r.missing.some(m => m.field === "construction.interior" && /паз/.test(m.question)));
+  assert.ok(!r.missing.some(m => m.field === "construction.interior"), JSON.stringify(r.missing));
+  assert.equal(byId(r).partition_1.size_y_mm, 600 - 16 - 4);
 });
 
 test("declared back panel and facades block READY until they are modelled", () => {
@@ -297,4 +298,26 @@ test("chest with overlay top: top overhangs the carcass at the front by 20 mm (f
     construction: { side_panels: "full_height", bottom_type: "inset", top_type: "overlay", plinth_height_mm: 0 },
     interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 873 }, { size_mm: 873 }] } }));
   assert.equal(byId(w).side_left.size_y_mm, 500);
+});
+
+test("HDF in groove (factory standard 14 + 4): shelves, partitions and inset top are 18 mm shallower", () => {
+  const r = buildWardrobe(order({ width: 840, height: 500, depth: 528, backPanel: "ХДФ 2,5",
+    construction: { back_panel_type: "groove", top_type: "inset", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 393 }, { size_mm: 393 }] } }));
+  const p = byId(r);
+  // Real order (top box 840): KR 804 x 510 = 528 - 18.
+  assert.deepEqual([p.top.size_x_mm, p.top.size_y_mm], [804, 510]);
+  assert.deepEqual([p.partition_1.y_mm, p.partition_1.size_y_mm], [0, 510]);
+  assert.equal(p.side_left.size_y_mm, 528);
+  assert.equal(p.bottom.size_y_mm, 528);
+  assert.ok(!r.missing.some(m => m.field === "construction.back_groove_offset_mm"));
+  assert.equal(r.geometryCheck.ok, true, JSON.stringify(r.geometryCheck.errors));
+});
+
+test("DSP other than 18 mm gives a warning (factory uses only 18 mm)", () => {
+  const r = buildWardrobe(order({ materialThickness: 16, width: 600, height: 2000, depth: 500,
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 900 }, { size_mm: 1032 - 16 + 18 * 0 + 0 }] } }));
+  assert.match(r.warnings.join(" "), /16 мм.*лише ДСП 18/);
+  const ok = buildWardrobe(order({ interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 1000 }, { size_mm: 1246 }] } }));
+  assert.deepEqual(ok.warnings, []);
 });

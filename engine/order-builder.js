@@ -103,7 +103,7 @@ export function buildOrder(analysis = {}) {
 
   // Overall width is a check, not a constraint: an order may contain
   // other items (desk, panels) next to the modules.
-  const warnings = [];
+  const warnings = [...new Set(results.flatMap(r => r.warnings || []))];
   const overall = Number(p.width_mm);
   if (Number.isFinite(overall) && overall > 0 && Math.abs(overall - totalWidth) > 0.01) {
     warnings.push("Сума ширин модулів " + totalWidth + " мм не дорівнює загальній ширині " + overall +

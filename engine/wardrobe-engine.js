@@ -328,13 +328,34 @@ function validateRequiredData(data) {
     if (
       typeof c.back_panel_type === "string" &&
       /паз|groove/i.test(c.back_panel_type) &&
-      !hasValue(c.back_groove_offset_mm)
+      !hasValue(c.back_groove_offset_mm) &&
+      !Number.isFinite(WARDROBE_RULES.backPanel?.paz?.rearOffsetMm)
     ) {
       addMissing(missing, "construction.back_groove_offset_mm", "Для ХДФ у паз не визначений відступ паза.");
     }
   }
 
   return missing;
+}
+
+// The factory uses only DSP 18 mm (rules). Another thickness is not
+// blocked, but the technologist must see it.
+function materialWarnings(data) {
+  const allowed = WARDROBE_RULES.materials?.carcass?.allowedKnownThicknessesMm || [];
+  return allowed.length && data.materialThickness && !allowed.includes(data.materialThickness)
+    ? ["Товщина ДСП " + data.materialThickness + " мм: фабрика використовує лише ДСП " + allowed.join(", ") + " мм. Перевірте креслення."]
+    : [];
+}
+
+// HDF in a groove: inner panels stop in front of it (factory standard:
+// 14 mm from the back + 4 mm groove width = 18 mm).
+function grooveSetback(data) {
+  const c = data.construction || {};
+  if (typeof c.back_panel_type !== "string" || !/паз|groove/i.test(c.back_panel_type)) return 0;
+  const paz = WARDROBE_RULES.backPanel?.paz || {};
+  const offset = positiveNumber(c.back_groove_offset_mm) ?? paz.rearOffsetMm;
+  const width = paz.grooveWidthMm;
+  return Number.isFinite(offset) && Number.isFinite(width) ? offset + width : 0;
 }
 
 function topFrontOverhang(data) {
@@ -407,6 +428,11 @@ function buildParts(data) {
             x_mm:t,y_mm:0,z_mm:data.height-t,thickness_mm:t,material:data.material,edges:null}
     );
   }
+  // Inset top in front of the HDF groove: shallower by the groove setback.
+  const setback = grooveSetback(data);
+  const insetTopPart = parts.find(p => p.id === "top" && insetTop);
+  if (setback > 0 && insetTopPart && setback < insetTopPart.size_y_mm) insetTopPart.size_y_mm -= setback;
+
   // Chest / tumba with an overlay top: the top overhangs the carcass at the
   // front (factory rule). Overall depth = top depth; the carcass moves back.
   const overhang = topFrontOverhang(data);
@@ -606,9 +632,9 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     const box = carcassInterior(parts);
     if (!box) {
       interiorMissing.push({field:"construction.interior",question:"Внутрішні секції неможливо розрахувати: корпус (боковини, дно, верх) побудований не повністю."});
-    } else if (typeof c.back_panel_type === "string" && /паз|groove/i.test(c.back_panel_type)) {
-      interiorMissing.push({field:"construction.interior",question:"Глибина полиць і перегородок при ХДФ у паз ще не затверджена правилами. Яку глибину застосовувати?"});
     } else {
+      // Shelves and partitions stop in front of the HDF groove (factory standard).
+      box.y1 -= grooveSetback(data);
       const layout = buildInterior(c.interior, box, { thickness_mm: data.materialThickness, material: data.material });
       if (layout.ok) {
         parts.push(...layout.parts);
@@ -670,7 +696,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     return {
       ok: false, status: "GEOMETRY_INCOMPLETE", engineVersion: WARDROBE_ENGINE_VERSION,
       message: "Геометрія часткова: не можна позначати замовлення готовим до BAZIS.",
-      missing: geometryMissing, project: data, parts, sections, geometryCheck,
+      missing: geometryMissing, warnings: materialWarnings(data), project: data, parts, sections, geometryCheck,
       machining: [], bazis: buildBazisPlan(data, parts, [], { missing: geometryMissing })
     };
   }
@@ -686,6 +712,8 @@ export function buildWardrobe(confirmedAnalysis = {}) {
       "Підтверджених даних достатньо для переходу до розрахунку конструкції.",
 
     project: data,
+
+    warnings: materialWarnings(data),
 
     sections,
 

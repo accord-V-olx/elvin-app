@@ -65,9 +65,9 @@ export const REAL_ORDERS = [
         parts: [["ST_L", 732, 330, 1], ["ST_R", 732, 330, 1], ["KR", 1350, 350, 1], ["DNO", 1314, 330, 1]],
         // This technologist made the inset bottom 2 mm narrower (technologist's choice, not a rule).
         technologistVariant: [["DNO", 1312, 330, 1]],
-        // Partition and shelves stop in front of the HDF groove (316).
-        pending: [["ST_SR", 654, 316, 1],
-          ["POLKA", 423, 316, 1], ["POLKA", 871, 316, 1], ["TYL", 1328, 670, 1], ["FASAD", 678, 445, 3], ["COKOL", 1312, 60, 2]],
+        // Made with a 10 mm groove before the 14 mm standard: partition/shelves 316 (standard gives 312).
+        technologistVariantGroove: [["ST_SR", 654, 316, 1], ["POLKA", 423, 316, 1], ["POLKA", 871, 316, 1]],
+        pending: [["TYL", 1328, 670, 1], ["FASAD", 678, 445, 3], ["COKOL", 1312, 60, 2]],
         notModelled: []
       }
     ],
@@ -84,7 +84,9 @@ export const REAL_ORDERS = [
         parts: [["ST_L", 962, 480, 1], ["ST_R", 962, 480, 1], ["KR", 1800, 500, 1], ["DNO", 1764, 480, 1]],
         technologistVariant: [["DNO", 1762, 480, 1]],
         // Partition stops in front of the HDF groove; HDF = opening + 14 (width) / + 16 (height), not confirmed yet.
-        pending: [["ST_SR", 944, 465, 1], ["TYL", 1778, 960, 1],
+        // Partition 465 was made before the groove standard (standard gives 480 - 18 = 462).
+        technologistVariantGroove: [["ST_SR", 944, 465, 1]],
+        pending: [["TYL", 1778, 960, 1],
           ["FASAD", 896, 291, 4], ["FASAD", 896, 285, 2]],
         notModelled: ["drawer boxes 6x (sides 450x210.5, back 828x200.5, bottom 828x431)", "rails 872x60 x6"]
       }
@@ -105,10 +107,11 @@ export const REAL_ORDERS = [
       },
       {
         id: "E-A84", width: 840, height: 500, depth: 528, thickness: 18,
-        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "inset" },
-        parts: [["DNO", 840, 528, 1], ["ST_L", 482, 528, 1], ["ST_R", 482, 528, 1]],
-        // KR stops in front of the HDF (groove 14): 510; HDF 820 = opening 804 + 16.
-        pending: [["KR", 804, 510, 1], ["TYL", 820, 489, 1], ["FASAD", 496, 416, 2]],
+        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "inset", back_panel_type: "groove" },
+        // Groove standard 2026-10-17 (14 + 4): inset KR 528 - 18 = 510, as in GibLab.
+        parts: [["DNO", 840, 528, 1], ["ST_L", 482, 528, 1], ["ST_R", 482, 528, 1], ["KR", 804, 510, 1]],
+        // HDF 820 = opening 804 + 16 (9 mm groove depth - 1 mm per side?) — to be confirmed.
+        pending: [["TYL", 820, 489, 1], ["FASAD", 496, 416, 2]],
         notModelled: []
       }
     ],
