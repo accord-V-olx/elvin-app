@@ -1,4 +1,4 @@
-import { buildWardrobe } from "../../engine/wardrobe-engine.js";
+import { buildOrder } from "../../engine/order-builder.js";
 function jsonResponse(data, status = 200) {
   return new Response(
     JSON.stringify(data),
@@ -202,7 +202,7 @@ export default async (request) => {
     }
 // AI analysis is usable independently of future geometry/export readiness.
 // Wardrobe Engine reports production blockers, not extra questions for the operator.
-const wardrobe = buildWardrobe(result);
+const wardrobe = buildOrder(result);
 // Do not ask again for facts already resolved in the structured analysis.
 // Only explicit, meaningful values count; unknown placeholders do not.
 const project = result.project && typeof result.project === "object" ? result.project : {};

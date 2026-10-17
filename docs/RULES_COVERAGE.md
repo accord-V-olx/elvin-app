@@ -1,0 +1,29 @@
+# Покриття правил фабрики в Wardrobe Engine
+
+Джерело правил: `rules/wardrobe-rules.js` (v1.2). Рушій не змінює правила. Він бере їх лише з цього файлу.
+
+- **AUTO**: рушій застосовує правило сам.
+- **ASK**: рушій ставить питання.
+- **PAUSED**: рушій не генерує цю конструкцію автоматично.
+
+| Блок правил | Статус у правилах | Стан у рушії | Черга |
+|---|---|---|---|
+| materials.carcass (ДСП 18/16/10) | AUTO | Товщина з замовлення, без підстановки | — |
+| carcassConstruction.bottom / outerUprights / top | AUTO | Боковини до підлоги або на дні, вкладний верх, вкладне або суцільне дно | — |
+| carcassConstruction.internalUprights | AUTO | Стоять на деталі знизу, доходять до деталі зверху | Готово |
+| shelves.depth (= глибина корпусу) | AUTO | Так; втоплення лише з креслення | Готово |
+| backPanel.hdfOverlay | AUTO_WHEN_SELECTED | Перевірка листа 2800×2070. Сама деталь ще не будується: відступи не затверджені | Після рішення технолога |
+| backPanel.paz / rebate | PAUSED | Блокується | Після скрипта BAZIS |
+| backPanel.dspBack | ASK | Блокується | — |
+| depth.overallDepthIncludesFacade | AUTO | **Не застосовано** | 3 |
+| plinth.standard (100 мм, відступ 20) | AUTO_WHEN_SELECTED | **COKOL не будується** | 1 |
+| legs | AUTO_WHEN_SELECTED | **Не застосовано** | 4 |
+| edging.visible / rearTechnical (KR08 / BUM02) | AUTO | **Не застосовано**. Номери торців відомі з еталонного скрипта | 1 |
+| texture | AUTO | Вертикальна для вертикальних деталей, горизонтальна для горизонтальних | Перевірити з правилами |
+| facades.overlay (3/3/2/2) | AUTO_WHEN_SELECTED | **Фасади не будуються** | 2 |
+| facades.inset | ASK_PARTIALLY_DEFINED | Блокується | — |
+| facades.edging (KR08 по колу) | AUTO_FIXED | Немає | 2 |
+| mounting.carcass (MountScheme) | AUTO | **Не застосовано**. Пари деталей відомі з еталонного скрипта | 5 |
+| wideSpanTie | TESTED_REFERENCE | Немає | Пізніше |
+
+Порядок роботи: правила зі статусом AUTO вносимо по одному. На кожне правило додаємо тест і, де можливо, порівнюємо з перевіреним скриптом BAZIS.
