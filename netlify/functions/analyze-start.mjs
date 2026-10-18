@@ -1,6 +1,7 @@
 import { getWardrobeRulesForAI } from "../../rules/wardrobe-rules.js";
 import { getStore } from "@netlify/blobs";
 import { buildWardrobe } from "../../engine/wardrobe-engine.js";
+import { RESPONSE_SCHEMA } from "../../ai/analysis-schema.js";
 const MAX_IMAGES = 8;
 const MAX_TOTAL_CHARS = 5_500_000;
 const RULES_STORE_NAME = "elvin-rules";
@@ -106,171 +107,36 @@ function buildAnswerText(answers) {
 }
 
 
-const RESPONSE_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
+const CONSTRUCTION_GUIDE = `
+ЗНАЧЕННЯ project.construction (лише ці, невідоме = null):
+- side_panels: "full_height" — боковини від підлоги до верху; "on_bottom" — боковини стоять на суцільному дні.
+- top_type: "inset" — верх між боковинами; "overlay" — верх накладний на боковини.
+- bottom_type: "inset" — дно між боковинами; "full_width" — дно на всю ширину, боковини стоять на ньому.
+- support_type: "plinth" — цоколь; "legs" — ніжки; "none" — без опори.
+- plinth_type: "dsp" — цоколь з ДСП (деталь COKOL); "plastic" — пластиковий цоколь; null — не вказано.
+- back_panel_type: "overlay" — ХДФ накладна ззаду; "groove" — ХДФ у паз; "rebate" — ХДФ у вибірку; "dsp" — задня стінка з ДСП; "none" — без задньої стінки.
+- facade_type: "overlay" — накладні; "inset" — вкладні; "none" — без фасадів.
 
-  properties: {
-    status: {
-      type: "string",
-      enum: [
-        "needs_clarification",
-        "ready"
-      ]
-    },
+ВНУТРІШНЄ НАПОВНЕННЯ project.construction.interior (секції, полиці, стійки):
+- sections — секції зліва направо, розділені вертикальними стійками. width_mm — ширина секції.
+- openings — прорізи секції знизу вгору, розділені полицями. height_mm — висота прорізу. Секція без полиць = один проріз.
+- subsections — лише якщо один проріз додатково поділений вертикальною стійкою (наприклад між двома полицями); інакше [].
+- size_reference: "clear" — розміри у світлі між деталями; "axis" — по осях деталей; "outer" — зовнішні; "unknown" — неможливо визначити. Записуй розміри так, як вони проставлені на кресленні, і чесно вкажи спосіб. НЕ перераховуй розміри самостійно.
+- shelf_front_setback_mm — втоплення полиць від переднього краю, лише якщо вказано на кресленні; інакше null.
+- Розмір, якого не видно на кресленні, = null. Не розподіляй рівномірно і не вгадуй.
+- Якщо наповнення на кресленні немає зовсім — interior = null.
 
-    summary: {
-      type: "string"
-    },
+МОДУЛІ project.modules (кілька окремих корпусів поруч):
+- Якщо виріб складається з окремих корпусів, кожен зі своїми боковинами (наприклад, на кресленні ширини 32 | 104 | 35 | 52 см), перелічи їх зліва направо в project.modules.
+- width_mm — зовнішня ширина модуля в мм (см переводь у мм). height_mm, depth_mm, furniture_type, top_type, bottom_type, side_panels — лише якщо відрізняються від загальних; інакше null.
+- interior кожного модуля описуй окремо. Тоді project.construction.interior = null.
+- Якщо виріб — один корпус, modules = [].
 
-    project: {
-      type: "object",
-      additionalProperties: false,
-
-      properties: {
-        name: {
-          type: ["string", "null"]
-        },
-
-        furniture_type: {
-          type: ["string", "null"]
-        },
-
-        width_mm: {
-          type: ["number", "null"]
-        },
-
-        height_mm: {
-          type: ["number", "null"]
-        },
-
-        depth_mm: {
-          type: ["number", "null"]
-        },
-
-        sections_description: {
-          type: ["string", "null"]
-        },
-
-        material: {
-          type: ["string", "null"]
-        },
-
-        back_panel: {
-          type: ["string", "null"]
-        },
-
-        material_thickness_mm: {
-          type: ["number", "null"]
-        },
-
-        construction: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            top_type: { type: ["string", "null"] },
-            bottom_type: { type: ["string", "null"] },
-            support_type: { type: ["string", "null"] },
-            plinth_height_mm: { type: ["number", "null"] },
-            plinth_setback_mm: { type: ["number", "null"] },
-            back_panel_type: { type: ["string", "null"] },
-            back_groove_offset_mm: { type: ["number", "null"] },
-            facade_type: { type: ["string", "null"] },
-            side_panels: { type: ["string", "null"] }
-          },
-          required: ["top_type","bottom_type","support_type","plinth_height_mm","plinth_setback_mm","back_panel_type","back_groove_offset_mm","facade_type","side_panels"]
-        }
-      },
-
-      required: [
-        "name",
-        "furniture_type",
-        "width_mm",
-        "height_mm",
-        "depth_mm",
-        "sections_description",
-        "material",
-        "back_panel",
-        "material_thickness_mm",
-        "construction"
-      ]
-    },
-
-    warnings: {
-      type: "array",
-      items: {
-        type: "string"
-      }
-    },
-
-    questions: {
-      type: "array",
-
-      items: {
-        type: "object",
-        additionalProperties: false,
-
-        properties: {
-          id: {
-            type: "string"
-          },
-
-          title: {
-            type: "string"
-          },
-
-          question: {
-            type: "string"
-          },
-
-          options: {
-            type: "array",
-
-            items: {
-              type: "object",
-              additionalProperties: false,
-
-              properties: {
-                label: {
-                  type: "string"
-                },
-
-                value: {
-                  type: "string"
-                },
-
-                recommended: {
-                  type: "boolean"
-                }
-              },
-
-              required: [
-                "label",
-                "value",
-                "recommended"
-              ]
-            }
-          }
-        },
-
-        required: [
-          "id",
-          "title",
-          "question",
-          "options"
-        ]
-      }
-    }
-  },
-
-  required: [
-    "status",
-    "summary",
-    "project",
-    "warnings",
-    "questions"
-  ]
-};
+ФАСАДИ facades_layout (накладні фасади; у корпусі або в кожному модулі):
+- columns — колонки фасадів зліва направо. width_mm лише якщо ширина фасаду написана на кресленні; інакше null (Elvin поділить порівну за зазорами фабрики).
+- rows — фасади в колонці знизу вгору: height_mm — висота фасаду з креслення, kind — "door" (двері) або "drawer" (фасад шухляди). Якщо в колонці один фасад на всю висоту — rows = [{ height_mm: null, kind: "door" }].
+- Без фасадів або фасади невідомі — facades_layout = null.
+`.trim();
 
 
 function initialPrompt(note) {
@@ -279,7 +145,7 @@ function initialPrompt(note) {
 
 Усі фото в одному запиті — це різні аркуші ОДНОГО замовлення / ОДНІЄЇ шафи.
 
-Перед висновком зістав інформацію між УСІМА фото.
+Перед висновком зістав інформацію між УСІМА фото.\n\nПРІОРИТЕТ: повний аналіз креслення та мінімальна кількість уточнень. Не намагайся підганяти відповіді під поточні обмеження 3D або генератора BAZIS.
 
 Правила:
 
@@ -299,9 +165,9 @@ function initialPrompt(note) {
 
 8. Не підсумовуй видимі числа як загальний габарит без прямого підтвердження кресленням.
 
-9. Питай тільки те, без чого не можна надійно продовжити конструктив.
+9. Питай тільки те, без чого не можна надійно продовжити конструктив. Якщо креслення та активне правило однозначно визначають параметр, застосуй правило та поясни у summary, не запитуй. Не запитуй технічні коди чи назви полів.
 
-10. Не дублюй питання.
+10. Не дублюй питання. Якщо project.construction вже містить визначений параметр, не став про нього питання. Не запитуй розміри окремих деталей, якщо вони однозначно обчислюються після вибору конструкції.
 
 11. ОДНЕ питання = ОДНЕ виробниче рішення. Не об'єднуй ширину, висоту, значення добору, тип дна, опору, цоколь чи інші незалежні параметри в одному питанні.
 
@@ -309,12 +175,16 @@ function initialPrompt(note) {
 
 13. Заповнюй project.material_thickness_mm та project.construction лише з креслення, підтверджених відповідей або активних правил. Невідоме залишай null.
 
-14. Якщо критичних питань немає:
+14. Заповни project.construction.interior за кресленням (див. нижче). Не став окремих питань про розміри кожної полиці: Elvin сам перевірить ланцюжок розмірів і запитає, якщо він не сходиться.
+
+15. Якщо критичних питань немає:
 status="ready"
 questions=[]
 
-15. Якщо питання є:
+16. Якщо питання є:
 status="needs_clarification"
+
+${CONSTRUCTION_GUIDE}
 
 Примітка технолога:
 
@@ -354,7 +224,7 @@ function clarificationPrompt(
 
 5. Оновити summary відповідно до відповідей.
 
-6. Перевірити, чи залишилися критичні невідомі або суперечності.
+6. Перевірити, чи залишилися критичні невідомі або суперечності. Спочатку застосувати активні правила, не запитувати те, що вже є у project або відповідях.
 
 7. Якщо залишилися — поставити ТІЛЬКИ нові або невирішені питання.
 
@@ -378,6 +248,10 @@ questions=[]
 14. Онови project.material_thickness_mm та project.construction з підтверджених відповідей; невідоме залишай null.
 
 15. Recommended не є підтвердженням, доки технолог не вибрав варіант.
+
+16. Онови project.construction.interior з креслення та відповідей технолога.
+
+${CONSTRUCTION_GUIDE}
 
 ПОПЕРЕДНІЙ АНАЛІЗ:
 
