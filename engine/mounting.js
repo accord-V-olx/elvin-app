@@ -15,8 +15,9 @@ import { partBox, thicknessAxis, GEOMETRY_EPS_MM } from "./geometry.js";
 const AXES = ["x", "y", "z"];
 const near = (a, b) => Math.abs(a - b) <= GEOMETRY_EPS_MM;
 const overlap = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0);
-// Thin HDF is nailed, facades hang on hinges: neither uses MountScheme.
-const mountable = p => !(p.role === "back" && p.thickness_mm < 10) && p.role !== "facade";
+// Thin HDF is nailed, facades hang on hinges, fillers (planky) are not
+// drilled (owner, 18.10.2026): none of them uses MountScheme.
+const mountable = p => !(p.role === "back" && p.thickness_mm < 10) && p.role !== "facade" && p.role !== "filler";
 
 export function computeMounts(parts) {
   const items = parts.filter(mountable).map(p => ({ p, box: partBox(p), axis: thicknessAxis(p) })).filter(i => i.axis);
