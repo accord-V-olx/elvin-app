@@ -14,7 +14,7 @@
 <div><label for="doors">Фасади</label><select id="doors"><option value="none">Без фасадів</option><option value="one">Один фасад</option><option value="two">Два фасади</option></select></div>
 </div><div class="wide"><button id="reset" class="secondary">Скинути ракурс</button></div>
 <div class="wide status" id="details"></div>
-<div class="wide status">Модель умовна: вкладні верх і дно, боковини на всю висоту, полиці рівномірні. Кріплення, кромка та BAZIS не розраховуються.</div>
+<div class="wide status"><span id="modeDescription">ДЕМО: умовні деталі, що не надходять до BAZIS. Для реального замовлення імпортуйте JSON із Wardrobe Engine.</span></div>
 <div class="wide"><label>Список деталей (оновлюється з 3D)</label><div id="partsList" class="parts-list"></div><button id="exportParts" class="secondary" type="button">Завантажити список деталей CSV</button><div class="status">CSV — лише для перевірки. Це не файл і не код BAZIS.</div></div></aside><section><canvas id="view" aria-label="Інтерактивна 3D модель меблів"></canvas><div class="hint">↔ Тягни мишкою або пальцем — обертання<br>↕ Коліщатко — наближення</div></section></div>
 <footer>Elvin 3D Lab · синтетичні тестові моделі, не виробничі креслення</footer>
 <script>
@@ -28,14 +28,18 @@ function validateEngineModel(data){
  if(![W,H,D].every(v=>Number.isFinite(v)&&v>0))throw Error('У project немає правильних габаритів width, height, depth.');
  if(data.parts.length>2000)throw Error('Забагато деталей (максимум 2000).');
  const parts=data.parts.map((p,i)=>{
-  const values=[p.x_mm,p.y_mm,p.z_mm,p.size_x_mm,p.size_y_mm,p.size_z_mm].map(Number);
+  const raw=[p.x_mm,p.y_mm,p.z_mm,p.size_x_mm,p.size_y_mm,p.size_z_mm];
+  if(raw.some(v=>typeof v!=='number'))throw Error('Деталь №'+(i+1)+': очікуються числові координати та розміри, а не null або текст.');
+  const values=raw;
   if(values.some(v=>!Number.isFinite(v)))throw Error('Некоректні координати деталі №'+(i+1));
   const [x,y,z,dx,dy,dz]=values;
   if(x<0||y<0||z<0||dx<=0||dy<=0||dz<=0||x+dx>W+.01||y+dy>D+.01||z+dz>H+.01)
     throw Error('Деталь '+String(p.id??i)+' виходить за межі корпусу або має неправильний розмір.');
-  return {id:String(p.id??i),x,y,z,dx,dy,dz,color:p.type==='partition'?'#c8b38f':p.type==='horizontal'?'#dbc29a':p.type==='side'?'#b4a080':'#b9c8d7'};
+  if(typeof p.id!=='string'||!p.id.trim())throw Error('Деталь №'+(i+1)+' без ID.');
+  return {id:p.id,name:String(p.name??p.id),role:String(p.role??''),module:p.module??null,material:String(p.material??''),thickness:p.thickness_mm??null,fits_into:p.fits_into??[],x,y,z,dx,dy,dz,color:p.role==='partition'?'#c8b38f':(p.role==='shelf'||p.role==='bottom'||p.role==='top')?'#dbc29a':p.role==='side'?'#b4a080':'#b9c8d7'};
  });
- return {W,H,D,parts,name:String(pr.projectName??pr.name??'Без назви'),status:String(data.status??'UNKNOWN'),productionReady:data.bazis?.productionReady===true};
+ if(new Set(parts.map(p=>p.id)).size!==parts.length)throw Error('ID деталей мають бути унікальними.');
+ return {W,H,D,parts,name:String(pr.projectName??pr.name??'Без назви'),status:String(data.status??'UNKNOWN')};
 }
 function boxes(){
  if(engineModel){
@@ -86,9 +90,10 @@ function renderPartsList(parts){
  const root=$('partsList');root.replaceChildren();
  for(const p of parts){
   const row=document.createElement('div');row.className='part-row'+(selectedId===p.id?' selected':'');row.onclick=()=>{selectedId=selectedId===p.id?null:p.id;draw()};
-  const name=document.createElement('strong');name.textContent=p.id;
+  const name=document.createElement('strong');name.textContent=p.name||p.id;
   const dims=document.createElement('span');dims.textContent=[p.dx,p.dz,p.dy].map(n=>Number(n.toFixed(2))).join(' × ')+' мм (X × Z × Y)';
-  row.append(name,dims);root.append(row);
+  const desc=document.createElement('span');desc.textContent='ID: '+p.id+(p.role?' · '+p.role:'')+(p.module?' · модуль '+p.module:'')+(p.material?' · '+p.material:'');
+  row.append(name,dims,desc);root.append(row);
  }
 }
 $('exportParts').addEventListener('click',()=>{
@@ -108,12 +113,13 @@ $('engineFile').addEventListener('change',async e=>{
   if(file.size>4_000_000)throw Error('JSON більший за 4 МБ.');
   const model=validateEngineModel(JSON.parse(await file.text()));
   engineModel=model;selectedId=null;document.body.classList.add('engine-mode');
-  const safe=model.productionReady?'Статус Engine: '+model.status:'НЕ ДЛЯ ВИРОБНИЦТВА — '+model.status+'; BAZIS не підтверджено';
+  const safe='НЕ ДЛЯ ВИРОБНИЦТВА — '+model.status+'; перевірка технологом обов’язкова';
+  $('modeDescription').textContent='ENGINE: відображаються лише імпортовані parts без добудови геометрії. Жодних змін у BAZIS.';
   $('importStatus').className='import-help import-ok';$('importStatus').textContent='Завантажено '+model.parts.length+' деталей. '+safe;
   draw();
  }catch(err){$('importStatus').className='import-help import-error';$('importStatus').textContent='Помилка імпорту: '+err.message;}
 });
-$('demoMode').onclick=()=>{engineModel=null;selectedId=null;$('engineFile').value='';document.body.classList.remove('engine-mode');$('importStatus').className='import-help';$('importStatus').textContent='Режим: демонстраційна модель';draw()};
+$('demoMode').onclick=()=>{$('modeDescription').textContent='ДЕМО: умовні деталі, що не надходять до BAZIS. Для реального замовлення імпортуйте JSON із Wardrobe Engine.';engineModel=null;selectedId=null;$('engineFile').value='';document.body.classList.remove('engine-mode');$('importStatus').className='import-help';$('importStatus').textContent='Режим: демонстраційна модель';draw()};
 $('reset').onclick=()=>{yaw=-.72;pitch=.35;zoom=1;draw()};
 $('type').addEventListener('change',()=>{const v=$('type').value;const values=v==='penal'?[400,1500,350,4]:v==='tumba'?[500,600,400,1]:[900,850,450,2];['w','h','d','shelves'].forEach((id,i)=>$(id).value=values[i]);draw()});
 new ResizeObserver(draw).observe(canvas);draw();
