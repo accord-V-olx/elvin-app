@@ -130,6 +130,11 @@ const CONSTRUCTION_GUIDE = `
 - width_mm — зовнішня ширина модуля в мм (см переводь у мм). height_mm, depth_mm, furniture_type, top_type, bottom_type, side_panels — лише якщо відрізняються від загальних; інакше null.
 - interior кожного модуля описуй окремо. Тоді project.construction.interior = null.
 - Якщо виріб — один корпус, modules = [].
+
+ФАСАДИ facades_layout (накладні фасади; у корпусі або в кожному модулі):
+- columns — колонки фасадів зліва направо. width_mm лише якщо ширина фасаду написана на кресленні; інакше null (Elvin поділить порівну за зазорами фабрики).
+- rows — фасади в колонці знизу вгору: height_mm — висота фасаду з креслення, kind — "door" (двері) або "drawer" (фасад шухляди). Якщо в колонці один фасад на всю висоту — rows = [{ height_mm: null, kind: "door" }].
+- Без фасадів або фасади невідомі — facades_layout = null.
 `.trim();
 
 

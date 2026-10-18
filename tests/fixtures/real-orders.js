@@ -11,19 +11,23 @@ export const REAL_ORDERS = [
     modules: [
       {
         id: "A-104", width: 1040, height: 2786, depth: 576, thickness: 18,
-        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "overlay" },
-        parts: [["KR", 1040, 576, 1], ["DNO", 1040, 576, 1], ["ST_L", 2750, 576, 1], ["ST_R", 2750, 576, 1]],
+        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "overlay", facade_type: "overlay",
+          facades_layout: { columns: [0, 1].map(() => ({ width_mm: null, rows: [{ height_mm: 2255, kind: "door" }, { height_mm: 521, kind: "door" }] })) } },
+        // Facades with factory gaps 3 / 3 / 2 / 4 match GibLab.
+        parts: [["KR", 1040, 576, 1], ["DNO", 1040, 576, 1], ["ST_L", 2750, 576, 1], ["ST_R", 2750, 576, 1],
+          ["FASAD", 521, 516, 2], ["FASAD", 2255, 516, 2]],
         // Factory standard (2026-10-16) would give 1004x576; 575 / 497 were the technologist's choice.
         technologistVariant: [["POLKA", 1004, 575, 2], ["POLKA", 1004, 497, 1]],
-        pending: [["TYL", 2782, 1036, 1],
-          ["FASAD", 521, 516, 2], ["FASAD", 2255, 516, 2]],
+        pending: [["TYL", 2782, 1036, 1]],
         notModelled: ["RAST 1004x60 x3", "RAST 930x60", "drawers 2x", "rod 995", "37 mm inner panels"]
       },
       {
         id: "A-52", width: 520, height: 2786, depth: 576, thickness: 18, shelves: 7,
-        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "overlay" },
-        parts: [["KR", 520, 576, 1], ["DNO", 520, 576, 1], ["ST_L", 2750, 576, 1], ["ST_R", 2750, 576, 1], ["POLKA", 484, 576, 7]],
-        pending: [["TYL", 2782, 516, 1], ["FASAD", 521, 516, 1], ["FASAD", 2255, 516, 1]],
+        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "overlay", facade_type: "overlay",
+          facades_layout: { columns: [{ width_mm: null, rows: [{ height_mm: 2255, kind: "door" }, { height_mm: 521, kind: "door" }] }] } },
+        parts: [["KR", 520, 576, 1], ["DNO", 520, 576, 1], ["ST_L", 2750, 576, 1], ["ST_R", 2750, 576, 1], ["POLKA", 484, 576, 7],
+          ["FASAD", 521, 516, 1], ["FASAD", 2255, 516, 1]],
+        pending: [["TYL", 2782, 516, 1]],
         notModelled: []
       },
       {

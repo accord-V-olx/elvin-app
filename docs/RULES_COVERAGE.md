@@ -1,6 +1,6 @@
 # Покриття правил фабрики в Wardrobe Engine
 
-Джерело правил: `rules/wardrobe-rules.js` (v1.2). Рушій не змінює правила. Він бере їх лише з цього файлу.
+Джерело правил: `rules/wardrobe-rules.js` (v1.8). Рушій не змінює правила. Він бере їх лише з цього файлу.
 
 - **AUTO**: рушій застосовує правило сам.
 - **ASK**: рушій ставить питання.
@@ -13,16 +13,17 @@
 | carcassConstruction.internalUprights | AUTO | Стоять на деталі знизу, доходять до деталі зверху | Готово |
 | shelves.depth (= глибина корпусу) | AUTO | Так; втоплення лише з креслення | Готово |
 | backPanel.hdfOverlay | AUTO_WHEN_SELECTED | Перевірка листа 2800×2070. Сама деталь ще не будується: відступи не затверджені | Після рішення технолога |
-| backPanel.paz / rebate | PAUSED | Блокується | Після скрипта BAZIS |
+| backPanel.paz | AUTO_GEOMETRY | ХДФ у пазу будується (паз 14/4/9, лист = проріз + 16); операція паза в BAZIS — після скрипта | Готово (геометрія) |
+| backPanel.rebate | PAUSED | Блокується | Після скрипта BAZIS |
 | backPanel.dspBack | ASK | Блокується | — |
 | depth.overallDepthIncludesFacade | AUTO | **Не застосовано** | 3 |
 | plinth.standard (100 мм, відступ 20) | AUTO_WHEN_SELECTED | **COKOL не будується** | 1 |
 | legs | AUTO_WHEN_SELECTED | **Не застосовано** | 4 |
 | edging.visible / rearTechnical (KR08 / BUM02) | AUTO | **Не застосовано**. Номери торців відомі з еталонного скрипта | 1 |
 | texture | AUTO | Вертикальна для вертикальних деталей, горизонтальна для горизонтальних | Перевірити з правилами |
-| facades.overlay (3/3/2/2) | AUTO_WHEN_SELECTED | **Фасади не будуються** | 2 |
+| facades.overlay (3/3/2/4) | AUTO_WHEN_SELECTED | Будуються за розкладкою (колонки/ряди); рівний поділ, плаваючий боковий зазор; перевірка ланцюжка | Готово |
 | facades.inset | ASK_PARTIALLY_DEFINED | Блокується | — |
-| facades.edging (KR08 по колу) | AUTO_FIXED | Немає | 2 |
+| facades.edging (KR08 по колу) | AUTO_FIXED | Записується в деталь фасаду | Готово |
 | mounting.carcass (MountScheme) | AUTO | **Не застосовано**. Пари деталей відомі з еталонного скрипта | 5 |
 | wideSpanTie | TESTED_REFERENCE | Немає | Пізніше |
 

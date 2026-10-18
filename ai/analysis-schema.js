@@ -55,6 +55,38 @@ const INTERIOR_SCHEMA = {
   required: ["size_reference", "shelf_front_setback_mm", "sections"]
 };
 
+// Overlay facades: columns left -> right, rows bottom -> top.
+const FACADES_LAYOUT_SCHEMA = {
+  type: ["object", "null"],
+  additionalProperties: false,
+  properties: {
+    columns: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          width_mm: nullableNumber,
+          rows: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                height_mm: nullableNumber,
+                kind: { type: "string", enum: ["door", "drawer"] }
+              },
+              required: ["height_mm", "kind"]
+            }
+          }
+        },
+        required: ["width_mm", "rows"]
+      }
+    }
+  },
+  required: ["columns"]
+};
+
 // One carcass of a multi-module order. null = same as the project.
 const MODULE_SCHEMA = {
   type: "object",
@@ -68,9 +100,10 @@ const MODULE_SCHEMA = {
     top_type: { type: ["string", "null"], enum: TOP_TYPES },
     bottom_type: { type: ["string", "null"], enum: BOTTOM_TYPES },
     side_panels: { type: ["string", "null"], enum: SIDE_PANELS },
-    interior: INTERIOR_SCHEMA
+    interior: INTERIOR_SCHEMA,
+    facades_layout: FACADES_LAYOUT_SCHEMA
   },
-  required: ["name", "width_mm", "height_mm", "depth_mm", "furniture_type", "top_type", "bottom_type", "side_panels", "interior"]
+  required: ["name", "width_mm", "height_mm", "depth_mm", "furniture_type", "top_type", "bottom_type", "side_panels", "interior", "facades_layout"]
 };
 
 export const RESPONSE_SCHEMA = {
@@ -145,9 +178,10 @@ export const RESPONSE_SCHEMA = {
             back_groove_offset_mm: { type: ["number", "null"] },
             facade_type: { type: ["string", "null"], enum: ["overlay", "inset", "none", null] },
             side_panels: { type: ["string", "null"], enum: SIDE_PANELS },
-            interior: INTERIOR_SCHEMA
+            interior: INTERIOR_SCHEMA,
+            facades_layout: FACADES_LAYOUT_SCHEMA
           },
-          required: ["top_type","bottom_type","support_type","plinth_height_mm","plinth_setback_mm","back_panel_type","back_groove_offset_mm","facade_type","side_panels","interior"]
+          required: ["top_type","bottom_type","support_type","plinth_height_mm","plinth_setback_mm","back_panel_type","back_groove_offset_mm","facade_type","side_panels","interior","facades_layout"]
         },
 
         // Separate carcasses standing side by side, left -> right.

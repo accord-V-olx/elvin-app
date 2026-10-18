@@ -19,7 +19,8 @@ function build(m) {
     : undefined);
   return buildWardrobe({
     projectName: m.id, furnitureType: m.furnitureType ?? "шафа", width: m.width, height: m.height, depth: m.depth,
-    material: "ДСП", materialThickness: t, facades: "none",
+    material: "ДСП", materialThickness: t,
+    facades: m.construction.facade_type === "overlay" ? "накладні" : "none",
     backPanel: m.construction.back_panel_type && m.construction.back_panel_type !== "none" ? "ХДФ" : "none",
     sections: interior ? undefined : "carcass only",
     construction: { support_type: "legs", plinth_height_mm: 0, ...m.construction, interior }

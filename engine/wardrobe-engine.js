@@ -20,6 +20,7 @@ import { WARDROBE_RULES } from "../rules/wardrobe-rules.js";
 import { buildInterior } from "./interior-layout.js";
 import { toBazisPlacement } from "./bazis-axes.js";
 import { interiorFromAI } from "./interior-from-ai.js";
+import { buildFacades } from "./facades.js";
 
 export const WARDROBE_ENGINE_VERSION = "1.6.0-interior-layout";
 
@@ -683,6 +684,27 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     else interiorMissing.push({field:"construction.back_panel_type",question:"ХДФ у паз при накладній кришці: до якої висоти доходить лист і чи є паз у кришці?"});
   }
 
+  // Facades: overlay facades from the confirmed layout and factory gaps.
+  let facadesModelled = false;
+  if (!isFacadesAbsent(data)) {
+    const type = String(c.facade_type || "").toLowerCase();
+    const byId = Object.fromEntries(parts.map(p => [p.id, p]));
+    const { bottom: b, top: tp, side_left: sl } = byId;
+    if (type !== "overlay" && type !== "накладні") {
+      interiorMissing.push({field:"construction.facade_type",question:"Elvin поки розраховує лише накладні фасади. Які фасади на кресленні?"});
+    } else if (!b || !tp || !sl) {
+      interiorMissing.push({field:"construction.facades_layout",question:"Фасади неможливо розрахувати: корпус побудований не повністю."});
+    } else {
+      const overlay = WARDROBE_RULES.facades?.overlay || {};
+      // A top that overhangs the carcass (chest) stays visible above the facades.
+      const zoneTop = topFrontOverhang(data) > 0 ? tp.z_mm : tp.z_mm + tp.size_z_mm;
+      const res = buildFacades(c.facades_layout, { x0: 0, x1: data.width, z0: b.z_mm, z1: zoneTop, yFront: sl.y_mm },
+        { thickness_mm: data.materialThickness, material: data.material, gaps: overlay.preferredGapsMm, floating: overlay.floatingGapMm });
+      if (res.ok) { parts.push(...res.parts); facadesModelled = true; }
+      else interiorMissing.push(...res.errors);
+    }
+  }
+
   const geometryCheck = validateGeometry(parts, { width: data.width, depth: data.depth, height: data.height });
   // Sheet limits come from factory rules, not from the Engine.
   const hdfSheet = WARDROBE_RULES.backPanel?.hdfOverlay?.maxSheetMm;
@@ -721,7 +743,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     ...geometryCheck.errors.map(e => ({field:"geometry."+e.code, question:e.message, parts:e.parts})),
     // Parts the Engine does not model yet must block export instead of being silently omitted.
     ...(!isBackAbsent(data) && !backModelled ? [{field:"geometry.back_panel",question:"Задня стінка ще не розраховується Wardrobe Engine — у коді BAZIS її немає."}] : []),
-    ...(!isFacadesAbsent(data) ? [{field:"geometry.facades",question:"Фасади ще не розраховуються Wardrobe Engine — у коді BAZIS їх немає."}] : [])
+    ...(!isFacadesAbsent(data) && !facadesModelled ? [{field:"geometry.facades",question:"Фасади ще не розраховуються Wardrobe Engine — у коді BAZIS їх немає."}] : [])
   ];
   if (geometryMissing.length) {
     return {

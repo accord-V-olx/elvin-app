@@ -36,6 +36,7 @@ function moduleAnalysis(analysis, m, i) {
   const construction = { ...(p.construction || {}) };
   for (const k of MODULE_CONSTRUCTION) if (m[k] !== null && m[k] !== undefined) construction[k] = m[k];
   construction.interior = m.interior ?? null;
+  if (m.facades_layout) construction.facades_layout = m.facades_layout;
   // Top-level size/construction fields would override the module values in
   // the Engine's normaliser, so they are cleared for each module.
   const cleared = Object.fromEntries(["width", "overallWidth", "overall_width", "height", "overallHeight",

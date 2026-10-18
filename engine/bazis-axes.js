@@ -44,7 +44,8 @@ export function toBazisPlacement(part, depth) {
   if (!spec || !Number.isFinite(depth)) return null;
   return {
     orientation: spec.orientation,
-    texture: spec.texture,
+    // Facades use vertical texture (factory rule "texture").
+    texture: part.role === "facade" ? "vertical" : spec.texture,
     panel: spec.dims(part).map(round2),
     min: {
       x: round2(part.x_mm),

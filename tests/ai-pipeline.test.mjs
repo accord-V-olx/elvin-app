@@ -40,7 +40,8 @@ function aiAnswer(interior) {
         top_type: "inset", bottom_type: "inset", support_type: "plinth",
         plinth_height_mm: 100, plinth_setback_mm: 20, back_panel_type: "overlay",
         back_groove_offset_mm: null, facade_type: "none", side_panels: "full_height",
-        interior
+        interior,
+        facades_layout: null
       },
       modules: []
     },
@@ -138,7 +139,7 @@ test("AI answer with modules: valid schema, built as side-by-side carcasses", ()
   const shelves = (n, h) => ({ size_reference: "clear", shelf_front_setback_mm: null,
     sections: [{ width_mm: null, openings: Array.from({ length: n + 1 }, () => ({ height_mm: h, subsections: [] })) }] });
   const mod = (name, width_mm, top_type, interior, depth_mm = null) => ({ name, width_mm, height_mm: null, depth_mm,
-    furniture_type: null, top_type, bottom_type: null, side_panels: null, interior });
+    furniture_type: null, top_type, bottom_type: null, side_panels: null, interior, facades_layout: null });
   const answer = aiAnswer(null);
   Object.assign(answer.project, { width_mm: 1910, height_mm: 2786, depth_mm: 576, back_panel: "немає", material_thickness_mm: 18 });
   Object.assign(answer.project.construction, { top_type: "overlay", bottom_type: "full_width", side_panels: "on_bottom",
@@ -154,4 +155,18 @@ test("AI answer with modules: valid schema, built as side-by-side carcasses", ()
   assert.equal(r.modules.length, 3);
   assert.equal(r.parts.filter(p => p.role === "shelf").length, 16);
   assert.equal(r.geometryCheck.ok, true);
+});
+
+test("AI answer with facades: valid schema, facades built with factory gaps", () => {
+  const answer = aiAnswer(null);
+  Object.assign(answer.project, { width_mm: 1040, height_mm: 2786, depth_mm: 576, material_thickness_mm: 18, back_panel: "немає" });
+  Object.assign(answer.project.construction, { top_type: "overlay", bottom_type: "full_width", side_panels: "on_bottom",
+    support_type: "legs", plinth_height_mm: 0, back_panel_type: "none", facade_type: "overlay",
+    interior: { size_reference: "clear", shelf_front_setback_mm: null, sections: [{ width_mm: 1004, openings: [{ height_mm: 1366, subsections: [] }, { height_mm: 1366, subsections: [] }] }] },
+    facades_layout: { columns: [0, 1].map(() => ({ width_mm: null, rows: [{ height_mm: 2255, kind: "door" }, { height_mm: 521, kind: "door" }] })) } });
+  assert.deepEqual(validate(RESPONSE_SCHEMA, answer), []);
+  const r = buildOrder(answer);
+  assert.equal(r.status, "READY", JSON.stringify(r.missing));
+  const f = r.parts.filter(p => p.role === "facade").map(p => p.size_x_mm + "x" + p.size_z_mm).sort();
+  assert.deepEqual(f, ["516x2255", "516x2255", "516x521", "516x521"]);
 });

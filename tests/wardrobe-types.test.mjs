@@ -335,3 +335,41 @@ test("HDF in groove with an overlay top is asked (groove only in sides and botto
   assert.ok(r.missing.some(m => m.field === "construction.back_panel_type"), JSON.stringify(r.missing));
   assert.ok(!r.parts.some(p => p.role === "back"));
 });
+
+test("overlay facades: equal widths with factory gaps, floating side gap, chain check", async () => {
+  const { buildFacades } = await import("../engine/facades.js");
+  const gaps = { top: 3, bottom: 3, left: 2, right: 2, betweenAdjacentFacades: 4 };
+  const opts = { thickness_mm: 18, material: "ДСП", gaps, floating: { min: 1.5, max: 4 } };
+  const zone = { x0: 0, x1: 1500, z0: 0, z1: 1850, yFront: 0 };
+  // Real wardrobe 1500: 3 doors 2 + 496 + 4 + 496 + 4 + 496 + 2.
+  const three = buildFacades({ columns: [1, 2, 3].map(() => ({ width_mm: null, rows: [] })) }, zone, opts);
+  assert.equal(three.ok, true);
+  assert.deepEqual(three.parts.map(p => [p.x_mm, p.size_x_mm, p.size_z_mm]), [[2, 496, 1844], [502, 496, 1844], [1002, 496, 1844]]);
+  assert.ok(three.parts.every(p => p.y_mm === -18 && p.outside_envelope_allowed));
+  // 1001 / 2 doors: (1001 - 2 - 2 - 4) / 2 = 496.5 -> whole 496 with a floating side gap (1001 - 4 - 992) / 2 = 2.5.
+  const odd = buildFacades({ columns: [{ width_mm: null }, { width_mm: null }] }, { ...zone, x1: 1001 }, opts);
+  assert.equal(odd.ok, true);
+  assert.deepEqual(odd.parts.map(p => p.size_x_mm), [496, 496]);
+  assert.equal(odd.parts[0].x_mm, 2.5);
+  // Heights that do not close are asked with numbers.
+  const bad = buildFacades({ columns: [{ width_mm: null, rows: [{ height_mm: 900 }, { height_mm: 900 }] }] }, zone, opts);
+  assert.equal(bad.ok, false);
+  assert.match(bad.errors[0].question, /900 \+ 900 \+ зазори 3\/4\/3 = 1810 мм, а висота під фасади 1850 мм/);
+  // Drawer fronts are named as such.
+  const dr = buildFacades({ columns: [{ width_mm: null, rows: [{ height_mm: 920, kind: "drawer" }, { height_mm: 920, kind: "door" }] }] }, zone, opts);
+  assert.deepEqual(dr.parts.map(p => p.name), ["FASAD_SHUH", "FASAD"]);
+});
+
+test("facades in the Engine: chest top stays above the facades; BAZIS gets vertical texture", () => {
+  const r = buildWardrobe(order({ width: 1800, height: 980, depth: 500, furnitureType: "комод", facades: "накладні",
+    construction: { side_panels: "full_height", bottom_type: "inset", top_type: "overlay", plinth_height_mm: 0, facade_type: "overlay",
+      facades_layout: { columns: [0, 1].map(() => ({ width_mm: null, rows: [{ height_mm: 312, kind: "drawer" }, { height_mm: 312, kind: "drawer" }, { height_mm: 324, kind: "drawer" }] })) } },
+    interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 873 }, { size_mm: 873 }] } }));
+  assert.equal(r.status, "READY", JSON.stringify(r.missing));
+  const f = r.parts.filter(p => p.role === "facade");
+  assert.equal(f.length, 6);
+  assert.ok(f.every(p => p.size_x_mm === 896 && p.y_mm === 20 - 18));
+  // Top of the highest facade = 962 - 3 (under the overhanging top).
+  assert.equal(Math.max(...f.map(p => p.z_mm + p.size_z_mm)), 959);
+  assert.match(r.bazis.script, /P_facade_1_1\.TextureOrientation = panelOperations\.textureOrientation\.vertical;/);
+});
