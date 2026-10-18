@@ -179,10 +179,11 @@ export const RESPONSE_SCHEMA = {
             back_groove_offset_mm: { type: ["number", "null"] },
             facade_type: { type: ["string", "null"], enum: ["overlay", "inset", "none", null] },
             side_panels: { type: ["string", "null"], enum: SIDE_PANELS },
+            depth_includes_facade: { type: ["boolean", "null"] },
             interior: INTERIOR_SCHEMA,
             facades_layout: FACADES_LAYOUT_SCHEMA
           },
-          required: ["top_type","bottom_type","support_type","plinth_height_mm","plinth_setback_mm","plinth_type","back_panel_type","back_groove_offset_mm","facade_type","side_panels","interior","facades_layout"]
+          required: ["top_type","bottom_type","support_type","plinth_height_mm","plinth_setback_mm","plinth_type","back_panel_type","back_groove_offset_mm","facade_type","side_panels","depth_includes_facade","interior","facades_layout"]
         },
 
         // Separate carcasses standing side by side, left -> right.

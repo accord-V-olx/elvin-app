@@ -39,7 +39,7 @@ function aiAnswer(interior) {
       construction: {
         top_type: "inset", bottom_type: "inset", support_type: "plinth",
         plinth_height_mm: 100, plinth_setback_mm: 20, plinth_type: "dsp", back_panel_type: "overlay",
-        back_groove_offset_mm: null, facade_type: "none", side_panels: "full_height",
+        back_groove_offset_mm: null, facade_type: "none", side_panels: "full_height", depth_includes_facade: null,
         interior,
         facades_layout: null
       },
@@ -168,4 +168,33 @@ test("AI answer with facades: valid schema, facades built with factory gaps", ()
   assert.equal(r.status, "READY", JSON.stringify(r.missing));
   const f = r.parts.filter(p => p.role === "facade").map(p => p.size_x_mm + "x" + p.size_z_mm).sort();
   assert.deepEqual(f, ["516x2255", "516x2255", "516x521", "516x521"]);
+});
+
+// Real drawing 18.10.2026: three wardrobes 1250 | 600 (mirror) | 1250, depth "650 / 600 з фасадом",
+// interior not shown. Elvin must still draft the carcasses and ask only for the interior.
+test("modules without interior: carcass draft + one plain interior question per module", () => {
+  const mod = (name, width_mm, depth_mm, cols) => ({ name, width_mm, height_mm: null, depth_mm, furniture_type: null,
+    top_type: null, bottom_type: null, side_panels: null, interior: null,
+    facades_layout: { columns: Array.from({ length: cols }, () => ({ width_mm: null, rows: [{ height_mm: null, kind: "door" }] })) } });
+  const answer = aiAnswer(null);
+  Object.assign(answer.project, { width_mm: 3100, height_mm: 2450, depth_mm: 650, material: "ДСП 18", material_thickness_mm: 18, sections_description: "" });
+  Object.assign(answer.project.construction, { top_type: "overlay", bottom_type: "full_width", side_panels: "on_bottom",
+    facade_type: "overlay", depth_includes_facade: true });
+  answer.project.modules = [mod("ліва", 1250, 650, 2), mod("середня", 600, 600, 1), mod("права", 1250, 650, 2)];
+  assert.deepEqual(validate(RESPONSE_SCHEMA, answer), []);
+  const r = buildOrder(answer);
+  assert.equal(r.bazis.status, "DRAFT_CODE");
+  assert.ok(r.bazis.script);
+  assert.equal(r.parts.filter(p => p.role === "facade").length, 5);
+  // Depth with facade: 650 - 18 - 2 = 630, 600 - 18 - 2 = 580 (factory rule).
+  assert.deepEqual(r.modules.map(m => m.depth), [630, 580, 630]);
+  assert.deepEqual(r.missing.map(m => m.field), [0, 1, 2].map(i => "modules[" + i + "].construction.interior"));
+});
+
+test("depth_includes_facade null or false keeps the drawing depth as carcass depth", () => {
+  for (const flag of [null, false]) {
+    const a = aiAnswer(petrash);
+    a.project.construction.depth_includes_facade = flag;
+    assert.equal(buildWardrobe(a).project.depth, 600);
+  }
 });

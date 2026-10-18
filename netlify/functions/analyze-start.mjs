@@ -116,6 +116,7 @@ const CONSTRUCTION_GUIDE = `
 - plinth_type: "dsp" — цоколь з ДСП (деталь COKOL); "plastic" — пластиковий цоколь; null — не вказано.
 - back_panel_type: "overlay" — ХДФ накладна ззаду; "groove" — ХДФ у паз; "rebate" — ХДФ у вибірку; "dsp" — задня стінка з ДСП; "none" — без задньої стінки.
 - facade_type: "overlay" — накладні; "inset" — вкладні; "none" — без фасадів.
+- depth_includes_facade: true — на кресленні написано, що глибина вказана з фасадом (наприклад «глибина 650 з фасадом»); false — явно без фасаду (глибина корпусу); null — не вказано.
 
 ВНУТРІШНЄ НАПОВНЕННЯ project.construction.interior (секції, полиці, стійки):
 - sections — секції зліва направо, розділені вертикальними стійками. width_mm — ширина секції.

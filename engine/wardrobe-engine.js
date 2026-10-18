@@ -24,7 +24,7 @@ import { buildFacades } from "./facades.js";
 import { applyEdging } from "./edging.js";
 import { computeMounts } from "./mounting.js";
 
-export const WARDROBE_ENGINE_VERSION = "1.6.0-interior-layout";
+export const WARDROBE_ENGINE_VERSION = "1.7.0-depth-facade";
 
 // ============================================================
 // HELPERS
@@ -56,6 +56,22 @@ function isBackAbsent(data) {
 function isFacadesAbsent(data) {
   const c = data.construction || {};
   return /^(немає|відсутні|без|none|no|absent)$/i.test(String(data.facades||"").trim()) || /^(none|no_facades|absent)$/i.test(String(c.facade_type||"").trim());
+}
+
+// Factory rule depth.overallDepthIncludesFacade: when the drawing gives the
+// depth WITH the facade, carcass depth = overall - facade thickness - clearance.
+// Facades are made from the carcass material (same thickness as in buildFacades).
+function applyFacadeDepth(data) {
+  const c = data.construction || {};
+  const rule = WARDROBE_RULES.depth?.overallDepthIncludesFacade;
+  if (c.depth_includes_facade !== true || !rule || !data.depth) return [];
+  if (isFacadesAbsent(data)) return ["Глибина вказана з фасадом, але фасадів немає: глибина корпусу = " + data.depth + " мм."];
+  const t = data.materialThickness, gap = rule.adjustmentClearanceMm ?? 2;
+  if (!t) return [];
+  const overall = data.depth;
+  data.overallDepth = overall;
+  data.depth = overall - t - gap;
+  return ["Глибина " + overall + " мм з фасадом: корпус " + overall + " − " + t + " − " + gap + " = " + data.depth + " мм (правило фабрики)."];
 }
 
 function addMissing(list, field, question) {
@@ -735,7 +751,10 @@ export function buildBazisPlan(data, parts, machining, draft = null) {
 export function buildWardrobe(confirmedAnalysis = {}) {
   const data = normalizeAnalysis(confirmedAnalysis);
 
-  const missing = validateRequiredData(data);
+  // Unknown sections do not stop the carcass: the interior is reported later
+  // (geometry questions), so a draft carcass + BAZIS code is still produced.
+  data.depthNotes = applyFacadeDepth(data);
+  const missing = validateRequiredData(data).filter(m => m.field !== "sections");
 
   // --------------------------------------------------------
   // STOP -> ASK
@@ -885,12 +904,14 @@ export function buildWardrobe(confirmedAnalysis = {}) {
   const geometryMissing = [
     ...absentParts.map(id => ({field:"geometry."+id, question:"Не побудована обов'язкова деталь корпусу: "+id+"."})),
     ...interiorMissing,
-    ...(!hasTree && !sectionsStructured ? [{field:"sections",question:"Для точної 3D-моделі потрібні структуровані секції з шириною та глибиною."}] : []),
-    ...(!hasTree && invalidInternal ? [{field:"construction.internal_panels",question:"Передайте підтверджені внутрішні деталі з унікальними ID, координатами і розмірами в межах корпусу."}] : []),
+    // No interior at all: one plain question, the carcass is still drafted.
+    ...(!hasTree && !hasList ? [{field:"construction.interior",question:"Внутрішнє наповнення (стійки, полиці, штанги, шухляди) не визначене за кресленням. Поки побудовано лише корпус. Вкажіть секції та розміри у світлі."}] : []),
+    ...(!hasTree && hasList && !sectionsStructured ? [{field:"sections",question:"Для точної 3D-моделі потрібні структуровані секції з шириною та глибиною."}] : []),
+    ...(!hasTree && hasList && invalidInternal ? [{field:"construction.internal_panels",question:"Передайте підтверджені внутрішні деталі з унікальними ID, координатами і розмірами в межах корпусу."}] : []),
     ...(!interiorDefined && !interiorMissing.length && hasTree ? [{field:"construction.interior",question:"Внутрішнє наповнення не розраховано."}] : []),
     // Legacy coordinates are taken as-is and are not checked against a dimension
     // chain of the drawing, so their completeness stays unverified.
-    ...(!hasTree ? [{field:"geometry.internal_parts",question:"Повнота внутрішньої конструкції не перевірена за кресленням; експорт BAZIS заблоковано."}] : []),
+    ...(!hasTree && hasList ? [{field:"geometry.internal_parts",question:"Повнота внутрішньої конструкції не перевірена за кресленням; експорт BAZIS заблоковано."}] : []),
     ...geometryCheck.errors.map(e => ({field:"geometry."+e.code, question:e.message, parts:e.parts})),
     // Parts the Engine does not model yet must block export instead of being silently omitted.
     ...(!isBackAbsent(data) && !backModelled ? [{field:"geometry.back_panel",question:"Задня стінка ще не розраховується Wardrobe Engine — у коді BAZIS її немає."}] : []),
@@ -900,7 +921,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     return {
       ok: false, status: "GEOMETRY_INCOMPLETE", engineVersion: WARDROBE_ENGINE_VERSION,
       message: "Геометрія часткова: не можна позначати замовлення готовим до BAZIS.",
-      missing: geometryMissing, warnings: materialWarnings(data), project: data, parts, sections, geometryCheck,
+      missing: geometryMissing, warnings: [...materialWarnings(data), ...(data.depthNotes || [])], project: data, parts, sections, geometryCheck,
       machining: buildMachining(parts), bazis: buildBazisPlan(data, parts, buildMachining(parts), { missing: geometryMissing })
     };
   }
@@ -917,7 +938,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
 
     project: data,
 
-    warnings: materialWarnings(data),
+    warnings: [...materialWarnings(data), ...(data.depthNotes || [])],
 
     sections,
 
