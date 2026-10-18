@@ -22,11 +22,11 @@ export const WARDROBE_ENGINE_VERSION = "1.3.0";
 // ============================================================
 
 function hasValue(value) {
-  return (
-    value !== undefined &&
-    value !== null &&
-    value !== ""
-  );
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value).length > 0;
+  return true;
 }
 
 function positiveNumber(value) {
