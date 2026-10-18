@@ -12,7 +12,7 @@ function moveMin(obj, x, y, z) {
 let KR08 = materialData.CreateButtMaterialData("Кромка 0.8", 0.8, 22, true, "KR08", 0, true, 0);
 let BUM02 = materialData.CreateButtMaterialData("Бумага 0.2", 0.2, 22, true, "BUM02", 0, true, 0);
 
-materialData.SetupActiveMaterial("ДСП 18", 16);
+materialData.SetupActiveMaterial("ДСП 16", 16);
 let P_side_left = objects3d.NewPanel(600, 2300, objects3d.PanelOrientation.vertical);
 P_side_left.Name = "ST_L";
 P_side_left.TextureOrientation = panelOperations.textureOrientation.vertical;
