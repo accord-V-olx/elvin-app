@@ -39,7 +39,7 @@ function aiAnswer(interior) {
       construction: {
         top_type: "inset", bottom_type: "inset", support_type: "plinth",
         plinth_height_mm: 100, plinth_setback_mm: 20, plinth_type: "dsp", back_panel_type: "overlay",
-        back_groove_offset_mm: null, facade_type: "none", side_panels: "full_height", depth_includes_facade: null,
+        back_groove_offset_mm: null, facade_type: "none", side_panels: "full_height", depth_includes_facade: null, fillers: null,
         interior,
         facades_layout: null
       },
@@ -197,4 +197,36 @@ test("depth_includes_facade null or false keeps the drawing depth as carcass dep
     a.project.construction.depth_includes_facade = flag;
     assert.equal(buildWardrobe(a).project.depth, 600);
   }
+});
+
+// Fillers (planky) for uneven walls: 2000 x 1000 wardrobe with 20 at both walls and +20 on top
+// -> 2000x20, 2000x20, 1000x20 (owner, 18.10.2026). Edged on 4 sides, not drilled.
+test("fillers: side strips full height, top strip full width, KR08 all round, no MountScheme", () => {
+  const a = aiAnswer(null);
+  Object.assign(a.project, { width_mm: 1000, height_mm: 2000, depth_mm: 600, material: "ДСП 18", material_thickness_mm: 18 });
+  a.project.construction.fillers = { left_mm: 20, right_mm: 20, top_mm: 20 };
+  assert.deepEqual(validate(RESPONSE_SCHEMA, a), []);
+  const r = buildWardrobe(a);
+  const f = r.parts.filter(p => p.role === "filler");
+  assert.deepEqual(f.map(p => [p.id, p.size_x_mm, p.size_z_mm]),
+    [["filler_left", 20, 2000], ["filler_right", 20, 2000], ["filler_top", 1000, 20]]);
+  assert.deepEqual(f.map(p => [p.x_mm, p.z_mm]), [[-20, 0], [1000, 0], [0, 2000]]);
+  assert.ok(f.every(p => Object.values(p.edges).every(e => e === "KR08")));
+  assert.ok(!r.machining.some(m => /filler/.test(m.a + m.b)));
+  assert.equal(r.geometryCheck.ok, true, JSON.stringify(r.geometryCheck.errors));
+});
+
+test("fillers in a multi-module order: side strips at the outer walls, top strip per module", () => {
+  const mod = (name, width_mm) => ({ name, width_mm, height_mm: null, depth_mm: null, furniture_type: null,
+    top_type: null, bottom_type: null, side_panels: null, interior: null, facades_layout: null });
+  const a = aiAnswer(null);
+  Object.assign(a.project, { width_mm: 3100, height_mm: 2450, depth_mm: 600, material: "ДСП 18", material_thickness_mm: 18 });
+  a.project.construction.fillers = { left_mm: 20, right_mm: 20, top_mm: 20 };
+  a.project.modules = [mod("ліва", 1250), mod("середня", 600), mod("права", 1250)];
+  const r = buildOrder(a);
+  const f = r.parts.filter(p => p.role === "filler");
+  assert.deepEqual(f.map(p => [p.id, p.x_mm, p.size_x_mm, p.size_z_mm]), [
+    ["filler_left", -20, 20, 2450], ["filler_right", 3100, 20, 2450],
+    ["filler_top_1", 0, 1250, 20], ["filler_top_2", 1250, 600, 20], ["filler_top_3", 1850, 1250, 20]]);
+  assert.match(r.bazis.script, /P_filler_left\.Name = "PLANKA";/);
 });

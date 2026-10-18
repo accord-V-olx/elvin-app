@@ -23,8 +23,9 @@ import { interiorFromAI } from "./interior-from-ai.js";
 import { buildFacades } from "./facades.js";
 import { applyEdging } from "./edging.js";
 import { computeMounts } from "./mounting.js";
+import { buildFillers } from "./fillers.js";
 
-export const WARDROBE_ENGINE_VERSION = "1.7.0-depth-facade";
+export const WARDROBE_ENGINE_VERSION = "1.8.0-fillers";
 
 // ============================================================
 // HELPERS
@@ -72,6 +73,11 @@ function applyFacadeDepth(data) {
   data.overallDepth = overall;
   data.depth = overall - t - gap;
   return ["Глибина " + overall + " мм з фасадом: корпус " + overall + " − " + t + " − " + gap + " = " + data.depth + " мм (правило фабрики)."];
+}
+
+export function fillerOpts(data) {
+  return { thickness_mm: data.materialThickness, material: data.material,
+    edge: WARDROBE_RULES.facades?.edging?.code || WARDROBE_RULES.edging?.visible?.code || "KR08" };
 }
 
 function addMissing(list, field, question) {
@@ -876,6 +882,12 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     visible: WARDROBE_RULES.edging?.visible?.code || "KR08",
     rear: WARDROBE_RULES.edging?.rearTechnical?.code || "BUM02"
   });
+
+  // Wall/ceiling fillers (front strips) for a single carcass; the order
+  // builder adds them for multi-module orders.
+  const sideLeft = parts.find(p => p.id === "side_left");
+  if (sideLeft) parts.push(...buildFillers(c.fillers, [{ x0: 0, x1: data.width, height: data.height, yFront: sideLeft.y_mm }],
+    fillerOpts(data)));
 
   const geometryCheck = validateGeometry(parts, { width: data.width, depth: data.depth, height: data.height });
   // Sheet limits come from factory rules, not from the Engine.

@@ -16,7 +16,8 @@
 //   from the project. Without modules the order is a single carcass.
 // ============================================================
 
-import { buildWardrobe, buildBazisPlan, WARDROBE_ENGINE_VERSION } from "./wardrobe-engine.js";
+import { buildWardrobe, buildBazisPlan, fillerOpts, WARDROBE_ENGINE_VERSION } from "./wardrobe-engine.js";
+import { buildFillers } from "./fillers.js";
 import { validateGeometry } from "./geometry.js";
 
 const STATUS_RANK = { ERROR: 4, ASK: 3, GEOMETRY_INCOMPLETE: 2, READY: 1 };
@@ -36,6 +37,8 @@ function moduleAnalysis(analysis, m, i) {
   const construction = { ...(p.construction || {}) };
   for (const k of MODULE_CONSTRUCTION) if (m[k] !== null && m[k] !== undefined) construction[k] = m[k];
   construction.interior = m.interior ?? null;
+  // Fillers belong to the whole order (outer walls), not to each module.
+  construction.fillers = null;
   if (m.facades_layout) construction.facades_layout = m.facades_layout;
   // Top-level size/construction fields would override the module values in
   // the Engine's normaliser, so they are cleared for each module.
@@ -99,6 +102,18 @@ export function buildOrder(analysis = {}) {
   });
 
   const totalWidth = x;
+  // Wall/ceiling fillers: side strips at the outer modules, top strip per module.
+  const placedModules = [];
+  let mx = 0;
+  results.forEach((r, i) => {
+    const width = r.project?.width || 0;
+    const side = parts.find(p => p.id === prefixId(i, "side_left"));
+    if (side) placedModules.push({ x0: mx, x1: mx + width, height: r.project?.height || 0, yFront: side.y_mm });
+    mx += width;
+  });
+  if (placedModules.length === results.length && results[0].project) {
+    parts.push(...buildFillers(p.construction?.fillers, placedModules, fillerOpts(results[0].project)));
+  }
   // Mounting stays inside each module (modules are separate carcasses).
   const machining = results.flatMap((r, i) => (r.machining || []).map(m => ({ ...m, a: prefixId(i, m.a), b: prefixId(i, m.b) })));
   const maxHeight = Math.max(...results.map(r => r.project?.height || 0));
