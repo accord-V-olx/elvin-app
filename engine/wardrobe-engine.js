@@ -634,6 +634,8 @@ function buttLines(v, part) {
   if (axis === "y") {
     const all = [e.top, e.bottom, e.left, e.right];
     if (all.every(c => c && c === all[0])) [0, 1, 2, 3].forEach(i => add(i, all[0]));
+    // Bottom edge only (COKOL): index 0, as in the factory reference script.
+    else if (e.bottom && !e.top && !e.left && !e.right) add(0, e.bottom);
     else if (all.some(Boolean)) out.push("// Кромка фронтальної деталі не на всіх торцях — номери торців у BAZIS не перевірені.");
   }
   if (out.length) out.push(v + ".Build();");

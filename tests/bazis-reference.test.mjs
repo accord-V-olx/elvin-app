@@ -104,6 +104,7 @@ test("plinth COKOL matches the reference script: W - 2T x 100, recess 20 from th
   assert.equal(c.edges.bottom, "KR08");
   assert.equal(c.edges.top, null);
   assert.equal(r.geometryCheck.ok, true);
+  assert.match(r.bazis.script, /moveMin\(P_plinth, 16, 0, 564\);\npanelOperations\.AddButt\(P_plinth, 0, KR08\);/);
 });
 
 test("MountScheme pairs match the reference script (37 pairs, same panels)", () => {
