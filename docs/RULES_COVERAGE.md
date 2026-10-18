@@ -1,6 +1,6 @@
 # Покриття правил фабрики в Wardrobe Engine
 
-Джерело правил: `rules/wardrobe-rules.js` (v1.8). Рушій не змінює правила. Він бере їх лише з цього файлу.
+Джерело правил: `rules/wardrobe-rules.js` (v1.9). Рушій не змінює правила. Він бере їх лише з цього файлу.
 
 - **AUTO**: рушій застосовує правило сам.
 - **ASK**: рушій ставить питання.
@@ -12,10 +12,10 @@
 | carcassConstruction.bottom / outerUprights / top | AUTO | Боковини до підлоги або на дні, вкладний верх, вкладне або суцільне дно | — |
 | carcassConstruction.internalUprights | AUTO | Стоять на деталі знизу, доходять до деталі зверху | Готово |
 | shelves.depth (= глибина корпусу) | AUTO | Так; втоплення лише з креслення | Готово |
-| backPanel.hdfOverlay | AUTO_WHEN_SELECTED | Перевірка листа 2800×2070. Сама деталь ще не будується: відступи не затверджені | Після рішення технолога |
+| backPanel.hdfOverlay | AUTO_WHEN_SELECTED | Один лист на модуль, мінус 2 мм з кожного боку; лист > 2800×2070 — питання про поділ | Готово |
 | backPanel.paz | AUTO_GEOMETRY | ХДФ у пазу будується (паз 14/4/9, лист = проріз + 16); операція паза в BAZIS — після скрипта | Готово (геометрія) |
 | backPanel.rebate | PAUSED | Блокується | Після скрипта BAZIS |
-| backPanel.dspBack | ASK | Блокується | — |
+| backPanel.dspBack | AUTO | ST_TYL на дні між боковинами під кришкою; полиці = глибина − 19 | Готово |
 | depth.overallDepthIncludesFacade | AUTO | **Не застосовано** | 3 |
 | plinth.standard (100 мм, відступ 20) | AUTO_WHEN_SELECTED | COKOL з ДСП спереду: між боковинами або на всю ширину; бокові цоколі й зрізи 45° — ні | Готово (передній) |
 | legs | AUTO_WHEN_SELECTED | **Не застосовано** | 4 |

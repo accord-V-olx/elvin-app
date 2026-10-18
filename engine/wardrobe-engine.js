@@ -407,6 +407,43 @@ function buildPlinth(data, parts) {
 }
 const GEOMETRY_EPS = 0.01;
 
+const isBackType = (data, re) => typeof data.construction?.back_panel_type === "string" && re.test(data.construction.back_panel_type);
+
+// Overlay HDF nailed to the back (factory standard): one sheet per module,
+// 2 mm smaller than the carcass (bottom panel .. top panel) on every side.
+function buildOverlayBack(data, parts) {
+  const rule = WARDROBE_RULES.backPanel?.hdfOverlay || {};
+  const off = rule.edgeOffsetsMm;
+  const byId = Object.fromEntries(parts.map(p => [p.id, p]));
+  const { side_left: l, bottom: b, top } = byId;
+  if (!off || !l || !b || !top) return null;
+  const back = l.y_mm + l.size_y_mm;
+  const z0 = b.z_mm + off.bottom;
+  const z1 = top.z_mm + top.size_z_mm - off.top;
+  return { id: "back", name: "TYL", type: "back", role: "back", qty: 1,
+    x_mm: off.left, y_mm: back, z_mm: z0, size_x_mm: data.width - off.left - off.right, size_y_mm: rule.thicknessMm,
+    size_z_mm: z1 - z0, thickness_mm: rule.thicknessMm, material: "ХДФ", edges: null, outside_envelope_allowed: true };
+}
+
+// DSP back inside the carcass (open sections): on the bottom, between the
+// sides, under the top, at the rear.
+function buildDspBack(data, parts) {
+  const rule = WARDROBE_RULES.backPanel?.dspBack || {};
+  const byId = Object.fromEntries(parts.map(p => [p.id, p]));
+  const { side_left: l, side_right: r, bottom: b, top } = byId;
+  if (!rule.thicknessMm || !l || !r || !b || !top) return null;
+  const back = Math.min(l.y_mm + l.size_y_mm, r.y_mm + r.size_y_mm);
+  const t = rule.thicknessMm;
+  return { id: "back", name: "ST_TYL", type: "back", role: "back", qty: 1,
+    x_mm: l.x_mm + l.size_x_mm, y_mm: back - t, z_mm: b.z_mm + b.size_z_mm,
+    size_x_mm: r.x_mm - (l.x_mm + l.size_x_mm), size_y_mm: t, size_z_mm: top.z_mm - (b.z_mm + b.size_z_mm),
+    thickness_mm: t, material: data.material, edges: null };
+}
+const dspBackSetback = data => {
+  const rule = WARDROBE_RULES.backPanel?.dspBack || {};
+  return isBackType(data, /^(dsp|дсп)/i) && rule.thicknessMm ? rule.thicknessMm + (rule.shelfClearanceMm || 0) : 0;
+};
+
 function topFrontOverhang(data) {
   const rule = WARDROBE_RULES.carcassConstruction?.overlayTopOverhang;
   const c = data.construction || {};
@@ -741,7 +778,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
       interiorMissing.push({field:"construction.interior",question:"Внутрішні секції неможливо розрахувати: корпус (боковини, дно, верх) побудований не повністю."});
     } else {
       // Shelves and partitions stop in front of the HDF groove (factory standard).
-      box.y1 -= grooveSetback(data);
+      box.y1 -= grooveSetback(data) || dspBackSetback(data);
       const layout = buildInterior(c.interior, box, { thickness_mm: data.materialThickness, material: data.material });
       if (layout.ok) {
         parts.push(...layout.parts);
@@ -765,6 +802,12 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     const hdf = buildGrooveBack(data, parts);
     if (hdf) { parts.push(hdf); backModelled = true; }
     else interiorMissing.push({field:"construction.back_panel_type",question:"ХДФ у паз при накладній кришці: до якої висоти доходить лист і чи є паз у кришці?"});
+  } else if (!isBackAbsent(data) && isBackType(data, /^(overlay|накладн)/i)) {
+    const hdf = buildOverlayBack(data, parts);
+    if (hdf) { parts.push(hdf); backModelled = true; }
+  } else if (!isBackAbsent(data) && dspBackSetback(data) > 0) {
+    const dsp = buildDspBack(data, parts);
+    if (dsp) { parts.push(dsp); backModelled = true; }
   }
 
   // Facades: overlay facades from the confirmed layout and factory gaps.

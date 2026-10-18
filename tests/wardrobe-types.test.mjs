@@ -165,14 +165,35 @@ test("groove back panel with an explicit offset from the drawing: setback = offs
   assert.equal(byId(r).partition_1.size_y_mm, 600 - 16 - 4);
 });
 
-test("declared back panel and facades block READY until they are modelled", () => {
-  const r = buildWardrobe(order({ backPanel: "ХДФ 3 мм", facades: "2 фасади",
-    construction: { back_panel_type: "overlay", facade_type: "overlay" },
-    interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 573 }, { size_mm: 573 }] }
+test("overlay HDF is built (one sheet, 2 mm in from every edge); facades without a layout block READY", () => {
+  const r = buildWardrobe(order({ width: 1040, height: 2786, depth: 576, backPanel: "ХДФ 3 мм", facades: "2 фасади",
+    construction: { back_panel_type: "overlay", facade_type: "overlay", top_type: "overlay", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 493 }, { size_mm: 493 }] }
   }));
+  // Real order A-104: TYL 2782 x 1036.
+  const hdf = byId(r).back;
+  assert.deepEqual(box(hdf), [2, 576, 2, 1036, 3, 2782]);
+  assert.ok(!fields(r).includes("geometry.back_panel"));
   assert.equal(r.status, "GEOMETRY_INCOMPLETE");
-  assert.ok(fields(r).includes("geometry.back_panel"));
   assert.ok(fields(r).includes("geometry.facades"));
+  assert.ok(fields(r).includes("construction.facades_layout"));
+  assert.equal(r.geometryCheck.ok, true, JSON.stringify(r.geometryCheck.errors));
+});
+
+test("DSP back inside (open sections): ST_TYL on the bottom under the top, shelves depth - 19", () => {
+  // Real order F-S50: ST_TYL 2627 x 464, shelves 464 x 581, KR 464 x 600.
+  const cells = [1, 2, 3, 4, 5, 6].map(() => ({ size_mm: (2627 - 5 * 18) / 6 }));
+  const r = buildWardrobe(order({ width: 500, height: 2663, depth: 600, backPanel: "ДСП",
+    construction: { back_panel_type: "dsp", top_type: "inset", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "horizontal", cells } }));
+  assert.equal(r.status, "READY", JSON.stringify(r.missing));
+  const p = byId(r);
+  assert.deepEqual([p.back.name, p.back.size_x_mm, p.back.size_z_mm, p.back.y_mm], ["ST_TYL", 464, 2627, 582]);
+  assert.deepEqual([p.shelf_1.size_x_mm, p.shelf_1.size_y_mm], [464, 581]);
+  assert.deepEqual([p.top.size_x_mm, p.top.size_y_mm], [464, 600]);
+  // The DSP back hides the shelf rear edge (as in GibLab), and it is mounted.
+  assert.equal(p.shelf_1.edges.back, null);
+  assert.ok(r.machining.some(m => m.a === "back" && m.b === "bottom"));
   assert.equal(r.geometryCheck.ok, true);
 });
 
@@ -245,13 +266,13 @@ test("HDF sheet larger than 2800x2070 (factory rule) must be split", async () =>
 });
 
 test("draft BAZIS code: carcass without interior is still exported with a gap list", () => {
-  const r = buildWardrobe(order({ backPanel: "ХДФ 3 мм", construction: { back_panel_type: "overlay" }, interior: undefined,
+  const r = buildWardrobe(order({ backPanel: "ХДФ 3 мм", facades: "2 фасади", construction: { back_panel_type: "overlay", facade_type: "overlay" }, interior: undefined,
     sections: "4 секції" }));
   assert.equal(r.status, "GEOMETRY_INCOMPLETE");
   assert.equal(r.bazis.status, "DRAFT_CODE");
   const s = r.bazis.script;
   assert.equal((s.match(/objects3d\.NewPanel\(/g) || []).length, r.parts.length);
-  assert.match(s, /Задня стінка ще не розраховується/);
+  assert.match(s, /Фасади ще не розраховуються/);
   assert.match(s, /historyOperations\.CommitCurrentChanges/);
   // Comment lines cannot break out into code.
   assert.ok(s.split("\n").filter(l => l.startsWith("//   - ")).length >= 2);

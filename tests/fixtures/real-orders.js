@@ -11,31 +11,33 @@ export const REAL_ORDERS = [
     modules: [
       {
         id: "A-104", width: 1040, height: 2786, depth: 576, thickness: 18,
-        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "overlay", facade_type: "overlay",
+        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "overlay", facade_type: "overlay", back_panel_type: "overlay",
           facades_layout: { columns: [0, 1].map(() => ({ width_mm: null, rows: [{ height_mm: 2255, kind: "door" }, { height_mm: 521, kind: "door" }] })) } },
         // Facades with factory gaps 3 / 3 / 2 / 4 match GibLab.
         parts: [["KR", 1040, 576, 1], ["DNO", 1040, 576, 1], ["ST_L", 2750, 576, 1], ["ST_R", 2750, 576, 1],
-          ["FASAD", 521, 516, 2], ["FASAD", 2255, 516, 2]],
+          ["FASAD", 521, 516, 2], ["FASAD", 2255, 516, 2], ["TYL", 2782, 1036, 1]],
         // Factory standard (2026-10-16) would give 1004x576; 575 / 497 were the technologist's choice.
         technologistVariant: [["POLKA", 1004, 575, 2], ["POLKA", 1004, 497, 1]],
-        pending: [["TYL", 2782, 1036, 1]],
+        pending: [],
         notModelled: ["RAST 1004x60 x3", "RAST 930x60", "drawers 2x", "rod 995", "37 mm inner panels"]
       },
       {
         id: "A-52", width: 520, height: 2786, depth: 576, thickness: 18, shelves: 7,
-        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "overlay", facade_type: "overlay",
+        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "overlay", facade_type: "overlay", back_panel_type: "overlay",
           facades_layout: { columns: [{ width_mm: null, rows: [{ height_mm: 2255, kind: "door" }, { height_mm: 521, kind: "door" }] }] } },
         parts: [["KR", 520, 576, 1], ["DNO", 520, 576, 1], ["ST_L", 2750, 576, 1], ["ST_R", 2750, 576, 1], ["POLKA", 484, 576, 7],
-          ["FASAD", 521, 516, 1], ["FASAD", 2255, 516, 1]],
-        pending: [["TYL", 2782, 516, 1]],
+          ["FASAD", 521, 516, 1], ["FASAD", 2255, 516, 1], ["TYL", 2782, 516, 1]],
+        pending: [],
         notModelled: []
       },
       {
         id: "A-35", width: 350, height: 2786, depth: 600, thickness: 18, shelves: 6,
-        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "inset" },
-        parts: [["DNO", 350, 600, 1], ["ST_L", 2768, 600, 1], ["ST_R", 2768, 600, 1]],
-        // DSP back inside the carcass (ST_TYL) reduces KR and shelf depth.
-        pending: [["KR", 314, 581, 1], ["POLKA", 314, 580, 6], ["ST_TYL", 2768, 314, 1]],
+        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "inset", back_panel_type: "dsp" },
+        // DSP back standard (2026-10-18): ST_TYL under the top, shelves depth - 19.
+        parts: [["DNO", 350, 600, 1], ["ST_L", 2768, 600, 1], ["ST_R", 2768, 600, 1], ["KR", 314, 600, 1], ["POLKA", 314, 581, 6], ["ST_TYL", 2750, 314, 1]],
+        // This technologist ran ST_TYL to the top and set KR in front of it.
+        technologistVariant: [["KR", 314, 581, 1], ["POLKA", 314, 580, 6], ["ST_TYL", 2768, 314, 1]],
+        pending: [],
         notModelled: []
       }
     ]
@@ -139,11 +141,11 @@ export const REAL_ORDERS = [
         notModelled: ["COKOL 1898x100, 558x100", "PLANKA 1397x50"]
       },
       {
-        id: "F-S50", width: 500, height: 2663, depth: 600, thickness: 18,
-        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "inset" },
-        parts: [["DNO", 500, 600, 1], ["ST_L", 2645, 600, 1], ["ST_R", 2645, 600, 1], ["KR", 464, 600, 1]],
-        // DSP back inside (ST_TYL 2627x464) makes shelves 581 deep.
-        pending: [["POLKA", 464, 581, 5], ["ST_TYL", 2627, 464, 1]],
+        id: "F-S50", width: 500, height: 2663, depth: 600, thickness: 18, shelves: 5,
+        construction: { side_panels: "on_bottom", bottom_type: "full_width", top_type: "inset", back_panel_type: "dsp" },
+        parts: [["DNO", 500, 600, 1], ["ST_L", 2645, 600, 1], ["ST_R", 2645, 600, 1], ["KR", 464, 600, 1],
+          ["POLKA", 464, 581, 5], ["ST_TYL", 2627, 464, 1]],
+        pending: [],
         notModelled: []
       }
     ],

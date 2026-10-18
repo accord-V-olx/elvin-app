@@ -76,19 +76,19 @@ test("simulated AI answer is valid against the schema", () => {
 test("AI answer -> Engine: full reference wardrobe with draft BAZIS code", () => {
   const r = buildWardrobe(aiAnswer(petrash));
   const roles = r.parts.reduce((m, p) => ({ ...m, [p.role]: (m[p.role] || 0) + 1 }), {});
-  assert.deepEqual(roles, { side: 2, top: 1, bottom: 1, partition: 3, shelf: 12, plinth: 1 });
-  assert.equal(r.geometryCheck.ok, true);
-  // Back HDF is declared but not modelled yet -> draft, not READY.
-  assert.equal(r.status, "GEOMETRY_INCOMPLETE");
-  assert.ok(r.missing.some(m => m.field === "geometry.back_panel"));
+  assert.deepEqual(roles, { side: 2, top: 1, bottom: 1, partition: 3, shelf: 12, plinth: 1, back: 1 });
+  // Overlay HDF is built from the factory standard, but one sheet 2596 x 2196 does not fit
+  // the 2800 x 2070 sheet: Elvin asks to split it instead of guessing the joints.
+  assert.deepEqual(r.geometryCheck.errors.map(e => e.code), ["SHEET_TOO_LARGE"]);
+  assert.ok(r.missing.some(m => /2596×2196.*2800×2070/.test(m.question)), JSON.stringify(r.missing));
   assert.equal(r.bazis.status, "DRAFT_CODE");
-  assert.equal((r.bazis.script.match(/objects3d\.NewPanel\(/g) || []).length, 20);
+  assert.equal((r.bazis.script.match(/objects3d\.NewPanel\(/g) || []).length, 21);
   assert.match(r.bazis.script, /Project: ТИМА ПЕТРАШ Ш 1/);
 });
 
 test("AI answer without interior still gives a carcass draft", () => {
   const r = buildWardrobe(aiAnswer(null));
-  assert.deepEqual(r.parts.map(p => p.role).sort(), ["bottom", "plinth", "side", "side", "top"]);
+  assert.deepEqual(r.parts.map(p => p.role).sort(), ["back", "bottom", "plinth", "side", "side", "top"]);
   assert.equal(r.bazis.status, "DRAFT_CODE");
 });
 
@@ -131,7 +131,7 @@ test("every construction enum value is understood by the Engine", () => {
   for (const side of c.side_panels.enum.filter(Boolean)) {
     const bottom = side === "full_height" ? "inset" : "full_width";
     const r = buildWardrobe({ ...base, project: { ...base.project, construction: { ...base.project.construction, side_panels: side, bottom_type: bottom } } });
-    assert.equal(r.parts.filter(p => p.role !== "plinth").length, 4, side);
+    assert.equal(r.parts.filter(p => ["side", "top", "bottom"].includes(p.role)).length, 4, side);
     assert.equal(r.parts.filter(p => p.role === "plinth").length, 1, side);
   }
 });

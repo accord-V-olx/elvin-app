@@ -36,6 +36,12 @@ function touches(a, b, axis, side) {
   return AXES.filter(o => o !== axis).every(o => overlap(a[o + "0"], a[o + "1"], b[o + "0"], b[o + "1"]) > GEOMETRY_EPS_MM);
 }
 
+function touchesWithin(a, b, axis, gap) {
+  const d = b[axis + "0"] - a[axis + "1"];
+  if (d < -GEOMETRY_EPS_MM || d > gap + GEOMETRY_EPS_MM) return false;
+  return AXES.filter(o => o !== axis).every(o => overlap(a[o + "0"], a[o + "1"], b[o + "0"], b[o + "1"]) > GEOMETRY_EPS_MM);
+}
+
 // Thin back panels (HDF) do not hide an edge.
 const covers = p => !(p.role === "back" && p.thickness_mm < 10) && p.role !== "facade";
 
@@ -53,7 +59,9 @@ export function applyEdging(parts, codes) {
     for (const a of AXES.filter(o => o !== axis)) {
       for (const side of ["min", "max"]) {
         const name = FACE_NAMES[a][side];
-        const covered = boxes.some(([o, ob]) => o !== p && covers(o) && touches(box, ob, a, side));
+        // A DSP back 1 mm behind a shelf still hides its rear edge.
+        const covered = boxes.some(([o, ob]) => o !== p && covers(o) &&
+          (touches(box, ob, a, side) || (name === "back" && o.role === "back" && touchesWithin(box, ob, a, 1.5))));
         if (covered) edges[name] = null;
         else if (name === "back") edges[name] = codes.rear;
         else edges[name] = codes.visible;

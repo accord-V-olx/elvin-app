@@ -48,7 +48,7 @@ for (const order of REAL_ORDERS) {
       }
     });
 
-    if (m.pending.length) {
+    if (m.pending && m.pending.length) {
       test(order.id + " / " + m.id + ": sizes waiting for clearance rules", { todo: m.pending.map(p => key(...p)).join(", ") }, () => {
         const counts = partCounts(build(m));
         for (const [name, a, b, qty] of m.pending) assert.equal(counts[key(name, a, b)] || 0, qty, key(name, a, b));

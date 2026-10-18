@@ -16,7 +16,7 @@
 // conflicting reference rules.
 // ============================================================
 
-export const WARDROBE_RULES_VERSION = "1.8";
+export const WARDROBE_RULES_VERSION = "1.9";
 
 export const WARDROBE_RULES = {
 
@@ -294,14 +294,16 @@ export const WARDROBE_RULES = {
         "SINGLE"
       ],
 
-      // Not confirmed yet: how much smaller the sheet is than the
-      // carcass / section on each side. Engine must ASK until set.
-      edgeOffsetsMm: null,
+      // Confirmed 2026-10-18: one sheet per module, 2 mm smaller than the
+      // carcass on every side (GibLab: 2782 x 1036 for a 2786 x 1040 module).
+      edgeOffsetsMm: { top: 2, bottom: 2, left: 2, right: 2 },
 
       rules: [
         "Standard overlay HDF/DVP thickness is 3 mm.",
 
         "Overlay HDF is nailed to the carcass.",
+
+        "One overlay HDF sheet per module, 2 mm smaller than the carcass on every side (confirmed 2026-10-18).",
 
         "Normally a separate HDF sheet per section; one whole sheet is allowed for a small wardrobe.",
 
@@ -366,14 +368,18 @@ export const WARDROBE_RULES = {
 
 
     dspBack: {
-      status: "ASK",
+      // Confirmed 2026-10-18 for open sections: DSP 18 back stands on the
+      // bottom between the sides under the top; shelves = depth - 18 - 1.
+      status: "AUTO",
+      thicknessMm: 18,
+      shelfClearanceMm: 1,
 
       rules: [
-        "DSP back is treated as a separate furniture part.",
+        "DSP back (ST_TYL) is a separate DSP 18 part: between the sides, on the bottom, under the top, at the rear.",
 
-        "Exact geometry and fastening rules are not fully defined yet.",
+        "Shelves and partitions in front of it: depth = carcass depth - 18 - 1 mm.",
 
-        "Do not invent the fastening method."
+        "Fastening follows the touching panels (MountScheme)."
       ]
     }
   },

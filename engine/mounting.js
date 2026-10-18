@@ -7,7 +7,7 @@
 // of `b` — exactly the pairs of the factory reference script:
 //   DNO/KR -> sides, ST_SR -> DNO/KR, shelves -> sides/partitions,
 //   COKOL -> sides/DNO.
-// HDF and facades are not mounted with MountScheme.
+// HDF and facades are not mounted with MountScheme; a DSP back is.
 // ============================================================
 
 import { partBox, thicknessAxis, GEOMETRY_EPS_MM } from "./geometry.js";
@@ -15,7 +15,8 @@ import { partBox, thicknessAxis, GEOMETRY_EPS_MM } from "./geometry.js";
 const AXES = ["x", "y", "z"];
 const near = (a, b) => Math.abs(a - b) <= GEOMETRY_EPS_MM;
 const overlap = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0);
-const mountable = p => p.role !== "back" && p.role !== "facade";
+// Thin HDF is nailed, facades hang on hinges: neither uses MountScheme.
+const mountable = p => !(p.role === "back" && p.thickness_mm < 10) && p.role !== "facade";
 
 export function computeMounts(parts) {
   const items = parts.filter(mountable).map(p => ({ p, box: partBox(p), axis: thicknessAxis(p) })).filter(i => i.axis);
