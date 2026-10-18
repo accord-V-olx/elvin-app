@@ -132,3 +132,18 @@ test("MountScheme pairs match the reference script (37 pairs, same panels)", () 
   assert.match(r.bazis.script, /M\(P_plinth, P_bottom\);/);
   assert.ok(r.bazis.script.indexOf("M(P_") < r.bazis.script.indexOf("historyOperations.CommitCurrentChanges"));
 });
+
+test("overlay HDF too big for one sheet is split by sections exactly like the reference script", () => {
+  const r = buildWardrobe({
+    projectName: "BAZIS-REFERENCE-TYL", width: W, height: H, depth: D,
+    material: "ДСП 16", materialThickness: T, backPanel: "ХДФ 3", facades: "none",
+    construction: { top_type: "inset", bottom_type: "inset", support_type: "plinth", side_panels: "full_height",
+      plinth_height_mm: 100, back_panel_type: "overlay",
+      interior: { size_reference: "clear", split: "vertical", cells: [level, level, level, level] } }
+  });
+  const tyl = r.parts.filter(p => p.role === "back").sort((a, b) => a.x_mm - b.x_mm);
+  // Reference: 4 x NewPanel(CLEAR_W, H - COKOL_H - 4, front); moveMin(p, x, COKOL_H + 2, -HDF).
+  assert.deepEqual(tyl.map(p => strip(toBazisPlacement(p, D))),
+    [16, 662, 1308, 1954].map(x => at("front", [630, 2196], x, 102, -3)));
+  assert.equal(r.geometryCheck.ok, true);
+});

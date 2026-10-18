@@ -76,13 +76,11 @@ test("simulated AI answer is valid against the schema", () => {
 test("AI answer -> Engine: full reference wardrobe with draft BAZIS code", () => {
   const r = buildWardrobe(aiAnswer(petrash));
   const roles = r.parts.reduce((m, p) => ({ ...m, [p.role]: (m[p.role] || 0) + 1 }), {});
-  assert.deepEqual(roles, { side: 2, top: 1, bottom: 1, partition: 3, shelf: 12, plinth: 1, back: 1 });
-  // Overlay HDF is built from the factory standard, but one sheet 2596 x 2196 does not fit
-  // the 2800 x 2070 sheet: Elvin asks to split it instead of guessing the joints.
-  assert.deepEqual(r.geometryCheck.errors.map(e => e.code), ["SHEET_TOO_LARGE"]);
-  assert.ok(r.missing.some(m => /2596×2196.*2800×2070/.test(m.question)), JSON.stringify(r.missing));
-  assert.equal(r.bazis.status, "DRAFT_CODE");
-  assert.equal((r.bazis.script.match(/objects3d\.NewPanel\(/g) || []).length, 21);
+  // One sheet 2596 x 2196 does not fit 2800 x 2070 -> one HDF sheet per section (4).
+  assert.deepEqual(roles, { side: 2, top: 1, bottom: 1, partition: 3, shelf: 12, plinth: 1, back: 4 });
+  assert.equal(r.geometryCheck.ok, true, JSON.stringify(r.geometryCheck.errors));
+  assert.equal(r.status, "READY", JSON.stringify(r.missing));
+  assert.equal((r.bazis.script.match(/objects3d\.NewPanel\(/g) || []).length, 24);
   assert.match(r.bazis.script, /Project: ТИМА ПЕТРАШ Ш 1/);
 });
 

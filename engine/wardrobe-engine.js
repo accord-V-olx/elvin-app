@@ -420,9 +420,25 @@ function buildOverlayBack(data, parts) {
   const back = l.y_mm + l.size_y_mm;
   const z0 = b.z_mm + off.bottom;
   const z1 = top.z_mm + top.size_z_mm - off.top;
-  return { id: "back", name: "TYL", type: "back", role: "back", qty: 1,
-    x_mm: off.left, y_mm: back, z_mm: z0, size_x_mm: data.width - off.left - off.right, size_y_mm: rule.thicknessMm,
-    size_z_mm: z1 - z0, thickness_mm: rule.thicknessMm, material: "ХДФ", edges: null, outside_envelope_allowed: true };
+  const sheet = (id, x0, x1) => ({ id, name: "TYL", type: "back", role: "back", qty: 1,
+    x_mm: x0, y_mm: back, z_mm: z0, size_x_mm: x1 - x0, size_y_mm: rule.thicknessMm,
+    size_z_mm: z1 - z0, thickness_mm: rule.thicknessMm, material: "ХДФ", edges: null, outside_envelope_allowed: true });
+  const single = sheet("back", off.left, data.width - off.left);
+  // Too big for one sheet -> one sheet per section (confirmed 2026-10-18,
+  // as in the factory reference script): each sheet = clear section width.
+  const max = rule.maxSheetMm;
+  const fits = p => !max || (Math.max(p.size_x_mm, p.size_z_mm) <= Math.max(max.length, max.width) + GEOMETRY_EPS &&
+    Math.min(p.size_x_mm, p.size_z_mm) <= Math.min(max.length, max.width) + GEOMETRY_EPS);
+  if (fits(single)) return [single];
+  const r = byId.side_right;
+  const innerH = top.z_mm - (b.z_mm + b.size_z_mm);
+  const walls = parts.filter(p => p.role === "partition" && Math.abs(p.size_z_mm - innerH) <= GEOMETRY_EPS)
+    .sort((a, c) => a.x_mm - c.x_mm);
+  if (!r || !walls.length) return [single];
+  const edges = [l.x_mm + l.size_x_mm, ...walls.flatMap(w => [w.x_mm, w.x_mm + w.size_x_mm]), r.x_mm];
+  const sheets = [];
+  for (let i = 0; i < edges.length; i += 2) sheets.push(sheet("back_" + (i / 2 + 1), edges[i], edges[i + 1]));
+  return sheets;
 }
 
 // DSP back inside the carcass (open sections): on the bottom, between the
@@ -803,8 +819,8 @@ export function buildWardrobe(confirmedAnalysis = {}) {
     if (hdf) { parts.push(hdf); backModelled = true; }
     else interiorMissing.push({field:"construction.back_panel_type",question:"ХДФ у паз при накладній кришці: до якої висоти доходить лист і чи є паз у кришці?"});
   } else if (!isBackAbsent(data) && isBackType(data, /^(overlay|накладн)/i)) {
-    const hdf = buildOverlayBack(data, parts);
-    if (hdf) { parts.push(hdf); backModelled = true; }
+    const sheets = buildOverlayBack(data, parts);
+    if (sheets && sheets.length) { parts.push(...sheets); backModelled = true; }
   } else if (!isBackAbsent(data) && dspBackSetback(data) > 0) {
     const dsp = buildDspBack(data, parts);
     if (dsp) { parts.push(dsp); backModelled = true; }

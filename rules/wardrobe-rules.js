@@ -16,7 +16,7 @@
 // conflicting reference rules.
 // ============================================================
 
-export const WARDROBE_RULES_VERSION = "1.9";
+export const WARDROBE_RULES_VERSION = "1.10";
 
 export const WARDROBE_RULES = {
 
@@ -304,6 +304,8 @@ export const WARDROBE_RULES = {
         "Overlay HDF is nailed to the carcass.",
 
         "One overlay HDF sheet per module, 2 mm smaller than the carcass on every side (confirmed 2026-10-18).",
+
+        "If the module sheet is larger than 2800 x 2070, split it by sections: one sheet per section, as wide as the clear section (confirmed 2026-10-18).",
 
         "Normally a separate HDF sheet per section; one whole sheet is allowed for a small wardrobe.",
 
