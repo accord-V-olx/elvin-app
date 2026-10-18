@@ -22,6 +22,7 @@ import { toBazisPlacement } from "./bazis-axes.js";
 import { interiorFromAI } from "./interior-from-ai.js";
 import { buildFacades } from "./facades.js";
 import { applyEdging } from "./edging.js";
+import { computeMounts } from "./mounting.js";
 
 export const WARDROBE_ENGINE_VERSION = "1.6.0-interior-layout";
 
@@ -529,9 +530,9 @@ function carcassInterior(parts) {
   };
 }
 
+// MountScheme pairs from real panel contacts (factory rule "mounting").
 function buildMachining(parts) {
-  // MountScheme is emitted only after exact physical contacts are known.
-  return [];
+  return computeMounts(parts);
 }
 
 function safeBazisName(value) {
@@ -572,7 +573,7 @@ function buttLines(v, part) {
 
 // draft = incomplete geometry: the code is still generated so the
 // technologist can open it in BAZIS, but every gap is listed on top.
-function generateBazisScript(data, parts, draft = null) {
+function generateBazisScript(data, parts, draft = null, machining = []) {
   if (!parts.length) return null;
 
   const comment = text => "//   - " + String(text).replace(/[\r\n]+/g, " ");
@@ -633,15 +634,31 @@ function generateBazisScript(data, parts, draft = null) {
     );
   });
 
+  // MountScheme exactly as in the factory reference script.
+  const varOf = id => "P_" + String(id).replace(/[^a-zA-Z0-9_]/g, "_");
+  const placed = new Set(parts.filter((_, i) => placements[i]).map(p => p.id));
+  const mounts = (machining || []).filter(m => m.type === "MountScheme" && placed.has(m.a) && placed.has(m.b));
+  if (mounts.length) {
+    lines.push(
+      "// MountScheme (конфірмат + шкант) за парами деталей, що торкаються.",
+      "let Props = Action.Properties;",
+      "let Furn = Props.NewFurniture(\"Схема кріплення\");",
+      "Furn.Click();",
+      "function M(a, b) {",
+      "  Furn.Value.MountScheme(a, b, 0, {x: 0, y: 0, z: 0});",
+      "}",
+      ...mounts.map(m => "M(" + varOf(m.a) + ", " + varOf(m.b) + ");"),
+      ""
+    );
+  }
   lines.push(
-    "// Edging and MountScheme are added only when their exact rule/contact data is confirmed.",
     "historyOperations.CommitCurrentChanges(\"" + safeBazisName(data.projectName) + "\");"
   );
   return lines.join("\n");
 }
 
 export function buildBazisPlan(data, parts, machining, draft = null) {
-  const script = generateBazisScript(data, parts, draft);
+  const script = generateBazisScript(data, parts, draft, machining);
   return {
     status: !script ? "WAITING_FOR_PART_GEOMETRY" : draft ? "DRAFT_CODE" : "PREVIEW_CODE_READY",
     projectName: data.projectName,
@@ -825,7 +842,7 @@ export function buildWardrobe(confirmedAnalysis = {}) {
       ok: false, status: "GEOMETRY_INCOMPLETE", engineVersion: WARDROBE_ENGINE_VERSION,
       message: "Геометрія часткова: не можна позначати замовлення готовим до BAZIS.",
       missing: geometryMissing, warnings: materialWarnings(data), project: data, parts, sections, geometryCheck,
-      machining: [], bazis: buildBazisPlan(data, parts, [], { missing: geometryMissing })
+      machining: buildMachining(parts), bazis: buildBazisPlan(data, parts, buildMachining(parts), { missing: geometryMissing })
     };
   }
   const machining = buildMachining(parts);

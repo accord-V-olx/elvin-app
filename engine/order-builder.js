@@ -99,6 +99,8 @@ export function buildOrder(analysis = {}) {
   });
 
   const totalWidth = x;
+  // Mounting stays inside each module (modules are separate carcasses).
+  const machining = results.flatMap((r, i) => (r.machining || []).map(m => ({ ...m, a: prefixId(i, m.a), b: prefixId(i, m.b) })));
   const maxHeight = Math.max(...results.map(r => r.project?.height || 0));
   const geometryCheck = validateGeometry(parts, { width: totalWidth, depth: maxDepth, height: maxHeight });
   for (const e of geometryCheck.errors) missing.push({ field: "geometry." + e.code, question: e.message, parts: e.parts });
@@ -116,7 +118,7 @@ export function buildOrder(analysis = {}) {
   const status = worst === "READY" && missing.length ? "GEOMETRY_INCOMPLETE" : worst;
   const project = { ...(results[0].project || {}), width: totalWidth, depth: maxDepth, height: maxHeight };
   const bazis = parts.length
-    ? buildBazisPlan(project, parts, [], status === "READY" ? null : { missing })
+    ? buildBazisPlan(project, parts, machining, status === "READY" ? null : { missing })
     : { status: "WAITING_FOR_PART_GEOMETRY", script: null, productionReady: false };
 
   return {
@@ -135,7 +137,7 @@ export function buildOrder(analysis = {}) {
     parts,
     sections,
     geometryCheck,
-    machining: [],
+    machining,
     bazis
   };
 }

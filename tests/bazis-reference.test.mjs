@@ -105,3 +105,30 @@ test("plinth COKOL matches the reference script: W - 2T x 100, recess 20 from th
   assert.equal(c.edges.top, null);
   assert.equal(r.geometryCheck.ok, true);
 });
+
+test("MountScheme pairs match the reference script (37 pairs, same panels)", () => {
+  const r = buildWardrobe({
+    projectName: "BAZIS-REFERENCE-MOUNT", width: W, height: H, depth: D,
+    material: "ДСП 16", materialThickness: T, backPanel: "none", facades: "none",
+    construction: { top_type: "inset", bottom_type: "inset", support_type: "plinth", side_panels: "full_height",
+      plinth_height_mm: 100, interior: { size_reference: "clear", split: "vertical", cells: [level, level, level, level] } }
+  });
+  const pairs = r.machining.map(m => m.a + ">" + m.b);
+  const expected = [
+    "bottom>side_left", "bottom>side_right", "top>side_left", "top>side_right",
+    ...[1, 2, 3].flatMap(i => ["partition_" + i + ">bottom", "partition_" + i + ">top"]),
+    "plinth>side_left", "plinth>side_right", "plinth>bottom"
+  ];
+  // Shelves: every shelf to the vertical panel on each side (3 rows x 4 sections x 2).
+  const verticals = ["side_left", "partition_1", "partition_2", "partition_3", "side_right"];
+  for (let s = 1; s <= 4; s++) for (let l = 1; l <= 3; l++) {
+    expected.push("shelf_" + s + "_" + l + ">" + verticals[s - 1], "shelf_" + s + "_" + l + ">" + verticals[s]);
+  }
+  assert.equal(pairs.length, 37);
+  assert.deepEqual([...pairs].sort(), [...expected].sort());
+  // Script: same calls as the factory script.
+  assert.match(r.bazis.script, /let Furn = Props\.NewFurniture\("Схема кріплення"\);\nFurn\.Click\(\);/);
+  assert.match(r.bazis.script, /M\(P_bottom, P_side_left\);/);
+  assert.match(r.bazis.script, /M\(P_plinth, P_bottom\);/);
+  assert.ok(r.bazis.script.indexOf("M(P_") < r.bazis.script.indexOf("historyOperations.CommitCurrentChanges"));
+});
