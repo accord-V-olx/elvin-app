@@ -16,7 +16,7 @@
 | backPanel.paz | AUTO_GEOMETRY | ХДФ у пазу будується (паз 14/4/9, лист = проріз + 16); операція паза в BAZIS — після скрипта | Готово (геометрія) |
 | backPanel.rebate | PAUSED | Блокується | Після скрипта BAZIS |
 | backPanel.dspBack | AUTO | ST_TYL на дні між боковинами під кришкою; полиці = глибина − 19 | Готово |
-| depth.overallDepthIncludesFacade | AUTO | **Не застосовано** | 3 |
+| depth.overallDepthIncludesFacade | AUTO | Якщо AI бачить «глибина з фасадом» (`depth_includes_facade: true`): корпус = глибина − фасад − 2; попередження з розрахунком. Товщина фасаду = товщина ДСП (дзеркальні двері — уточнити) | Готово |
 | plinth.standard (100 мм, відступ 20) | AUTO_WHEN_SELECTED | COKOL з ДСП спереду: між боковинами або на всю ширину; бокові цоколі й зрізи 45° — ні | Готово (передній) |
 | legs | AUTO_WHEN_SELECTED | **Не застосовано** | 4 |
 | edging.visible / rearTechnical (KR08 / BUM02) | AUTO | Розраховується з геометрії: перед і відкриті торці KR08, зад BUM02, закриті торці без кромки; у BAZIS — AddButt за номерами торців з еталонного скрипта | Готово |
