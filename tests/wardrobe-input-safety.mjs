@@ -81,6 +81,6 @@ test("missing-field IDs are unique within one analysis", () => {
 
 // Known gaps in the main branch: these cases are not yet enforced.
 // Turn them into active tests when validation logic is patched.
-test.todo("whitespace-only order name must be rejected");
-test.todo("empty sections array must be rejected");
-test.todo("whitespace-only material and construction values must be rejected");
+test("whitespace-only order name must be rejected", () => { const result = run(p => { p.name = "   "; }); assert.equal(result.status, "ASK"); assert.ok(result.missing.some(x => x.field === "projectName")); });
+test("empty sections array must be rejected", () => { const result = run(p => { p.sections_description = []; }); assert.equal(result.status, "ASK"); assert.ok(result.missing.some(x => x.field === "sections")); });
+test("whitespace-only material and construction values must be rejected", () => { const result = run(p => { p.material = " "; p.construction.top_type = " "; }); assert.equal(result.status, "ASK"); assert.ok(result.missing.some(x => x.field === "material")); assert.ok(result.missing.some(x => x.field === "construction.top_type")); });
