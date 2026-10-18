@@ -38,7 +38,7 @@ function aiAnswer(interior) {
       material: "ДСП 16", back_panel: "ХДФ 3 мм", material_thickness_mm: 16,
       construction: {
         top_type: "inset", bottom_type: "inset", support_type: "plinth",
-        plinth_height_mm: 100, plinth_setback_mm: 20, back_panel_type: "overlay",
+        plinth_height_mm: 100, plinth_setback_mm: 20, plinth_type: "dsp", back_panel_type: "overlay",
         back_groove_offset_mm: null, facade_type: "none", side_panels: "full_height",
         interior,
         facades_layout: null
@@ -76,19 +76,19 @@ test("simulated AI answer is valid against the schema", () => {
 test("AI answer -> Engine: full reference wardrobe with draft BAZIS code", () => {
   const r = buildWardrobe(aiAnswer(petrash));
   const roles = r.parts.reduce((m, p) => ({ ...m, [p.role]: (m[p.role] || 0) + 1 }), {});
-  assert.deepEqual(roles, { side: 2, top: 1, bottom: 1, partition: 3, shelf: 12 });
+  assert.deepEqual(roles, { side: 2, top: 1, bottom: 1, partition: 3, shelf: 12, plinth: 1 });
   assert.equal(r.geometryCheck.ok, true);
   // Back HDF is declared but not modelled yet -> draft, not READY.
   assert.equal(r.status, "GEOMETRY_INCOMPLETE");
   assert.ok(r.missing.some(m => m.field === "geometry.back_panel"));
   assert.equal(r.bazis.status, "DRAFT_CODE");
-  assert.equal((r.bazis.script.match(/objects3d\.NewPanel\(/g) || []).length, 19);
+  assert.equal((r.bazis.script.match(/objects3d\.NewPanel\(/g) || []).length, 20);
   assert.match(r.bazis.script, /Project: ТИМА ПЕТРАШ Ш 1/);
 });
 
 test("AI answer without interior still gives a carcass draft", () => {
   const r = buildWardrobe(aiAnswer(null));
-  assert.deepEqual(r.parts.map(p => p.role).sort(), ["bottom", "side", "side", "top"]);
+  assert.deepEqual(r.parts.map(p => p.role).sort(), ["bottom", "plinth", "side", "side", "top"]);
   assert.equal(r.bazis.status, "DRAFT_CODE");
 });
 
@@ -131,7 +131,8 @@ test("every construction enum value is understood by the Engine", () => {
   for (const side of c.side_panels.enum.filter(Boolean)) {
     const bottom = side === "full_height" ? "inset" : "full_width";
     const r = buildWardrobe({ ...base, project: { ...base.project, construction: { ...base.project.construction, side_panels: side, bottom_type: bottom } } });
-    assert.equal(r.parts.length, 4, side);
+    assert.equal(r.parts.filter(p => p.role !== "plinth").length, 4, side);
+    assert.equal(r.parts.filter(p => p.role === "plinth").length, 1, side);
   }
 });
 

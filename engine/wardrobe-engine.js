@@ -383,6 +383,29 @@ function buildGrooveBack(data, parts) {
   };
 }
 
+// DSP plinth (COKOL) at the front, factory standard: height from the order
+// (standard 100), recess 20 mm from the carcass front. Between the sides
+// when they stand on the floor, full width when the carcass stands on it.
+function buildPlinth(data, parts) {
+  const c = data.construction || {};
+  if (!/^(plinth|цоколь)$/i.test(String(c.support_type || "")) || /plastic|пласт/i.test(String(c.plinth_type || ""))) return null;
+  const h = positiveNumber(c.plinth_height_mm);
+  const byId = Object.fromEntries(parts.map(p => [p.id, p]));
+  const { side_left: l, side_right: r } = byId;
+  if (!h || !l || !r) return null;
+  const std = WARDROBE_RULES.plinth?.standard || {};
+  const recess = Number.isFinite(Number(c.plinth_setback_mm)) && c.plinth_setback_mm !== null ? Number(c.plinth_setback_mm) : std.frontRecessMm;
+  if (!Number.isFinite(recess)) return null;
+  const t = data.materialThickness;
+  const toFloor = l.z_mm < h - GEOMETRY_EPS;
+  const x0 = toFloor ? l.x_mm + l.size_x_mm : 0;
+  const x1 = toFloor ? r.x_mm : data.width;
+  return { id: "plinth", name: "COKOL", type: "front", role: "plinth", qty: 1,
+    x_mm: x0, y_mm: l.y_mm + recess, z_mm: 0, size_x_mm: x1 - x0, size_y_mm: t, size_z_mm: h,
+    thickness_mm: t, material: data.material, edges: null };
+}
+const GEOMETRY_EPS = 0.01;
+
 function topFrontOverhang(data) {
   const rule = WARDROBE_RULES.carcassConstruction?.overlayTopOverhang;
   const c = data.construction || {};
@@ -747,6 +770,9 @@ export function buildWardrobe(confirmedAnalysis = {}) {
       else interiorMissing.push(...res.errors);
     }
   }
+
+  const plinth = buildPlinth(data, parts);
+  if (plinth) parts.push(plinth);
 
   // Edge banding from the factory rules (needs the final part list of this carcass).
   applyEdging(parts, {

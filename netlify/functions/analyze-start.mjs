@@ -113,6 +113,7 @@ const CONSTRUCTION_GUIDE = `
 - top_type: "inset" — верх між боковинами; "overlay" — верх накладний на боковини.
 - bottom_type: "inset" — дно між боковинами; "full_width" — дно на всю ширину, боковини стоять на ньому.
 - support_type: "plinth" — цоколь; "legs" — ніжки; "none" — без опори.
+- plinth_type: "dsp" — цоколь з ДСП (деталь COKOL); "plastic" — пластиковий цоколь; null — не вказано.
 - back_panel_type: "overlay" — ХДФ накладна ззаду; "groove" — ХДФ у паз; "rebate" — ХДФ у вибірку; "dsp" — задня стінка з ДСП; "none" — без задньої стінки.
 - facade_type: "overlay" — накладні; "inset" — вкладні; "none" — без фасадів.
 

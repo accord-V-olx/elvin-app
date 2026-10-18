@@ -89,3 +89,19 @@ test("part names follow the factory BAZIS convention", () => {
   assert.equal(new Set(r.parts.map(p => p.id)).size, r.parts.length);
   assert.match(r.bazis.script, /P_partition_1\.Name = "ST_SR";/);
 });
+
+test("plinth COKOL matches the reference script: W - 2T x 100, recess 20 from the front", () => {
+  const r = buildWardrobe({
+    projectName: "BAZIS-REFERENCE-COKOL", width: W, height: H, depth: D,
+    material: "ДСП 16", materialThickness: T, backPanel: "none", facades: "none",
+    construction: { top_type: "inset", bottom_type: "inset", support_type: "plinth", side_panels: "full_height",
+      plinth_height_mm: 100, interior: { size_reference: "clear", split: "vertical", cells: [level, level, level, level] } }
+  });
+  const c = r.parts.find(p => p.id === "plinth");
+  assert.ok(c, JSON.stringify(r.missing));
+  // Reference: NewPanel(W-2*T, COKOL_H, front); moveMin(COKOL, T, 0, D - COKOL_SETBACK - T); AddButt(COKOL, 0, KR08).
+  assert.deepEqual(strip(toBazisPlacement(c, D)), at("front", [W - 2 * T, 100], T, 0, D - 20 - T));
+  assert.equal(c.edges.bottom, "KR08");
+  assert.equal(c.edges.top, null);
+  assert.equal(r.geometryCheck.ok, true);
+});

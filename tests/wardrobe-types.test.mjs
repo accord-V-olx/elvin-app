@@ -406,3 +406,18 @@ test("edging: HDF in the groove does not hide the shelf rear edge; facades keep 
   assert.deepEqual(p.facade_1_1.edges, { top: "KR08", bottom: "KR08", left: "KR08", right: "KR08" });
   assert.match(r.bazis.script, /AddButt\(P_facade_1_1, 3, KR08\)/);
 });
+
+test("plinth: carcass standing on the plinth gets a full-width COKOL recessed 20 mm", () => {
+  const r = buildWardrobe(order({ width: 1500, height: 2000, depth: 300,
+    construction: { support_type: "plinth", plinth_height_mm: 150, top_type: "inset" },
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 805 }, { size_mm: 805 }] } }));
+  const c = byId(r).plinth;
+  assert.deepEqual(box(c), [0, 20, 0, 1500, 18, 150]);
+  assert.equal(r.geometryCheck.ok, true, JSON.stringify(r.geometryCheck.errors));
+  // Plastic plinth is not a DSP part; legs give no COKOL.
+  const plastic = buildWardrobe(order({ construction: { support_type: "plinth", plinth_type: "plastic", plinth_height_mm: 100 },
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 1082 }, { size_mm: 1082 }] } }));
+  assert.ok(!plastic.parts.some(p => p.role === "plinth"));
+  const legs = buildWardrobe(order({ interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 1123 }, { size_mm: 1123 }] } }));
+  assert.ok(!legs.parts.some(p => p.role === "plinth"));
+});

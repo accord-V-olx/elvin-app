@@ -174,6 +174,7 @@ export const RESPONSE_SCHEMA = {
             support_type: { type: ["string", "null"], enum: ["plinth", "legs", "none", null] },
             plinth_height_mm: { type: ["number", "null"] },
             plinth_setback_mm: { type: ["number", "null"] },
+            plinth_type: { type: ["string", "null"], enum: ["dsp", "plastic", null] },
             back_panel_type: { type: ["string", "null"], enum: ["overlay", "groove", "rebate", "dsp", "none", null] },
             back_groove_offset_mm: { type: ["number", "null"] },
             facade_type: { type: ["string", "null"], enum: ["overlay", "inset", "none", null] },
@@ -181,7 +182,7 @@ export const RESPONSE_SCHEMA = {
             interior: INTERIOR_SCHEMA,
             facades_layout: FACADES_LAYOUT_SCHEMA
           },
-          required: ["top_type","bottom_type","support_type","plinth_height_mm","plinth_setback_mm","back_panel_type","back_groove_offset_mm","facade_type","side_panels","interior","facades_layout"]
+          required: ["top_type","bottom_type","support_type","plinth_height_mm","plinth_setback_mm","plinth_type","back_panel_type","back_groove_offset_mm","facade_type","side_panels","interior","facades_layout"]
         },
 
         // Separate carcasses standing side by side, left -> right.
