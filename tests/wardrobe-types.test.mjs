@@ -373,3 +373,36 @@ test("facades in the Engine: chest top stays above the facades; BAZIS gets verti
   assert.equal(Math.max(...f.map(p => p.z_mm + p.size_z_mm)), 959);
   assert.match(r.bazis.script, /P_facade_1_1\.TextureOrientation = panelOperations\.textureOrientation\.vertical;/);
 });
+
+test("edging follows the real GibLab patterns (KR08 front/open ends, BUM02 rear, none on covered ends)", () => {
+  // Module like A-104: KR and DNO over the sides.
+  const a = buildWardrobe(order({ width: 1040, height: 2786, depth: 576,
+    construction: { top_type: "overlay", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 1366 }, { size_mm: 1366 }] } }));
+  const p = byId(a);
+  assert.deepEqual(p.top.edges, { left: "KR08", right: "KR08", front: "KR08", back: "BUM02" });
+  assert.deepEqual(p.bottom.edges, { left: "KR08", right: "KR08", front: "KR08", back: "BUM02" });
+  assert.deepEqual(p.side_left.edges, { front: "KR08", back: "BUM02", bottom: null, top: null });
+  assert.deepEqual(p.shelf_1.edges, { left: null, right: null, front: "KR08", back: "BUM02" });
+  // Module like A-35: sides on the bottom, inset top -> the side's top end is visible.
+  const b = buildWardrobe(order({ width: 350, height: 2786, depth: 600, construction: { top_type: "inset", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 1366 }, { size_mm: 1366 }] } }));
+  const q = byId(b);
+  assert.deepEqual(q.side_left.edges, { front: "KR08", back: "BUM02", bottom: null, top: "KR08" });
+  assert.deepEqual(q.top.edges, { left: null, right: null, front: "KR08", back: "BUM02" });
+  // BAZIS butt indices from the factory script: side 1 front, 3 back, 2 top.
+  assert.match(b.bazis.script, /let KR08 = materialData\.CreateButtMaterialData\(/);
+  assert.match(b.bazis.script, /panelOperations\.AddButt\(P_side_left, 1, KR08\);\npanelOperations\.AddButt\(P_side_left, 2, KR08\);\npanelOperations\.AddButt\(P_side_left, 3, BUM02\);/);
+});
+
+test("edging: HDF in the groove does not hide the shelf rear edge; facades keep KR08 all round", () => {
+  const r = buildWardrobe(order({ width: 840, height: 500, depth: 528, backPanel: "ХДФ", facades: "накладні",
+    construction: { back_panel_type: "groove", top_type: "inset", plinth_height_mm: 0, facade_type: "overlay",
+      facades_layout: { columns: [{ width_mm: null, rows: [] }, { width_mm: null, rows: [] }] } },
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 223 }, { size_mm: 223 }] } }));
+  const p = byId(r);
+  assert.equal(p.shelf_1.edges.back, "BUM02");
+  assert.equal(p.back.edges, null);
+  assert.deepEqual(p.facade_1_1.edges, { top: "KR08", bottom: "KR08", left: "KR08", right: "KR08" });
+  assert.match(r.bazis.script, /AddButt\(P_facade_1_1, 3, KR08\)/);
+});

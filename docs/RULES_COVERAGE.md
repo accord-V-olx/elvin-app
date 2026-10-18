@@ -19,7 +19,7 @@
 | depth.overallDepthIncludesFacade | AUTO | **Не застосовано** | 3 |
 | plinth.standard (100 мм, відступ 20) | AUTO_WHEN_SELECTED | **COKOL не будується** | 1 |
 | legs | AUTO_WHEN_SELECTED | **Не застосовано** | 4 |
-| edging.visible / rearTechnical (KR08 / BUM02) | AUTO | **Не застосовано**. Номери торців відомі з еталонного скрипта | 1 |
+| edging.visible / rearTechnical (KR08 / BUM02) | AUTO | Розраховується з геометрії: перед і відкриті торці KR08, зад BUM02, закриті торці без кромки; у BAZIS — AddButt за номерами торців з еталонного скрипта | Готово |
 | texture | AUTO | Вертикальна для вертикальних деталей, горизонтальна для горизонтальних | Перевірити з правилами |
 | facades.overlay (3/3/2/4) | AUTO_WHEN_SELECTED | Будуються за розкладкою (колонки/ряди); рівний поділ, плаваючий боковий зазор; перевірка ланцюжка | Готово |
 | facades.inset | ASK_PARTIALLY_DEFINED | Блокується | — |

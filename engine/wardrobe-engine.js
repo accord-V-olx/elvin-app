@@ -21,6 +21,7 @@ import { buildInterior } from "./interior-layout.js";
 import { toBazisPlacement } from "./bazis-axes.js";
 import { interiorFromAI } from "./interior-from-ai.js";
 import { buildFacades } from "./facades.js";
+import { applyEdging } from "./edging.js";
 
 export const WARDROBE_ENGINE_VERSION = "1.6.0-interior-layout";
 
@@ -514,6 +515,38 @@ function safeBazisName(value) {
   return String(value || "").replace(/[\\"\r\n]/g, "_");
 }
 
+// BAZIS butt indices from the factory reference script ("ТИМА ПЕТРАШ Ш 1"):
+//   vertical panel: 0 bottom, 1 front, 2 top, 3 back; horizontal panel:
+//   0 front, 2 back, 1/3 the two ends (which is left/right is not verified,
+//   so ends are emitted only when both have the same edge).
+const BUTT_INDEX = {
+  x: { bottom: 0, front: 1, top: 2, back: 3 },
+  z: { front: 0, back: 2 }
+};
+const BUTT_VAR = { KR08: "KR08", BUM02: "BUM02" };
+
+function buttLines(v, part) {
+  const e = part.edges;
+  if (!e) return [];
+  const axis = thicknessAxis(part);
+  const out = [];
+  const add = (idx, code) => { if (code && BUTT_VAR[code]) out.push("panelOperations.AddButt(" + v + ", " + idx + ", " + BUTT_VAR[code] + ");"); };
+  if (axis === "x") for (const [face, idx] of Object.entries(BUTT_INDEX.x)) add(idx, e[face]);
+  if (axis === "z") {
+    add(BUTT_INDEX.z.front, e.front);
+    add(BUTT_INDEX.z.back, e.back);
+    if (e.left === e.right) { add(1, e.left); add(3, e.right); }
+    else if (e.left || e.right) out.push("// Кромка лише на одному торці (" + (e.left ? "лівий" : "правий") + ") — номер торця в BAZIS не перевірений.");
+  }
+  if (axis === "y") {
+    const all = [e.top, e.bottom, e.left, e.right];
+    if (all.every(c => c && c === all[0])) [0, 1, 2, 3].forEach(i => add(i, all[0]));
+    else if (all.some(Boolean)) out.push("// Кромка фронтальної деталі не на всіх торцях — номери торців у BAZIS не перевірені.");
+  }
+  if (out.length) out.push(v + ".Build();");
+  return out;
+}
+
 // draft = incomplete geometry: the code is still generated so the
 // technologist can open it in BAZIS, but every gap is listed on top.
 function generateBazisScript(data, parts, draft = null) {
@@ -548,6 +581,15 @@ function generateBazisScript(data, parts, draft = null) {
       parts.filter((_, i) => !placements[i]).map(p => safeBazisName(p.id)).join(", "), "");
   }
 
+  // Edge materials as in the factory reference script (parameters to be checked in BAZIS).
+  if (parts.some(p => p.edges && Object.values(p.edges).some(Boolean))) {
+    lines.push(
+      "let KR08 = materialData.CreateButtMaterialData(\"Кромка 0.8\", 0.8, 22, true, \"KR08\", 0, true, 0);",
+      "let BUM02 = materialData.CreateButtMaterialData(\"Бумага 0.2\", 0.2, 22, true, \"BUM02\", 0, true, 0);",
+      ""
+    );
+  }
+
   let activeMaterial = null;
   parts.forEach((part, i) => {
     const pl = placements[i];
@@ -563,6 +605,7 @@ function generateBazisScript(data, parts, draft = null) {
       v + ".Name = \"" + safeBazisName(part.name || part.id) + "\";",
       ...(pl.texture ? [v + ".TextureOrientation = panelOperations.textureOrientation." + pl.texture + ";"] : []),
       "moveMin(" + v + ", " + pl.min.x + ", " + pl.min.y + ", " + pl.min.z + ");",
+      ...buttLines(v, part),
       ""
     );
   });
@@ -704,6 +747,12 @@ export function buildWardrobe(confirmedAnalysis = {}) {
       else interiorMissing.push(...res.errors);
     }
   }
+
+  // Edge banding from the factory rules (needs the final part list of this carcass).
+  applyEdging(parts, {
+    visible: WARDROBE_RULES.edging?.visible?.code || "KR08",
+    rear: WARDROBE_RULES.edging?.rearTechnical?.code || "BUM02"
+  });
 
   const geometryCheck = validateGeometry(parts, { width: data.width, depth: data.depth, height: data.height });
   // Sheet limits come from factory rules, not from the Engine.
