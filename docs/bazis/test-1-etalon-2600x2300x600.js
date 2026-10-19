@@ -1,5 +1,5 @@
 // ELVIN -> BAZIS 10
-// Project: ELVIN-TEST-2600x2300x600
+// Project: ELVIN-TEST-1-ETALON
 // Generated only from confirmed Wardrobe Engine geometry.
 
 function moveMin(obj, x, y, z) {
@@ -169,10 +169,28 @@ panelOperations.AddButt(P_shelf_4_3, 0, KR08);
 panelOperations.AddButt(P_shelf_4_3, 2, BUM02);
 P_shelf_4_3.Build();
 
+materialData.SetupActiveMaterial("ХДФ", 3);
+let P_back_1 = objects3d.NewPanel(630, 2196, objects3d.PanelOrientation.front);
+P_back_1.Name = "TYL";
+moveMin(P_back_1, 16, 102, -3);
+
+let P_back_2 = objects3d.NewPanel(630, 2196, objects3d.PanelOrientation.front);
+P_back_2.Name = "TYL";
+moveMin(P_back_2, 662, 102, -3);
+
+let P_back_3 = objects3d.NewPanel(630, 2196, objects3d.PanelOrientation.front);
+P_back_3.Name = "TYL";
+moveMin(P_back_3, 1308, 102, -3);
+
+let P_back_4 = objects3d.NewPanel(630, 2196, objects3d.PanelOrientation.front);
+P_back_4.Name = "TYL";
+moveMin(P_back_4, 1954, 102, -3);
+
+materialData.SetupActiveMaterial("ДСП 16", 16);
 let P_plinth = objects3d.NewPanel(2568, 100, objects3d.PanelOrientation.front);
 P_plinth.Name = "COKOL";
 moveMin(P_plinth, 16, 0, 564);
-// Кромка фронтальної деталі не на всіх торцях — номери торців у BAZIS не перевірені.
+panelOperations.AddButt(P_plinth, 0, KR08);
 P_plinth.Build();
 
 // MountScheme (конфірмат + шкант) за парами деталей, що торкаються.
@@ -220,4 +238,4 @@ M(P_plinth, P_side_left);
 M(P_plinth, P_side_right);
 M(P_plinth, P_bottom);
 
-historyOperations.CommitCurrentChanges("ELVIN-TEST-2600x2300x600");
+historyOperations.CommitCurrentChanges("ELVIN-TEST-1-ETALON");
