@@ -208,9 +208,11 @@ export const WARDROBE_RULES = {
   // Owner decision 2026-10-18.
   fillers: {
     status: "AUTO_WHEN_SELECTED",
+    stockWidthMm: 200,
     rules: [
       "Planky (PLANKA) close gaps to uneven walls and ceiling: '20' at a wall, '+20' on the height.",
-      "Side strip = full carcass height x gap; top strip = full carcass width x gap (2000x1000 wardrobe -> 2000x20, 2000x20, 1000x20).",
+      "Strips are made 200 mm wide and cut to the real gap on site (owner, 20.10.2026).",
+      "Side strip = full carcass height x 200; top strip = full carcass width x 200 (2000x1000 wardrobe -> 2000x200, 2000x200, 1000x200).",
       "Carcass material, in the facade plane, edged on all 4 sides, not drilled (no MountScheme)."
     ]
   },

@@ -25,7 +25,7 @@ import { applyEdging } from "./edging.js";
 import { computeMounts } from "./mounting.js";
 import { buildFillers } from "./fillers.js";
 
-export const WARDROBE_ENGINE_VERSION = "1.8.0-fillers";
+export const WARDROBE_ENGINE_VERSION = "1.8.1-fillers-200";
 
 // ============================================================
 // HELPERS
@@ -77,6 +77,7 @@ function applyFacadeDepth(data) {
 
 export function fillerOpts(data) {
   return { thickness_mm: data.materialThickness, material: data.material,
+    stockWidth: WARDROBE_RULES.fillers?.stockWidthMm,
     edge: WARDROBE_RULES.facades?.edging?.code || WARDROBE_RULES.edging?.visible?.code || "KR08" };
 }
 
@@ -701,6 +702,7 @@ function generateBazisScript(data, parts, draft = null, machining = []) {
       activeMaterial = material;
     }
     const v = "P_" + String(part.id).replace(/[^a-zA-Z0-9_]/g, "_");
+    if (part.note) lines.push("// " + String(part.note).replace(/[\r\n]+/g, " "));
     lines.push(
       "let " + v + " = objects3d.NewPanel(" + pl.panel[0] + ", " + pl.panel[1] + ", objects3d.PanelOrientation." + pl.orientation + ");",
       v + ".Name = \"" + safeBazisName(part.name || part.id) + "\";",

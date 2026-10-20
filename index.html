@@ -294,7 +294,7 @@ function renderProduction(wardrobe){
  $("bazisNote").textContent=(bazis.note||"")+(gaps.length?" Не вистачає: "+gaps.join(" · "):"")+(warns.length?" Увага: "+warns.join(" · "):"");
  $("downloadBazis").disabled=!script;
  $("partList").innerHTML=parts.length
-   ? "<b>Деталі:</b><br>"+parts.map(p=>escapeHtml((p.name||p.id)+" · "+p.size_x_mm+"×"+p.size_y_mm+"×"+p.size_z_mm+" мм")).join("<br>")
+   ? "<b>Деталі:</b><br>"+parts.map(p=>escapeHtml((p.name||p.id)+" · "+p.size_x_mm+"×"+p.size_y_mm+"×"+p.size_z_mm+" мм"+(p.note?" — "+p.note:""))).join("<br>")
    : "Деталі ще не розраховані.";
  $("downloadBazis").onclick=()=>{
    if(!script)return;
@@ -319,15 +319,17 @@ function init3DViewer(parts){
  function draw(){
    const w=canvas.clientWidth||700,h=canvas.clientHeight||420;ctx.clearRect(0,0,w,h);
    if(!parts.length){ctx.fillStyle="#9da7b4";ctx.font="14px Arial";ctx.fillText("Немає розрахованих деталей для 3D.",20,32);return}
-   const maxX=Math.max(...parts.map(p=>(p.x_mm||0)+(p.size_x_mm||0)),1);
-   const maxY=Math.max(...parts.map(p=>(p.y_mm||0)+(p.size_y_mm||0)),1);
+   // Parts may stick out of the carcass (fillers, facades): fit the whole box.
+   const minX=Math.min(...parts.map(p=>p.x_mm||0),0),minY=Math.min(...parts.map(p=>p.y_mm||0),0);
+   const maxX=Math.max(...parts.map(p=>(p.x_mm||0)+(p.size_x_mm||0)),1)-minX;
+   const maxY=Math.max(...parts.map(p=>(p.y_mm||0)+(p.size_y_mm||0)),1)-minY;
    const maxZ=Math.max(...parts.map(p=>(p.z_mm||0)+(p.size_z_mm||0)),1);
    const s=Math.min((w*.65)/(maxX+maxY*.55),(h*.72)/(maxZ+maxY*.35),.7);
    const cx=w*.5,cy=h*.82;
    const faces=[];
    for(const p of parts){
      const x=p.x_mm||0,y=p.y_mm||0,z=p.z_mm||0,dx=p.size_x_mm||0,dy=p.size_y_mm||0,dz=p.size_z_mm||0;
-     const v=[[x,y,z],[x+dx,y,z],[x+dx,y+dy,z],[x,y+dy,z],[x,y,z+dz],[x+dx,y,z+dz],[x+dx,y+dy,z+dz],[x,y+dy,z+dz]].map(q=>project(q[0]-maxX/2,q[1]-maxY/2,q[2],cx,cy,s));
+     const v=[[x,y,z],[x+dx,y,z],[x+dx,y+dy,z],[x,y+dy,z],[x,y,z+dz],[x+dx,y,z+dz],[x+dx,y+dy,z+dz],[x,y+dy,z+dz]].map(q=>project(q[0]-minX-maxX/2,q[1]-minY-maxY/2,q[2],cx,cy,s));
      [[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7],[4,5,6,7]].forEach(ids=>faces.push({pts:ids.map(i=>v[i]),d:ids.reduce((a,i)=>a+v[i].d,0)/4,name:p.name||p.id}));
    }
    faces.sort((a,b)=>a.d-b.d);
