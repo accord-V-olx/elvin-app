@@ -90,6 +90,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <h2>Питання для уточнення (не блокують перегляд аналізу)</h2>
 <p class="muted">Аналіз вище вже доступний. За потреби оберіть відповіді й натисніть «Продовжити аналіз». 3D та BAZIS опрацьовуються окремо.</p>
 <div id="questions"></div>
+<div id="engineQuestionsBlock" class="hidden">
+<h3>Питання розрахунку деталей</h3>
+<p class="muted">Відповідайте лише на ті, що знаєте, решту можна пропустити. Elvin перерахує деталі з вашими відповідями.</p>
+<div id="engineQuestions"></div>
+</div>
 <button id="continueAnalysis" class="primary" type="button">Продовжити аналіз</button>
 </div>
 
@@ -267,6 +272,21 @@ function renderQuestions(questions){
  }));
 }
 
+// Wardrobe Engine questions (wardrobe.missing): optional, free text, one card per question.
+let engineAnswers={};
+const engineKey=q=>"Питання розрахунку: "+q;
+function renderEngineQuestions(wardrobe){
+ engineAnswers={};
+ const qs=[...new Set((Array.isArray(wardrobe?.missing)?wardrobe.missing:[]).map(m=>m.question).filter(Boolean))];
+ $("engineQuestionsBlock").classList.toggle("hidden",!qs.length);
+ $("engineQuestions").innerHTML=qs.map((q,i)=>`<div class="question"><p>${escapeHtml(q)}</p><input class="answerInput" type="text" data-engine="${i}" placeholder="Ваша відповідь (можна пропустити)..."></div>`).join("");
+ document.querySelectorAll("[data-engine]").forEach(input=>input.addEventListener("input",()=>{
+  const key=engineKey(qs[Number(input.dataset.engine)]),value=input.value.trim();
+  if(validAnswer(value))engineAnswers[key]=value;else delete engineAnswers[key];
+ }));
+ return qs.length;
+}
+
 function updateAnswer(key,value){
  const status=[...document.querySelectorAll(".answerStatus")].find(el=>el.dataset.status===key);
  const card=[...document.querySelectorAll(".question")].find(el=>el.dataset.card===key);
@@ -365,7 +385,8 @@ function showAnalysis(data){
  // Missing Wardrobe Engine fields must NOT become mandatory operator questions.
  const questions=[...(Array.isArray(data.questions)?data.questions:[])].filter(q=>!validAnswer(confirmedAnswers[qKey(q,0)]) && !validAnswer(confirmedAnswers[questionTopic(q)]));
  data.questions=questions;
- $("questionsBlock").classList.toggle("hidden",!questions.length);
+ const engineCount=renderEngineQuestions(data.wardrobe);
+ $("questionsBlock").classList.toggle("hidden",!questions.length&&!engineCount);
  $("analysisState").textContent=questions.length ? `Попередній аналіз готовий. Залишилося уточнень: ${questions.length}. Це не заважає перегляду даних замовлення.` : "Аналіз завершено без додаткових питань. Перед виробництвом потрібне підтвердження технолога.";
  if(questions.length)renderQuestions(questions);else $("questions").innerHTML="";
  // Draft BAZIS code is shown whenever the Engine built any parts, even with open questions.
@@ -392,15 +413,19 @@ $("analyse").addEventListener("click",async()=>{
 
 $("continueAnalysis").addEventListener("click",async()=>{
  clearError();
- if(!validateAnswers())return;
+ // AI questions must be answered unless the technologist only answers calculation questions.
+ if(!Object.keys(engineAnswers).length&&!validateAnswers())return;
  setBusy(true);
  const original=$("continueAnalysis").textContent;
  $("continueAnalysis").innerHTML='<span class="loader"></span>Elvin враховує відповіді…';
  try{
-  const allAnswers={...confirmedAnswers,...selectedAnswers};
-  const jobId=await startAnalysis({answers:allAnswers,previousAnalysis:currentAnalysis});
+  const allAnswers={...confirmedAnswers,...selectedAnswers,...engineAnswers};
+  if(!Object.keys(allAnswers).length){showError("Дайте хоча б одну відповідь, щоб Elvin перерахував.");return}
+  // The part list and BAZIS code are recalculated on the server; only the AI analysis is sent back.
+  const {wardrobe:_w,...previous}=currentAnalysis||{};
+  const jobId=await startAnalysis({answers:allAnswers,previousAnalysis:previous});
   const result=await waitForAnalysis(jobId);
-  confirmedAnswers={...confirmedAnswers,...selectedAnswers};
+  confirmedAnswers={...confirmedAnswers,...selectedAnswers,...engineAnswers};
   for(const [i,q] of (currentAnalysis?.questions||[]).entries()){
    const value=selectedAnswers[qKey(q,i)];
    if(validAnswer(value))confirmedAnswers[questionTopic(q)]=value;
