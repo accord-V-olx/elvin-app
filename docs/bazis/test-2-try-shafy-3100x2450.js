@@ -319,16 +319,18 @@ moveMin(P_m3_plinth, 1868, 0, 592);
 panelOperations.AddButt(P_m3_plinth, 0, KR08);
 P_m3_plinth.Build();
 
-let P_filler_left = objects3d.NewPanel(20, 2450, objects3d.PanelOrientation.front);
+// Підрізати на монтажі під щілину 20 мм
+let P_filler_left = objects3d.NewPanel(200, 2450, objects3d.PanelOrientation.front);
 P_filler_left.Name = "PLANKA";
-moveMin(P_filler_left, -20, 0, 630);
+moveMin(P_filler_left, -200, 0, 630);
 panelOperations.AddButt(P_filler_left, 0, KR08);
 panelOperations.AddButt(P_filler_left, 1, KR08);
 panelOperations.AddButt(P_filler_left, 2, KR08);
 panelOperations.AddButt(P_filler_left, 3, KR08);
 P_filler_left.Build();
 
-let P_filler_right = objects3d.NewPanel(20, 2450, objects3d.PanelOrientation.front);
+// Підрізати на монтажі під щілину 20 мм
+let P_filler_right = objects3d.NewPanel(200, 2450, objects3d.PanelOrientation.front);
 P_filler_right.Name = "PLANKA";
 moveMin(P_filler_right, 3100, 0, 630);
 panelOperations.AddButt(P_filler_right, 0, KR08);
@@ -337,7 +339,8 @@ panelOperations.AddButt(P_filler_right, 2, KR08);
 panelOperations.AddButt(P_filler_right, 3, KR08);
 P_filler_right.Build();
 
-let P_filler_top_1 = objects3d.NewPanel(1250, 20, objects3d.PanelOrientation.front);
+// Підрізати на монтажі під щілину 20 мм
+let P_filler_top_1 = objects3d.NewPanel(1250, 200, objects3d.PanelOrientation.front);
 P_filler_top_1.Name = "PLANKA";
 moveMin(P_filler_top_1, 0, 2450, 630);
 panelOperations.AddButt(P_filler_top_1, 0, KR08);
@@ -346,7 +349,8 @@ panelOperations.AddButt(P_filler_top_1, 2, KR08);
 panelOperations.AddButt(P_filler_top_1, 3, KR08);
 P_filler_top_1.Build();
 
-let P_filler_top_2 = objects3d.NewPanel(600, 20, objects3d.PanelOrientation.front);
+// Підрізати на монтажі під щілину 20 мм
+let P_filler_top_2 = objects3d.NewPanel(600, 200, objects3d.PanelOrientation.front);
 P_filler_top_2.Name = "PLANKA";
 moveMin(P_filler_top_2, 1250, 2450, 580);
 panelOperations.AddButt(P_filler_top_2, 0, KR08);
@@ -355,7 +359,8 @@ panelOperations.AddButt(P_filler_top_2, 2, KR08);
 panelOperations.AddButt(P_filler_top_2, 3, KR08);
 P_filler_top_2.Build();
 
-let P_filler_top_3 = objects3d.NewPanel(1250, 20, objects3d.PanelOrientation.front);
+// Підрізати на монтажі під щілину 20 мм
+let P_filler_top_3 = objects3d.NewPanel(1250, 200, objects3d.PanelOrientation.front);
 P_filler_top_3.Name = "PLANKA";
 moveMin(P_filler_top_3, 1850, 2450, 630);
 panelOperations.AddButt(P_filler_top_3, 0, KR08);
