@@ -44,12 +44,17 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .loader{display:inline-block;width:15px;height:15px;border:2px solid #777;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-right:7px;vertical-align:-2px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .productionGrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:16px;margin-top:16px}
+#viewer3dHost{width:100%;height:460px;background:#0d1117;border:1px solid #303844;border-radius:12px;overflow:hidden;touch-action:none}
+#viewer3dHost:fullscreen{height:100%;border-radius:0}
+.viewTools{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.viewBtn{background:#1d232b;color:#e9edf2;border:1px solid #3a4452;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:13px}
 #viewer3d{width:100%;height:420px;background:#090c10;border:1px solid #303844;border-radius:12px;display:block;touch-action:none}
 .codeBox{width:100%;min-height:420px;background:#090c10;color:#d9f7df;border:1px solid #303844;border-radius:12px;padding:14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;white-space:pre;overflow:auto}
 .partList{margin-top:12px;font-size:13px;color:#cbd3dc}
 @media(max-width:800px){.productionGrid{grid-template-columns:1fr}}
-@media(max-width:700px){.photos,.grid{grid-template-columns:1fr}h1{font-size:30px}.previewBox{height:300px}#viewer3d{height:330px}}
+@media(max-width:700px){.photos,.grid{grid-template-columns:1fr}h1{font-size:30px}.previewBox{height:300px}#viewer3d{height:330px}#viewer3dHost{height:360px}}
 </style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"}}</script>
 </head>
 <body>
 <header>ELVIN · AI меблевий конструктор</header>
@@ -104,8 +109,10 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <div class="productionGrid">
   <div>
     <h3>3D-перегляд</h3>
+    <div id="viewer3dTools" class="viewTools"></div>
+    <div id="viewer3dHost" class="hidden" aria-label="3D-перегляд деталей"></div>
     <canvas id="viewer3d" width="700" height="420" aria-label="3D-перегляд деталей"></canvas>
-    <div class="muted" style="margin-top:8px">Тягніть мишкою/пальцем, щоб повернути модель.</div>
+    <div id="viewer3dInfo" class="muted" style="margin-top:8px">Тягніть мишкою або пальцем, щоб повернути модель. Колесо миші або два пальці змінюють масштаб. Натисніть на деталь, щоб побачити її розміри.</div>
     <div id="partList" class="partList"></div>
   </div>
   <div>
@@ -323,7 +330,20 @@ function renderProduction(wardrobe){
    const url=URL.createObjectURL(blob),a=document.createElement("a");
    a.href=url;a.download=name+".txt";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
- init3DViewer(parts);
+ show3D(parts);
+}
+
+// Real 3D (three.js, ui/elvin-3d.js) from the same part list as BAZIS;
+// the simple canvas view stays as a fallback without WebGL or CDN.
+function show3D(parts){
+ import("/ui/elvin-3d.js").then(m=>{
+  $("viewer3d").classList.add("hidden");$("viewer3dHost").classList.remove("hidden");
+  m.mountElvin3D($("viewer3dHost"),parts,{info:$("viewer3dInfo"),controls:$("viewer3dTools")});
+ }).catch(error=>{
+  console.warn("Elvin 3D fallback:",error);
+  $("viewer3dHost").classList.add("hidden");$("viewer3d").classList.remove("hidden");$("viewer3dTools").innerHTML="";
+  init3DViewer(parts);
+ });
 }
 
 function init3DViewer(parts){
