@@ -44,17 +44,23 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .loader{display:inline-block;width:15px;height:15px;border:2px solid #777;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-right:7px;vertical-align:-2px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .productionGrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:16px;margin-top:16px}
+#viewer3dHost{width:100%;height:460px;background:#0d1117;border:1px solid #303844;border-radius:12px;overflow:hidden;touch-action:none}
+#viewer3dHost:fullscreen{height:100%;border-radius:0}
+.viewTools{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.viewBtn{background:#1d232b;color:#e9edf2;border:1px solid #3a4452;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:13px}
 #viewer3d{width:100%;height:420px;background:#090c10;border:1px solid #303844;border-radius:12px;display:block;touch-action:none}
 .codeBox{width:100%;min-height:420px;background:#090c10;color:#d9f7df;border:1px solid #303844;border-radius:12px;padding:14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;white-space:pre;overflow:auto}
 .partList{margin-top:12px;font-size:13px;color:#cbd3dc}
 @media(max-width:800px){.productionGrid{grid-template-columns:1fr}}
-@media(max-width:700px){.photos,.grid{grid-template-columns:1fr}h1{font-size:30px}.previewBox{height:300px}#viewer3d{height:330px}}
+@media(max-width:700px){.photos,.grid{grid-template-columns:1fr}h1{font-size:30px}.previewBox{height:300px}#viewer3d{height:330px}#viewer3dHost{height:360px}}
 </style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"}}</script>
 </head>
 <body>
 <header>ELVIN · AI меблевий конструктор</header>
 <main>
 <h1>Нове замовлення</h1>
+<p><a href="/viewer.html" style="color:#111;background:#fff;padding:12px 16px;border-radius:9px;display:inline-block;text-decoration:none;font-weight:bold">Відкрити Elvin 3D (тестова версія) →</a></p>
 <button id="demoPenal" class="secondary" type="button">3D демо: пенал 400×1500×350</button>
 <p class="muted">Демо використовує припущення, не є виробничим замовленням.</p>
 <p class="muted">Завантажте всі фото одного замовлення. Elvin проаналізує їх разом і зупиниться там, де потрібне уточнення.</p>
@@ -89,6 +95,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <h2>Питання для уточнення (не блокують перегляд аналізу)</h2>
 <p class="muted">Аналіз вище вже доступний. За потреби оберіть відповіді й натисніть «Продовжити аналіз». 3D та BAZIS опрацьовуються окремо.</p>
 <div id="questions"></div>
+<div id="engineQuestionsBlock" class="hidden">
+<h3>Питання розрахунку деталей</h3>
+<p class="muted">Відповідайте лише на ті, що знаєте, решту можна пропустити. Elvin перерахує деталі з вашими відповідями.</p>
+<div id="engineQuestions"></div>
+</div>
 <button id="continueAnalysis" class="primary" type="button">Продовжити аналіз</button>
 </div>
 
@@ -98,8 +109,10 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <div class="productionGrid">
   <div>
     <h3>3D-перегляд</h3>
+    <div id="viewer3dTools" class="viewTools"></div>
+    <div id="viewer3dHost" class="hidden" aria-label="3D-перегляд деталей"></div>
     <canvas id="viewer3d" width="700" height="420" aria-label="3D-перегляд деталей"></canvas>
-    <div class="muted" style="margin-top:8px">Тягніть мишкою/пальцем, щоб повернути модель.</div>
+    <div id="viewer3dInfo" class="muted" style="margin-top:8px">Тягніть мишкою або пальцем, щоб повернути модель. Колесо миші або два пальці змінюють масштаб. Натисніть на деталь, щоб побачити її розміри.</div>
     <div id="partList" class="partList"></div>
   </div>
   <div>
@@ -266,6 +279,21 @@ function renderQuestions(questions){
  }));
 }
 
+// Wardrobe Engine questions (wardrobe.missing): optional, free text, one card per question.
+let engineAnswers={};
+const engineKey=q=>"Питання розрахунку: "+q;
+function renderEngineQuestions(wardrobe){
+ engineAnswers={};
+ const qs=[...new Set((Array.isArray(wardrobe?.missing)?wardrobe.missing:[]).map(m=>m.question).filter(Boolean))];
+ $("engineQuestionsBlock").classList.toggle("hidden",!qs.length);
+ $("engineQuestions").innerHTML=qs.map((q,i)=>`<div class="question"><p>${escapeHtml(q)}</p><input class="answerInput" type="text" data-engine="${i}" placeholder="Ваша відповідь (можна пропустити)..."></div>`).join("");
+ document.querySelectorAll("[data-engine]").forEach(input=>input.addEventListener("input",()=>{
+  const key=engineKey(qs[Number(input.dataset.engine)]),value=input.value.trim();
+  if(validAnswer(value))engineAnswers[key]=value;else delete engineAnswers[key];
+ }));
+ return qs.length;
+}
+
 function updateAnswer(key,value){
  const status=[...document.querySelectorAll(".answerStatus")].find(el=>el.dataset.status===key);
  const card=[...document.querySelectorAll(".question")].find(el=>el.dataset.card===key);
@@ -288,10 +316,12 @@ function renderProduction(wardrobe){
  const ready=$("ready"),parts=Array.isArray(wardrobe?.parts)?wardrobe.parts:[],bazis=wardrobe?.bazis||{},script=bazis.script||"";
  ready.classList.remove("hidden");
  $("bazisCode").textContent=script||"Код ще не сформовано: Elvin не має достатньої підтвердженої геометрії.";
- $("bazisNote").textContent=bazis.note||"";
+ const gaps=Array.isArray(wardrobe?.missing)?wardrobe.missing.map(m=>m.question||m.field):[];
+ const warns=Array.isArray(wardrobe?.warnings)?wardrobe.warnings:[];
+ $("bazisNote").textContent=(bazis.note||"")+(gaps.length?" Не вистачає: "+gaps.join(" · "):"")+(warns.length?" Увага: "+warns.join(" · "):"");
  $("downloadBazis").disabled=!script;
  $("partList").innerHTML=parts.length
-   ? "<b>Деталі:</b><br>"+parts.map(p=>escapeHtml((p.name||p.id)+" · "+p.size_x_mm+"×"+p.size_y_mm+"×"+p.size_z_mm+" мм")).join("<br>")
+   ? "<b>Деталі:</b><br>"+parts.map(p=>escapeHtml((p.name||p.id)+" · "+p.size_x_mm+"×"+p.size_y_mm+"×"+p.size_z_mm+" мм"+(p.note?" — "+p.note:""))).join("<br>")
    : "Деталі ще не розраховані.";
  $("downloadBazis").onclick=()=>{
    if(!script)return;
@@ -300,7 +330,20 @@ function renderProduction(wardrobe){
    const url=URL.createObjectURL(blob),a=document.createElement("a");
    a.href=url;a.download=name+".txt";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
- init3DViewer(parts);
+ show3D(parts);
+}
+
+// Real 3D (three.js, ui/elvin-3d.js) from the same part list as BAZIS;
+// the simple canvas view stays as a fallback without WebGL or CDN.
+function show3D(parts){
+ import("/ui/elvin-3d.js").then(m=>{
+  $("viewer3d").classList.add("hidden");$("viewer3dHost").classList.remove("hidden");
+  m.mountElvin3D($("viewer3dHost"),parts,{info:$("viewer3dInfo"),controls:$("viewer3dTools")});
+ }).catch(error=>{
+  console.warn("Elvin 3D fallback:",error);
+  $("viewer3dHost").classList.add("hidden");$("viewer3d").classList.remove("hidden");$("viewer3dTools").innerHTML="";
+  init3DViewer(parts);
+ });
 }
 
 function init3DViewer(parts){
@@ -316,15 +359,17 @@ function init3DViewer(parts){
  function draw(){
    const w=canvas.clientWidth||700,h=canvas.clientHeight||420;ctx.clearRect(0,0,w,h);
    if(!parts.length){ctx.fillStyle="#9da7b4";ctx.font="14px Arial";ctx.fillText("Немає розрахованих деталей для 3D.",20,32);return}
-   const maxX=Math.max(...parts.map(p=>(p.x_mm||0)+(p.size_x_mm||0)),1);
-   const maxY=Math.max(...parts.map(p=>(p.y_mm||0)+(p.size_y_mm||0)),1);
+   // Parts may stick out of the carcass (fillers, facades): fit the whole box.
+   const minX=Math.min(...parts.map(p=>p.x_mm||0),0),minY=Math.min(...parts.map(p=>p.y_mm||0),0);
+   const maxX=Math.max(...parts.map(p=>(p.x_mm||0)+(p.size_x_mm||0)),1)-minX;
+   const maxY=Math.max(...parts.map(p=>(p.y_mm||0)+(p.size_y_mm||0)),1)-minY;
    const maxZ=Math.max(...parts.map(p=>(p.z_mm||0)+(p.size_z_mm||0)),1);
    const s=Math.min((w*.65)/(maxX+maxY*.55),(h*.72)/(maxZ+maxY*.35),.7);
    const cx=w*.5,cy=h*.82;
    const faces=[];
    for(const p of parts){
      const x=p.x_mm||0,y=p.y_mm||0,z=p.z_mm||0,dx=p.size_x_mm||0,dy=p.size_y_mm||0,dz=p.size_z_mm||0;
-     const v=[[x,y,z],[x+dx,y,z],[x+dx,y+dy,z],[x,y+dy,z],[x,y,z+dz],[x+dx,y,z+dz],[x+dx,y+dy,z+dz],[x,y+dy,z+dz]].map(q=>project(q[0]-maxX/2,q[1]-maxY/2,q[2],cx,cy,s));
+     const v=[[x,y,z],[x+dx,y,z],[x+dx,y+dy,z],[x,y+dy,z],[x,y,z+dz],[x+dx,y,z+dz],[x+dx,y+dy,z+dz],[x,y+dy,z+dz]].map(q=>project(q[0]-minX-maxX/2,q[1]-minY-maxY/2,q[2],cx,cy,s));
      [[0,1,5,4],[1,2,6,5],[2,3,7,6],[3,0,4,7],[4,5,6,7]].forEach(ids=>faces.push({pts:ids.map(i=>v[i]),d:ids.reduce((a,i)=>a+v[i].d,0)/4,name:p.name||p.id}));
    }
    faces.sort((a,b)=>a.d-b.d);
@@ -351,16 +396,21 @@ $("demoPenal").addEventListener("click",async()=>{
 function showAnalysis(data){
  currentAnalysis=data;$("result").classList.remove("hidden");$("summary").textContent=data.summary||"";
  const p=data.project||{},c=p.construction||{};
- const rows=[["Назва замовлення",p.name],["Тип виробу",p.furniture_type],["Ширина",p.width_mm?p.width_mm+" мм":"—"],["Висота",p.height_mm?p.height_mm+" мм":"—"],["Глибина",p.depth_mm?p.depth_mm+" мм":"—"],["Секції",p.sections_description],["Матеріал",p.material],["Товщина матеріалу",p.material_thickness_mm?p.material_thickness_mm+" мм":"—"],["Верх",c.top_type],["Дно",c.bottom_type],["Опора",c.support_type],["Цоколь",c.plinth_height_mm?c.plinth_height_mm+" мм":"—"],["Відступ цоколя",c.plinth_setback_mm!==null&&c.plinth_setback_mm!==undefined?c.plinth_setback_mm+" мм":"—"],["Задня стінка",p.back_panel],["Монтаж задньої стінки",c.back_panel_type],["Фасади",c.facade_type]];
+ const L={inset:"вкладний",overlay:"накладний",full_width:"на всю ширину, боковини на дні",plinth:"цоколь",legs:"ніжки",none:"немає",groove:"у паз",rebate:"у вибірку",dsp:"ДСП",full_height:"від підлоги до верху",on_bottom:"стоять на дні"},lb=v=>L[v]||v;
+ const sec=Array.isArray(c.interior?.sections)?c.interior.sections:[],shelves=sec.reduce((n,s)=>n+Math.max(0,(s.openings||[]).length-1),0);
+ const rows=[["Назва замовлення",p.name],["Тип виробу",p.furniture_type],["Ширина",p.width_mm?p.width_mm+" мм":"—"],["Висота",p.height_mm?p.height_mm+" мм":"—"],["Глибина",p.depth_mm?p.depth_mm+" мм":"—"],["Секції",p.sections_description],["Матеріал",p.material],["Товщина матеріалу",p.material_thickness_mm?p.material_thickness_mm+" мм":"—"],["Боковини",lb(c.side_panels)],["Верх",lb(c.top_type)],["Дно",lb(c.bottom_type)],["Опора",lb(c.support_type)],["Наповнення",sec.length?sec.length+" секц., полиць: "+shelves:""],["Модулі",Array.isArray(p.modules)&&p.modules.length?p.modules.map(m=>(m.name||"")+" "+(m.width_mm||"?")+" мм").join(" | "):""],["Цоколь",c.plinth_height_mm?c.plinth_height_mm+" мм":"—"],["Відступ цоколя",c.plinth_setback_mm!==null&&c.plinth_setback_mm!==undefined?c.plinth_setback_mm+" мм":"—"],["Задня стінка",p.back_panel],["Монтаж задньої стінки",lb(c.back_panel_type)],["Фасади",lb(c.facade_type)]];
  $("project").innerHTML=rows.map(([k,v])=>`<div class="kv"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v||"—")}</div></div>`).join("");
  const warnings=data.warnings||[];$("warningsBlock").classList.toggle("hidden",!warnings.length);$("warnings").innerHTML=warnings.map(w=>`<div class="question">${escapeHtml(w)}</div>`).join("");
  // AI analysis questions are independent from the later production geometry.
  // Missing Wardrobe Engine fields must NOT become mandatory operator questions.
  const questions=[...(Array.isArray(data.questions)?data.questions:[])].filter(q=>!validAnswer(confirmedAnswers[qKey(q,0)]) && !validAnswer(confirmedAnswers[questionTopic(q)]));
  data.questions=questions;
- $("questionsBlock").classList.toggle("hidden",!questions.length);
+ const engineCount=renderEngineQuestions(data.wardrobe);
+ $("questionsBlock").classList.toggle("hidden",!questions.length&&!engineCount);
  $("analysisState").textContent=questions.length ? `Попередній аналіз готовий. Залишилося уточнень: ${questions.length}. Це не заважає перегляду даних замовлення.` : "Аналіз завершено без додаткових питань. Перед виробництвом потрібне підтвердження технолога.";
- if(questions.length){$("ready").classList.add("hidden");renderQuestions(questions)}else{$("questions").innerHTML="";if(data.wardrobe?.ok && data.wardrobe.parts?.length)renderProduction(data.wardrobe);else $("ready").classList.add("hidden")}
+ if(questions.length)renderQuestions(questions);else $("questions").innerHTML="";
+ // Draft BAZIS code is shown whenever the Engine built any parts, even with open questions.
+ if(data.wardrobe?.parts?.length)renderProduction(data.wardrobe);else $("ready").classList.add("hidden");
  $("result").scrollIntoView({behavior:"smooth",block:"start"});
 }
 
@@ -383,15 +433,19 @@ $("analyse").addEventListener("click",async()=>{
 
 $("continueAnalysis").addEventListener("click",async()=>{
  clearError();
- if(!validateAnswers())return;
+ // AI questions must be answered unless the technologist only answers calculation questions.
+ if(!Object.keys(engineAnswers).length&&!validateAnswers())return;
  setBusy(true);
  const original=$("continueAnalysis").textContent;
  $("continueAnalysis").innerHTML='<span class="loader"></span>Elvin враховує відповіді…';
  try{
-  const allAnswers={...confirmedAnswers,...selectedAnswers};
-  const jobId=await startAnalysis({answers:allAnswers,previousAnalysis:currentAnalysis});
+  const allAnswers={...confirmedAnswers,...selectedAnswers,...engineAnswers};
+  if(!Object.keys(allAnswers).length){showError("Дайте хоча б одну відповідь, щоб Elvin перерахував.");return}
+  // The part list and BAZIS code are recalculated on the server; only the AI analysis is sent back.
+  const {wardrobe:_w,...previous}=currentAnalysis||{};
+  const jobId=await startAnalysis({answers:allAnswers,previousAnalysis:previous});
   const result=await waitForAnalysis(jobId);
-  confirmedAnswers={...confirmedAnswers,...selectedAnswers};
+  confirmedAnswers={...confirmedAnswers,...selectedAnswers,...engineAnswers};
   for(const [i,q] of (currentAnalysis?.questions||[]).entries()){
    const value=selectedAnswers[qKey(q,i)];
    if(validAnswer(value))confirmedAnswers[questionTopic(q)]=value;
