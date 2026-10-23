@@ -32,11 +32,10 @@ export const WARDROBE_ENGINE_VERSION = "1.8.1-fillers-200";
 // ============================================================
 
 function hasValue(value) {
-  return (
-    value !== undefined &&
-    value !== null &&
-    value !== ""
-  );
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  return true; // Preserve valid numeric 0, including a confirmed 0 mm offset.
 }
 
 function positiveNumber(value) {
