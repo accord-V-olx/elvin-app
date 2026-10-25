@@ -47,7 +47,7 @@ export function createApprovedOrderSnapshot(order) {
     const seen = new Map();
     for (const decision of decisions) {
       if (!object(decision) || !text(decision.field) || !SOURCES.has(decision.source) ||
-          !scalar(decision.value) || (decision.status !== undefined && decision.status !== "approved")) {
+          !scalar(decision.value) || decision.status !== "approved") {
         errors.push("decision_invalid");
         continue;
       }
