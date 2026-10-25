@@ -11,6 +11,7 @@
 // (OrbitControls itself imports the bare specifier "three").
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 
 const ROLE_STYLE = {
   side: { color: 0xc8a57a }, top: { color: 0xc8a57a }, bottom: { color: 0xc8a57a },
@@ -29,7 +30,9 @@ let current = null;
  * Mount (or re-mount) the viewer into `host`.
  * @param {HTMLElement} host
  * @param {Array} parts   wardrobe.parts
- * @param {Object} ui     { info: HTMLElement, controls: HTMLElement }
+ * @param {Object} ui     { info, controls: HTMLElement, problems: Set of part ids
+ *                          with Engine errors, onSelect(id|null) }
+ * Returns { select(id), dispose() }.
  */
 export function mountElvin3D(host, parts, ui = {}) {
   if (current) current.dispose();
@@ -42,12 +45,16 @@ function createViewer(host, parts, ui) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0d1117);
   const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 200);
-  // preserveDrawingBuffer: the picture can be saved as PNG.
-  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   host.appendChild(renderer.domElement);
+  // Dimension labels are HTML on top of the canvas.
+  const labels = new CSS2DRenderer();
+  labels.domElement.style.cssText = "position:absolute;top:0;left:0;pointer-events:none";
+  host.style.position = "relative";
+  host.appendChild(labels.domElement);
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
 
@@ -85,14 +92,13 @@ function createViewer(host, parts, ui) {
     const center = new THREE.Vector3((+p.x_mm + sx / 2) / 1000, (+p.z_mm + sz / 2) / 1000, -(+p.y_mm + sy / 2) / 1000);
     const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat);
     mesh.add(edges);
-    mesh.userData = { part: p, baseColor: style.color, edges };
+    mesh.userData = { part: p, baseColor: style.color, edges, problem: !!ui.problems?.has(p.id) };
     if (p.role === "facade") {
       // A pivot on the hinge line (door) or the front plane (drawer) moves the facade when opened.
       const span = facadeSpan[p.module ?? 0];
       const leftHinge = (+p.x_mm + sx / 2) <= (span.x0 + span.x1) / 2;
       const pivot = new THREE.Group();
       pivot.position.set(leftHinge ? +p.x_mm / 1000 : (+p.x_mm + sx) / 1000, center.y, -(+p.y_mm) / 1000);
-      pivot.userData.z0 = pivot.position.z;
       mesh.position.copy(center).sub(pivot.position);
       pivot.add(mesh);
       group.add(pivot);
@@ -115,6 +121,51 @@ function createViewer(host, parts, ui) {
   const setView = name => { views[name](); controls.target.copy(center); controls.update(); };
   setView("iso");
 
+  // Exploded view: every top-level object moves away from the centre.
+  for (const o of group.children) {
+    const c = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3());
+    o.userData.base = o.position.clone();
+    o.userData.dir = c.sub(center).multiplyScalar(0.45);
+  }
+  let explodeTarget = 0, explodeNow = 0;
+
+  // Dimensions: carcass width / height / depth and each module's width (mm),
+  // read from the same parts (facades and fillers are outside the carcass).
+  const dims = new THREE.Group();
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x7f93a8 });
+  // The HDF back sits behind the carcass and is not part of its size.
+  const carcass = parts.filter(p => !["facade", "filler", "back"].includes(p.role) && +p.size_x_mm > 0);
+  const mm = (f, k) => Math[f](...carcass.map(k));
+  if (carcass.length) {
+    const X0 = mm("min", p => +p.x_mm), X1 = mm("max", p => +p.x_mm + +p.size_x_mm);
+    const Z0 = mm("min", p => +p.z_mm), Z1 = mm("max", p => +p.z_mm + +p.size_z_mm);
+    const Y0 = mm("min", p => +p.y_mm), Y1 = mm("max", p => +p.y_mm + +p.size_y_mm);
+    const v = (x, y, z) => new THREE.Vector3(x / 1000, y / 1000, -z / 1000);
+    const dim = (a, b, text, tick) => {
+      dims.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), lineMat));
+      for (const q of [a, b]) dims.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([q.clone().sub(tick), q.clone().add(tick)]), lineMat));
+      const el = document.createElement("div");
+      el.textContent = text;
+      el.style.cssText = "font:600 12px Arial;color:#0d1117;background:#e9edf2;border-radius:6px;padding:2px 6px;white-space:nowrap";
+      const label = new CSS2DObject(el);
+      label.position.copy(a).add(b).multiplyScalar(0.5);
+      dims.add(label);
+    };
+    const yTop = box.max.y * 1000, up = new THREE.Vector3(0, 0.03, 0), side = new THREE.Vector3(0.03, 0, 0);
+    dim(v(X0, yTop + 300, Y0), v(X1, yTop + 300, Y0), Math.round(X1 - X0) + "", up);
+    const modules = [...new Set(carcass.map(p => p.module).filter(m => m !== undefined))];
+    if (modules.length > 1) for (const m of modules) {
+      const ps = carcass.filter(p => p.module === m);
+      const a = Math.min(...ps.map(p => +p.x_mm)), b = Math.max(...ps.map(p => +p.x_mm + +p.size_x_mm));
+      dim(v(a, yTop + 70, Y0), v(b, yTop + 70, Y0), Math.round(b - a) + "", up);
+    }
+    const xLeft = box.min.x * 1000 - 80;
+    dim(v(xLeft, Z0, Y0), v(xLeft, Z1, Y0), Math.round(Z1 - Z0) + "", side);
+    const xRight = box.max.x * 1000 + 80;
+    dim(v(xRight, Z1, Y0), v(xRight, Z1, Y1), Math.round(Y1 - Y0) + "", up);
+  }
+  scene.add(dims);
+
   // Visualisation: a room (floor + wall), shadows, order colours, opaque facades.
   const room = new THREE.Group();
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(radius * 6, radius * 6), new THREE.MeshStandardMaterial({ color: 0xd9d4cc, roughness: 0.95 }));
@@ -132,7 +183,7 @@ function createViewer(host, parts, ui) {
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.bias = -0.0005;
 
-  const colours = { carcass: "#c8a57a", facade: "#f1efe9" };
+  const colours = { carcass: 0xc8a57a, facade: 0xf1efe9 };
   let viz = false;
   const applyLook = () => {
     scene.background = new THREE.Color(viz ? 0xe9e6e1 : 0x0d1117);
@@ -141,8 +192,8 @@ function createViewer(host, parts, ui) {
     sky.intensity = viz ? 1.6 : 2.2;
     for (const m of meshes) {
       const role = m.userData.part.role, style = ROLE_STYLE[role] || { color: 0xb0b0b0 };
-      const colour = !viz ? style.color : role === "facade" ? new THREE.Color(colours.facade).getHex()
-        : role === "back" ? style.color : new THREE.Color(colours.carcass).getHex();
+      const colour = !viz ? (m.userData.problem ? 0xe06c6c : style.color) : role === "facade" ? colours.facade
+        : role === "back" ? style.color : colours.carcass;
       m.userData.baseColor = colour;
       if (m !== selected) m.material.color.setHex(colour);
       m.material.transparent = !viz && !!style.opacity;
@@ -165,11 +216,15 @@ function createViewer(host, parts, ui) {
     pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(pointer, camera);
     const hit = ray.intersectObjects(meshes.filter(m => m.visible), false)[0];
+    selectMesh(hit ? hit.object : null);
+    ui.onSelect?.(selected ? selected.userData.part.id : null);
+  });
+  function selectMesh(mesh) {
     if (selected) selected.material.color.setHex(selected.userData.baseColor);
-    selected = hit ? hit.object : null;
+    selected = mesh;
     if (selected) selected.material.color.setHex(0x5fb3ff);
     if (ui.info) ui.info.textContent = selected ? describe(selected.userData.part) : "Натисніть на деталь, щоб побачити її розміри.";
-  });
+  }
 
   // Toolbar: facades on/off, back on/off, views, fullscreen.
   if (ui.controls) {
@@ -189,38 +244,31 @@ function createViewer(host, parts, ui) {
         b.textContent = show ? on : off;
       });
     };
-    const vizBtn = button("Візуалізація", b => { viz = !viz; b.textContent = viz ? "Креслення" : "Візуалізація"; applyLook(); });
+    button("Візуалізація", b => { viz = !viz; b.textContent = viz ? "Креслення" : "Візуалізація"; applyLook(); });
     if (openers.length) button("Відчинити фасади", b => { openTarget = openTarget ? 0 : 1; b.textContent = openTarget ? "Зачинити фасади" : "Відчинити фасади"; });
-    const picker = (label, key) => {
-      const l = document.createElement("label");
-      l.className = "viewBtn";
-      l.textContent = label + " ";
-      const input = document.createElement("input");
-      input.type = "color"; input.value = colours[key];
-      input.style.cssText = "width:28px;height:18px;border:0;padding:0;background:none;vertical-align:middle";
-      input.addEventListener("input", () => { colours[key] = input.value; if (!viz) { viz = true; vizBtn.textContent = "Креслення"; } applyLook(); });
-      l.appendChild(input);
-      ui.controls.appendChild(l);
-    };
-    picker("Корпус", "carcass");
-    if (openers.length) picker("Фасади", "facade");
+    // Dimensions belong to the assembled wardrobe, so they hide while it is taken apart.
+    let dimsShown = true;
+    button("Розібрати", b => {
+      explodeTarget = explodeTarget ? 0 : 1;
+      b.textContent = explodeTarget ? "Зібрати" : "Розібрати";
+      dims.visible = !explodeTarget && dimsShown;
+    });
+    if (dims.children.length) button("Сховати розміри", b => {
+      dimsShown = !dimsShown;
+      dims.visible = dimsShown && !explodeTarget;
+      b.textContent = dimsShown ? "Сховати розміри" : "Показати розміри";
+    });
     toggle("facade", "Сховати фасади", "Показати фасади");
     toggle("back", "Сховати задню стінку", "Показати задню стінку");
     button("Спереду", () => setView("front"));
     button("3D", () => setView("iso"));
     if (host.requestFullscreen) button("На весь екран", () => host.requestFullscreen());
-    button("Скачати картинку", () => {
-      renderer.render(scene, camera);
-      const a = document.createElement("a");
-      a.href = renderer.domElement.toDataURL("image/png");
-      a.download = "elvin-3d.png";
-      document.body.appendChild(a); a.click(); a.remove();
-    });
   }
 
   const resize = () => {
     const w = host.clientWidth || 600, h = host.clientHeight || 400;
     renderer.setSize(w, h, false);
+    labels.setSize(w, h);
     renderer.domElement.style.width = "100%";
     renderer.domElement.style.height = "100%";
     camera.aspect = w / h;
@@ -234,18 +282,26 @@ function createViewer(host, parts, ui) {
   const loop = () => {
     if (!alive) return;
     // Doors swing up to 100 degrees, drawers slide out; eased towards the target.
-    if (Math.abs(openNow - openTarget) > 0.001) {
+    if (Math.abs(openNow - openTarget) > 0.001 || Math.abs(explodeNow - explodeTarget) > 0.001) {
       openNow += (openTarget - openNow) * 0.12;
+      explodeNow += (explodeTarget - explodeNow) * 0.12;
+      for (const o of group.children) o.position.copy(o.userData.base).addScaledVector(o.userData.dir, explodeNow);
       for (const o of openers) {
-        if (o.drawer) o.pivot.position.z = o.pivot.userData.z0 + o.depth * openNow;
+        if (o.drawer) o.pivot.position.z += o.depth * openNow;
         else o.pivot.rotation.y = o.sign * openNow * Math.PI * 100 / 180;
       }
     }
-    controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop);
+    controls.update(); renderer.render(scene, camera); labels.render(scene, camera); requestAnimationFrame(loop);
   };
   loop();
 
+  // Apply the drawing look once so problem parts are red from the start.
+  applyLook();
+
   return {
+    select(id) {
+      selectMesh(meshes.find(m => m.userData.part.id === id) || null);
+    },
     dispose() {
       alive = false;
       observer.disconnect();

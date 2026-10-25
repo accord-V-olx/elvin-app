@@ -50,7 +50,9 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .viewBtn{background:#1d232b;color:#e9edf2;border:1px solid #3a4452;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:13px}
 #viewer3d{width:100%;height:420px;background:#090c10;border:1px solid #303844;border-radius:12px;display:block;touch-action:none}
 .codeBox{width:100%;min-height:420px;background:#090c10;color:#d9f7df;border:1px solid #303844;border-radius:12px;padding:14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;white-space:pre;overflow:auto}
-.partList{margin-top:12px;font-size:13px;color:#cbd3dc}
+.partList{margin-top:12px;font-size:13px;color:#cbd3dc;max-height:320px;overflow:auto}
+.partRow{padding:3px 6px;border-radius:6px;cursor:pointer}.partRow:hover{background:#1d232b}
+.partRow.sel{background:#1e3a55;color:#fff}.partRow.problem{color:#ff9b9b}
 @media(max-width:800px){.productionGrid{grid-template-columns:1fr}}
 @media(max-width:700px){.photos,.grid{grid-template-columns:1fr}h1{font-size:30px}.previewBox{height:300px}#viewer3d{height:330px}#viewer3dHost{height:360px}}
 </style>
@@ -321,7 +323,7 @@ function renderProduction(wardrobe){
  $("bazisNote").textContent=(bazis.note||"")+(gaps.length?" Не вистачає: "+gaps.join(" · "):"")+(warns.length?" Увага: "+warns.join(" · "):"");
  $("downloadBazis").disabled=!script;
  $("partList").innerHTML=parts.length
-   ? "<b>Деталі:</b><br>"+parts.map(p=>escapeHtml((p.name||p.id)+" · "+p.size_x_mm+"×"+p.size_y_mm+"×"+p.size_z_mm+" мм"+(p.note?" — "+p.note:""))).join("<br>")
+   ? "<b>Деталі:</b> <span class=\"muted\">(натисніть, щоб показати в 3D)</span>"+parts.map(p=>`<div class="partRow${problemIds(wardrobe).has(p.id)?" problem":""}" data-part="${escapeHtml(p.id)}">${escapeHtml((p.name||p.id)+" · "+p.size_x_mm+"×"+p.size_y_mm+"×"+p.size_z_mm+" мм"+(p.note?" — "+p.note:"")+(problemIds(wardrobe).has(p.id)?" — є помилка, див. питання":""))}</div>`).join("")
    : "Деталі ще не розраховані.";
  $("downloadBazis").onclick=()=>{
    if(!script)return;
@@ -330,15 +332,26 @@ function renderProduction(wardrobe){
    const url=URL.createObjectURL(blob),a=document.createElement("a");
    a.href=url;a.download=name+".txt";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
- show3D(parts);
+ show3D(parts,wardrobe);
+}
+
+// Parts named in Engine errors (geometry checks) are shown red in the list and in 3D.
+function problemIds(wardrobe){
+ return new Set((Array.isArray(wardrobe?.missing)?wardrobe.missing:[]).flatMap(m=>Array.isArray(m.parts)?m.parts:[]));
+}
+function markPartRow(id){
+ document.querySelectorAll(".partRow").forEach(el=>el.classList.toggle("sel",el.dataset.part===id));
+ const row=[...document.querySelectorAll(".partRow")].find(el=>el.dataset.part===id);
+ if(row)row.scrollIntoView({block:"nearest"});
 }
 
 // Real 3D (three.js, ui/elvin-3d.js) from the same part list as BAZIS;
 // the simple canvas view stays as a fallback without WebGL or CDN.
-function show3D(parts){
+function show3D(parts,wardrobe){
  import("/ui/elvin-3d.js").then(m=>{
   $("viewer3d").classList.add("hidden");$("viewer3dHost").classList.remove("hidden");
-  m.mountElvin3D($("viewer3dHost"),parts,{info:$("viewer3dInfo"),controls:$("viewer3dTools")});
+  const viewer=m.mountElvin3D($("viewer3dHost"),parts,{info:$("viewer3dInfo"),controls:$("viewer3dTools"),problems:problemIds(wardrobe),onSelect:markPartRow});
+  document.querySelectorAll(".partRow").forEach(el=>el.addEventListener("click",()=>{viewer.select(el.dataset.part);markPartRow(el.dataset.part)}));
  }).catch(error=>{
   console.warn("Elvin 3D fallback:",error);
   $("viewer3dHost").classList.add("hidden");$("viewer3d").classList.remove("hidden");$("viewer3dTools").innerHTML="";
