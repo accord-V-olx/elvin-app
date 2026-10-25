@@ -47,3 +47,15 @@ checkReject("image bytes are not accepted as storage references", o => { o.sourc
 checkReject("unknown dimensions block approval", o => { o.dimensionsMm.depth = null; }, "dimensions_incomplete");
 checkReject("missing rule version blocks approval", o => { o.rulesVersion = ""; }, "rules_version_required");
 checkReject("unapproved decision blocks snapshot", o => { o.decisions[0].status = "draft"; }, "decision_invalid");
+
+checkReject("missing technologist decision approval blocks snapshot", o => {
+  delete o.decisions[0].status;
+}, "decision_invalid");
+checkReject("missing drawing decision approval blocks snapshot", o => {
+  o.decisions[0].source = "drawing";
+  delete o.decisions[0].status;
+}, "decision_invalid");
+checkReject("missing approved-rule decision approval blocks snapshot", o => {
+  o.decisions[0].source = "approved_rule";
+  delete o.decisions[0].status;
+}, "decision_invalid");
