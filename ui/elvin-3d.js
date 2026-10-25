@@ -42,16 +42,32 @@ function createViewer(host, parts, ui) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0d1117);
   const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 200);
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  // preserveDrawingBuffer: the picture can be saved as PNG.
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   host.appendChild(renderer.domElement);
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x4a5563, 2.2));
+  const sky = new THREE.HemisphereLight(0xffffff, 0x4a5563, 2.2);
+  scene.add(sky);
   const sun = new THREE.DirectionalLight(0xffffff, 1.8);
   sun.position.set(-3, 6, 8);
-  scene.add(sun);
+  scene.add(sun, sun.target);
+
+  // Door hinges: in each module the left half of the facades opens to the
+  // left, the right half to the right (a single door opens to the left).
+  // Visual only — the hinge side is not part of the Engine data.
+  const facadeSpan = {};
+  for (const p of parts) {
+    if (p.role !== "facade") continue;
+    const k = p.module ?? 0, x0 = +p.x_mm, x1 = +p.x_mm + +p.size_x_mm;
+    const r = facadeSpan[k] || (facadeSpan[k] = { x0, x1 });
+    r.x0 = Math.min(r.x0, x0); r.x1 = Math.max(r.x1, x1);
+  }
+  const openers = [];
 
   const group = new THREE.Group();
   scene.add(group);
@@ -65,11 +81,26 @@ function createViewer(host, parts, ui) {
       transparent: !!style.opacity, opacity: style.opacity ?? 1 });
     const geo = new THREE.BoxGeometry(sx / 1000, sz / 1000, sy / 1000);
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set((+p.x_mm + sx / 2) / 1000, (+p.z_mm + sz / 2) / 1000, -(+p.y_mm + sy / 2) / 1000);
-    mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
-    mesh.userData.part = p;
-    mesh.userData.baseColor = style.color;
-    group.add(mesh);
+    mesh.castShadow = mesh.receiveShadow = true;
+    const center = new THREE.Vector3((+p.x_mm + sx / 2) / 1000, (+p.z_mm + sz / 2) / 1000, -(+p.y_mm + sy / 2) / 1000);
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat);
+    mesh.add(edges);
+    mesh.userData = { part: p, baseColor: style.color, edges };
+    if (p.role === "facade") {
+      // A pivot on the hinge line (door) or the front plane (drawer) moves the facade when opened.
+      const span = facadeSpan[p.module ?? 0];
+      const leftHinge = (+p.x_mm + sx / 2) <= (span.x0 + span.x1) / 2;
+      const pivot = new THREE.Group();
+      pivot.position.set(leftHinge ? +p.x_mm / 1000 : (+p.x_mm + sx) / 1000, center.y, -(+p.y_mm) / 1000);
+      pivot.userData.z0 = pivot.position.z;
+      mesh.position.copy(center).sub(pivot.position);
+      pivot.add(mesh);
+      group.add(pivot);
+      openers.push({ pivot, drawer: p.kind === "drawer", sign: leftHinge ? -1 : 1, depth: 0.45 * sy / 1000 + 0.3 });
+    } else {
+      mesh.position.copy(center);
+      group.add(mesh);
+    }
     meshes.push(mesh);
   }
 
@@ -83,6 +114,45 @@ function createViewer(host, parts, ui) {
   };
   const setView = name => { views[name](); controls.target.copy(center); controls.update(); };
   setView("iso");
+
+  // Visualisation: a room (floor + wall), shadows, order colours, opaque facades.
+  const room = new THREE.Group();
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(radius * 6, radius * 6), new THREE.MeshStandardMaterial({ color: 0xd9d4cc, roughness: 0.95 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(center.x, box.min.y - 0.001, box.min.z + radius * 2);
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(radius * 6, radius * 3), new THREE.MeshStandardMaterial({ color: 0xf2efea, roughness: 1 }));
+  wall.position.set(center.x, box.min.y + radius * 1.5, box.min.z - 0.002);
+  floor.receiveShadow = wall.receiveShadow = true;
+  room.add(floor, wall);
+  room.visible = false;
+  scene.add(room);
+  sun.position.set(center.x - radius * 1.2, center.y + radius * 2, center.z + radius * 2.2);
+  sun.target.position.copy(center);
+  Object.assign(sun.shadow.camera, { left: -radius * 1.5, right: radius * 1.5, top: radius * 1.5, bottom: -radius * 1.5, near: 0.1, far: radius * 8 });
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.bias = -0.0005;
+
+  const colours = { carcass: "#c8a57a", facade: "#f1efe9" };
+  let viz = false;
+  const applyLook = () => {
+    scene.background = new THREE.Color(viz ? 0xe9e6e1 : 0x0d1117);
+    room.visible = viz;
+    sun.castShadow = viz;
+    sky.intensity = viz ? 1.6 : 2.2;
+    for (const m of meshes) {
+      const role = m.userData.part.role, style = ROLE_STYLE[role] || { color: 0xb0b0b0 };
+      const colour = !viz ? style.color : role === "facade" ? new THREE.Color(colours.facade).getHex()
+        : role === "back" ? style.color : new THREE.Color(colours.carcass).getHex();
+      m.userData.baseColor = colour;
+      if (m !== selected) m.material.color.setHex(colour);
+      m.material.transparent = !viz && !!style.opacity;
+      m.material.opacity = viz ? 1 : style.opacity ?? 1;
+      m.material.needsUpdate = true;
+      m.userData.edges.visible = !viz;
+    }
+  };
+
+  let openTarget = 0, openNow = 0;
 
   // Click a part -> its size, edges and note (same data as in the part list and BAZIS).
   let selected = null;
@@ -119,11 +189,33 @@ function createViewer(host, parts, ui) {
         b.textContent = show ? on : off;
       });
     };
+    const vizBtn = button("Візуалізація", b => { viz = !viz; b.textContent = viz ? "Креслення" : "Візуалізація"; applyLook(); });
+    if (openers.length) button("Відчинити фасади", b => { openTarget = openTarget ? 0 : 1; b.textContent = openTarget ? "Зачинити фасади" : "Відчинити фасади"; });
+    const picker = (label, key) => {
+      const l = document.createElement("label");
+      l.className = "viewBtn";
+      l.textContent = label + " ";
+      const input = document.createElement("input");
+      input.type = "color"; input.value = colours[key];
+      input.style.cssText = "width:28px;height:18px;border:0;padding:0;background:none;vertical-align:middle";
+      input.addEventListener("input", () => { colours[key] = input.value; if (!viz) { viz = true; vizBtn.textContent = "Креслення"; } applyLook(); });
+      l.appendChild(input);
+      ui.controls.appendChild(l);
+    };
+    picker("Корпус", "carcass");
+    if (openers.length) picker("Фасади", "facade");
     toggle("facade", "Сховати фасади", "Показати фасади");
     toggle("back", "Сховати задню стінку", "Показати задню стінку");
     button("Спереду", () => setView("front"));
     button("3D", () => setView("iso"));
     if (host.requestFullscreen) button("На весь екран", () => host.requestFullscreen());
+    button("Скачати картинку", () => {
+      renderer.render(scene, camera);
+      const a = document.createElement("a");
+      a.href = renderer.domElement.toDataURL("image/png");
+      a.download = "elvin-3d.png";
+      document.body.appendChild(a); a.click(); a.remove();
+    });
   }
 
   const resize = () => {
@@ -139,7 +231,18 @@ function createViewer(host, parts, ui) {
   resize();
 
   let alive = true;
-  const loop = () => { if (!alive) return; controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop); };
+  const loop = () => {
+    if (!alive) return;
+    // Doors swing up to 100 degrees, drawers slide out; eased towards the target.
+    if (Math.abs(openNow - openTarget) > 0.001) {
+      openNow += (openTarget - openNow) * 0.12;
+      for (const o of openers) {
+        if (o.drawer) o.pivot.position.z = o.pivot.userData.z0 + o.depth * openNow;
+        else o.pivot.rotation.y = o.sign * openNow * Math.PI * 100 / 180;
+      }
+    }
+    controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop);
+  };
   loop();
 
   return {
