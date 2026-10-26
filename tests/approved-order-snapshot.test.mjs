@@ -59,3 +59,27 @@ checkReject("missing approved-rule decision approval blocks snapshot", o => {
   o.decisions[0].source = "approved_rule";
   delete o.decisions[0].status;
 }, "decision_invalid");
+
+checkReject("whitespace-padded inline image data is never a storage ID", o => {
+  o.sourceImages = ["  data:image/png;base64,abcd"];
+}, "source_image_ids_required");
+checkReject("whitespace-padded storage ID is rejected instead of silently normalized", o => {
+  o.sourceImages = [" img-1 "];
+}, "source_image_ids_required");
+checkReject("blank material cannot be treated as confirmed", o => {
+  o.materials = ["   "];
+}, "materials_required");
+checkReject("null material cannot be treated as confirmed", o => {
+  o.materials = [null];
+}, "materials_required");
+checkReject("empty material object cannot be treated as confirmed", o => {
+  o.materials = [{}];
+}, "materials_required");
+checkReject("numeric material placeholder cannot be treated as confirmed", o => {
+  o.materials = [0];
+}, "materials_required");
+test("identified material object remains valid", () => {
+  const input = valid();
+  input.materials = [{ name: "ДСП 18" }];
+  assert.equal(createApprovedOrderSnapshot(input).ok, true);
+});
