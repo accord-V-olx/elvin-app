@@ -24,14 +24,17 @@ export function createApprovedOrderSnapshot(order) {
 
   const images = order.sourceImages;
   if (!Array.isArray(images) || !images.length ||
-      images.some(id => !text(id) || id.length > 256 || /^data:/i.test(id)) ||
+      images.some(id => !text(id) || id !== id.trim() || id.length > 256 || /^data:/i.test(id.trim())) ||
       new Set(images).size !== images.length) errors.push("source_image_ids_required");
 
   const dims = order.dimensionsMm;
   if (!object(dims) || !["width", "height", "depth"].every(key => positive(dims[key]))) {
     errors.push("dimensions_incomplete");
   }
-  if (!Array.isArray(order.materials) || !order.materials.length) errors.push("materials_required");
+  if (!Array.isArray(order.materials) || !order.materials.length ||
+      order.materials.some(material => !(text(material) || (object(material) && Object.keys(material).length > 0)))) {
+    errors.push("materials_required");
+  }
   if (!object(order.construction) || !Object.keys(order.construction).length) errors.push("construction_required");
   if (!Array.isArray(order.openQuestions) || order.openQuestions.length) errors.push("open_questions_unresolved");
 
