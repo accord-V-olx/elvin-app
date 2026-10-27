@@ -83,3 +83,30 @@ test("identified material object remains valid", () => {
   input.materials = [{ name: "ДСП 18" }];
   assert.equal(createApprovedOrderSnapshot(input).ok, true);
 });
+
+
+checkReject("ASK engine status blocks approved snapshot", o => { o.status = "ASK"; }, "analysis_not_ready");
+checkReject("ERROR engine status blocks approved snapshot", o => { o.status = "ERROR"; }, "analysis_not_ready");
+checkReject("incomplete geometry status blocks approved snapshot", o => {
+  o.status = "GEOMETRY_INCOMPLETE";
+}, "analysis_not_ready");
+checkReject("engine ok false blocks approved snapshot", o => { o.ok = false; }, "analysis_not_ready");
+checkReject("missing factory decisions block approved snapshot even if questions empty", o => {
+  o.status = "READY";
+  o.missing = [{ field: "construction.plinth", question: "Уточніть цоколь" }];
+}, "analysis_not_ready");
+checkReject("geometry errors block approved snapshot", o => {
+  o.status = "READY";
+  o.geometryCheck = { errors: [{ code: "COLLISION" }] };
+}, "geometry_not_verified");
+checkReject("malformed geometry result is not treated as checked", o => {
+  o.geometryCheck = {};
+}, "geometry_not_verified");
+test("READY engine with no missing fields or geometry errors remains valid", () => {
+  const o = valid();
+  o.status = "READY";
+  o.ok = true;
+  o.missing = [];
+  o.geometryCheck = { errors: [] };
+  assert.equal(createApprovedOrderSnapshot(o).ok, true);
+});
