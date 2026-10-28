@@ -110,3 +110,15 @@ test("READY engine with no missing fields or geometry errors remains valid", () 
   o.geometryCheck = { errors: [] };
   assert.equal(createApprovedOrderSnapshot(o).ok, true);
 });
+
+checkReject("blank material object name is not a confirmed material", o => {
+  o.materials = [{ name: "   " }];
+}, "materials_required");
+checkReject("unrelated material metadata is not a material identity", o => {
+  o.materials = [{ note: "awaiting material selection" }];
+}, "materials_required");
+test("catalog material ID remains valid", () => {
+  const o = valid();
+  o.materials = [{ id: "DSP-18-WHITE" }];
+  assert.equal(createApprovedOrderSnapshot(o).ok, true);
+});
