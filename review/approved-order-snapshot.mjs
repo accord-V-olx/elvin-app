@@ -7,6 +7,9 @@ const text = value => typeof value === "string" && value.trim().length > 0;
 const positive = value => typeof value === "number" && Number.isFinite(value) && value > 0;
 const scalar = value => (typeof value === "number" && Number.isFinite(value)) ||
   typeof value === "boolean" || text(value);
+// A material object must identify a material, not merely contain a placeholder field.
+const materialReference = value => text(value) ||
+  (object(value) && (text(value.name) || text(value.id)));
 const object = value => value !== null && typeof value === "object" && !Array.isArray(value);
 const timestamp = value => text(value) &&
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value) &&
@@ -32,7 +35,7 @@ export function createApprovedOrderSnapshot(order) {
     errors.push("dimensions_incomplete");
   }
   if (!Array.isArray(order.materials) || !order.materials.length ||
-      order.materials.some(material => !(text(material) || (object(material) && Object.keys(material).length > 0)))) {
+      order.materials.some(material => !materialReference(material))) {
     errors.push("materials_required");
   }
   if (!object(order.construction) || !Object.keys(order.construction).length) errors.push("construction_required");
