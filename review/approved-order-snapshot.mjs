@@ -42,13 +42,13 @@ export function createApprovedOrderSnapshot(order) {
   if (!Array.isArray(order.openQuestions) || order.openQuestions.length) errors.push("open_questions_unresolved");
   // Engine outputs can be incomplete even when the UI's question list is empty.
   // Never turn an ASK/error/geometry failure into an approved analysis snapshot.
-  if ((order.status !== undefined && order.status !== "READY") || order.ok === false ||
-      (order.missing !== undefined && (!Array.isArray(order.missing) || order.missing.length))) {
+  // Fail closed: technologist approval cannot replace a READY Engine result.
+  if (order.status !== "READY" || order.ok !== true ||
+      !Array.isArray(order.missing) || order.missing.length) {
     errors.push("analysis_not_ready");
   }
-  if (order.geometryCheck !== undefined &&
-      (!object(order.geometryCheck) || !Array.isArray(order.geometryCheck.errors) ||
-       order.geometryCheck.errors.length)) {
+  if (!object(order.geometryCheck) || !Array.isArray(order.geometryCheck.errors) ||
+      order.geometryCheck.errors.length) {
     errors.push("geometry_not_verified");
   }
 
