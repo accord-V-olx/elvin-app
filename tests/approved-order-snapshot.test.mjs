@@ -11,6 +11,10 @@ const valid = () => ({
   construction: { top_type: "inset" },
   decisions: [{ field: "construction.back_groove_offset_mm", value: 0, source: "technologist", status: "approved" }],
   openQuestions: [],
+  status: "READY",
+  ok: true,
+  missing: [],
+  geometryCheck: { errors: [] },
   review: { status: "approved", approvedBy: "technologist-test", approvedAt: "2026-10-24T09:00:00Z" }
 });
 
@@ -122,3 +126,16 @@ test("catalog material ID remains valid", () => {
   o.materials = [{ id: "DSP-18-WHITE" }];
   assert.equal(createApprovedOrderSnapshot(o).ok, true);
 });
+
+checkReject("absent engine status is not proof of readiness", o => {
+  delete o.status;
+}, "analysis_not_ready");
+checkReject("absent engine success flag blocks approval", o => {
+  delete o.ok;
+}, "analysis_not_ready");
+checkReject("absent engine missing-fields list blocks approval", o => {
+  delete o.missing;
+}, "analysis_not_ready");
+checkReject("absent geometry check blocks approval", o => {
+  delete o.geometryCheck;
+}, "geometry_not_verified");
