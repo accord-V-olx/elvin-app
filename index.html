@@ -251,7 +251,7 @@ function questionOptions(q){
  return [];
 }
 
-function validAnswer(v){const t=String(v??"").trim();return t.length>1 && /[\p{L}\p{N}]/u.test(t) && !/^[^\p{L}\p{N}]+$/u.test(t)}
+function validAnswer(v){const t=String(v??"").trim();return t.length>0 && /[\p{L}\p{N}]/u.test(t) && !/^[^\p{L}\p{N}]+$/u.test(t)}
 function renderQuestions(questions){
  selectedAnswers={};
  $("questions").innerHTML=questions.map((q,i)=>{
