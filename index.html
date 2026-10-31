@@ -252,6 +252,8 @@ function questionOptions(q){
 }
 
 function validAnswer(v){const t=String(v??"").trim();return t.length>0 && /[\p{L}\p{N}]/u.test(t) && !/^[^\p{L}\p{N}]+$/u.test(t)}
+// Reuse confirmed answers by the actual question index; an empty topic is never an answer key.
+function unansweredQuestions(questions,answers){return questions.filter((q,i)=>{const topic=questionTopic(q);return !validAnswer(answers[qKey(q,i)]) && !(topic && validAnswer(answers[topic]));})}
 function renderQuestions(questions){
  selectedAnswers={};
  $("questions").innerHTML=questions.map((q,i)=>{
@@ -416,7 +418,7 @@ function showAnalysis(data){
  const warnings=data.warnings||[];$("warningsBlock").classList.toggle("hidden",!warnings.length);$("warnings").innerHTML=warnings.map(w=>`<div class="question">${escapeHtml(w)}</div>`).join("");
  // AI analysis questions are independent from the later production geometry.
  // Missing Wardrobe Engine fields must NOT become mandatory operator questions.
- const questions=[...(Array.isArray(data.questions)?data.questions:[])].filter(q=>!validAnswer(confirmedAnswers[qKey(q,0)]) && !validAnswer(confirmedAnswers[questionTopic(q)]));
+ const questions=unansweredQuestions([...(Array.isArray(data.questions)?data.questions:[])],confirmedAnswers);
  data.questions=questions;
  const engineCount=renderEngineQuestions(data.wardrobe);
  $("questionsBlock").classList.toggle("hidden",!questions.length&&!engineCount);
@@ -461,7 +463,7 @@ $("continueAnalysis").addEventListener("click",async()=>{
   confirmedAnswers={...confirmedAnswers,...selectedAnswers,...engineAnswers};
   for(const [i,q] of (currentAnalysis?.questions||[]).entries()){
    const value=selectedAnswers[qKey(q,i)];
-   if(validAnswer(value))confirmedAnswers[questionTopic(q)]=value;
+   const topic=questionTopic(q);if(validAnswer(value)&&topic)confirmedAnswers[topic]=value;
   }
   showAnalysis(result);
  }catch(error){showError(error?.message||String(error))}
