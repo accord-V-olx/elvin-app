@@ -58,3 +58,28 @@ test("numeric zero remains a valid confirmed answer", () => {
 test("empty answer does not hide an unresolved question", () => {
   assert.equal(unansweredQuestions([{ id: "offset", question: "Відступ?" }], { offset: "  " }).length, 1);
 });
+
+test("generic titles cannot merge distinct unanswered questions", () => {
+  const questions = [
+    { title: "Уточнення", question: "Глибина полиць?" },
+    { title: "Уточнення", question: "Висота цоколя?" }
+  ];
+  assert.notEqual(qKey(questions[0], 0), qKey(questions[1], 1));
+  const answers = { [qKey(questions[0], 0)]: "500" };
+  assert.deepEqual(
+    Array.from(unansweredQuestions(questions, answers), q => q.question),
+    ["Висота цоколя?"]
+  );
+});
+
+test("fallback key survives reordering and whitespace changes", () => {
+  assert.equal(
+    qKey({ title: "Уточнення", question: "  Висота   цоколя?  " }, 3),
+    qKey({ title: "Уточнення", question: "Висота цоколя?" }, 0)
+  );
+});
+
+test("explicit IDs take precedence and title-only keys stay separate", () => {
+  assert.equal(qKey({ id: "plinth_height", title: "Уточнення", question: "Висота?" }, 1), "plinth_height");
+  assert.notEqual(qKey({ title: "Уточнення" }, 0), qKey({ title: "Уточнення" }, 1));
+});
