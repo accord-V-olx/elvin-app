@@ -18,7 +18,7 @@ const helpers = [
   extract(/^function unansweredQuestions\(questions,answers\)\{.*\}$/m)
 ].join("\n");
 const { qKey, questionTopic, questionOptions, unansweredQuestions } = runInNewContext(
-  helpers + "\n({qKey, unansweredQuestions})", {}
+  helpers + "\n({qKey, questionTopic, questionOptions, unansweredQuestions})", {}
 );
 
 test("browser script parses and calls the question reuse helper", () => {
