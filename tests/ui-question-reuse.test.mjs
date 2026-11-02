@@ -13,11 +13,12 @@ const extract = pattern => {
 const helpers = [
   extract(/^function qKey\(q,i\)\{.*\}$/m),
   extract(/^function questionTopic\(q\)\{[\s\S]*?^\}/m),
+  extract(/^function questionOptions\(q\)\{[\s\S]*?^\}/m),
   extract(/^function validAnswer\(v\)\{.*\}$/m),
   extract(/^function unansweredQuestions\(questions,answers\)\{.*\}$/m)
 ].join("\n");
-const { qKey, unansweredQuestions } = runInNewContext(
-  helpers + "\n({qKey, unansweredQuestions})", {}
+const { qKey, questionTopic, questionOptions, unansweredQuestions } = runInNewContext(
+  helpers + "\n({qKey, questionTopic, questionOptions, unansweredQuestions})", {}
 );
 
 test("browser script parses and calls the question reuse helper", () => {
@@ -82,4 +83,39 @@ test("fallback key survives reordering and whitespace changes", () => {
 test("explicit IDs take precedence and title-only keys stay separate", () => {
   assert.equal(qKey({ id: "plinth_height", title: "Уточнення", question: "Висота?" }, 1), "plinth_height");
   assert.notEqual(qKey({ title: "Уточнення" }, 0), qKey({ title: "Уточнення" }, 1));
+});
+
+test("side-panel thickness stays unresolved after construction choice", () => {
+  const q = { question: "Яка товщина боковин?" };
+  assert.equal(questionTopic(q), "");
+  assert.equal(questionOptions(q).length, 0);
+  assert.equal(unansweredQuestions([q], { side_panels: "Боковини стоять на дні" }).length, 1);
+});
+
+test("back-panel groove offset and HDF thickness are not silently answered", () => {
+  const questions = [
+    { question: "Який відступ паза задньої стінки?" },
+    { question: "Яка товщина ХДФ?" },
+    { question: "Відступ задньої стінки у паз від краю?" }
+  ];
+  const answers = { back_panel_type: "ХДФ 3 мм, у паз" };
+  assert.equal(unansweredQuestions(questions, answers).length, 3);
+  assert.ok(questions.every(q => questionOptions(q).length === 0));
+});
+
+test("unambiguous construction questions still reuse confirmed choices", () => {
+  const questions = [
+    { id: "legacy-side-1", question: "Боковини на всю висоту?" },
+    { question: "Задня стінка накладна чи у паз?" },
+    { question: "Як встановлюється задня стінка?" },
+    { question: "Тип полиць: стаціонарні чи знімні?" }
+  ];
+  const answers = { side_panels: "так", back_panel_type: "накладна", shelf_type: "стаціонарні" };
+  assert.equal(unansweredQuestions(questions, answers).length, 0);
+});
+
+test("canonical topic IDs remain compatible", () => {
+  assert.equal(questionTopic({ id: "side_panels" }), "side_panels");
+  assert.equal(questionTopic({ id: "back.panel.type" }), "back_panel_type");
+  assert.equal(questionTopic({ id: "shelf_type" }), "shelf_type");
 });
