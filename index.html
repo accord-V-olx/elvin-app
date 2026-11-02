@@ -236,11 +236,17 @@ async function waitForAnalysis(jobId){
 function qKey(q,i){const id=String(q.id||q.key||"").trim();if(id)return id;const question=String(q.question||"").trim().replace(/\s+/g," ").toLowerCase();const title=String(q.title||"").trim().replace(/\s+/g," ").toLowerCase();return question?`question_text:${title}|${question}`:`question_title:${title}|${i}`}
 // Normalize older AI question IDs using the actual question wording.
 function questionTopic(q){
- const t=[q.id,q.title,q.question].join(" ").toLowerCase();
- if(/боковин|side.panels|стоять на дн|всю висоту/.test(t))return "side_panels";
- if(/задньої стінк|хдф|back.panel.type|спосіб встановлення задн/.test(t))return "back_panel_type";
- if(/тип полиць|стаціонарн|знімні полиці|shelf.type/.test(t))return "shelf_type";
- return String(q.id||"").toLowerCase();
+ const id=String(q.id||"").trim().toLowerCase();
+ if(/^(side_panels|side[._-]panels)$/.test(id))return "side_panels";
+ if(/^(back_panel_type|back[._-]panel[._-]type)$/.test(id))return "back_panel_type";
+ if(/^(shelf_type|shelf[._-]type)$/.test(id))return "shelf_type";
+ const t=[q.title,q.question].join(" ").toLowerCase();
+ // Dimensions must not inherit an unrelated confirmed construction choice.
+ if(/відступ|глибин|товщин|ширин|висота|висоти|відстан|розмір|зазор/.test(t))return id;
+ if(/боковин|side[._-]panels/.test(t)&&/на всю висоту|стоять на дн|схем[аи] боковин|тип боковин/.test(t))return "side_panels";
+ if(/задн.*стінк|хдф|hdf/.test(t)&&/спосіб встановлення|як встановлюєт|тип монтажу|монтаж задн|накладн|набивн|у паз|в паз|тип задн/.test(t))return "back_panel_type";
+ if(/тип полиць|стаціонарн|знімні полиці|shelf[._-]type/.test(t))return "shelf_type";
+ return id;
 }
 function questionOptions(q){
  if(Array.isArray(q.options)&&q.options.length)return q.options;
