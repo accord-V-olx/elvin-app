@@ -233,7 +233,7 @@ async function waitForAnalysis(jobId){
  throw new Error("Аналіз займає занадто багато часу.");
 }
 
-function qKey(q,i){const id=String(q.id||q.key||"").trim();if(id)return id;const question=String(q.question||"").trim().replace(/\s+/g," ").toLowerCase();const title=String(q.title||"").trim().replace(/\s+/g," ").toLowerCase();return question?`question_text:${title}|${question}`:`question_title:${title}|${i}`}
+function qKey(q,i){const id=String(q.id||q.key||"").trim();const question=String(q.question||"").trim().replace(/\s+/g," ").toLowerCase();const title=String(q.title||"").trim().replace(/\s+/g," ").toLowerCase();const legacy=/^(side_panels|side[._-]panels|back_panel_type|back[._-]panel[._-]type|shelf_type|shelf[._-]type)$/i.test(id);const dimension=/відступ|глибин|товщин|ширин|висота|висоти|відстан|розмір|зазор/.test(`${title} ${question}`);if(id&&!(legacy&&dimension&&question))return id;return question?`question_text:${title}|${question}`:`question_title:${title}|${i}`}
 // Normalize older AI question IDs using the actual question wording.
 function questionTopic(q){
  const id=String(q.id||"").trim().toLowerCase();
