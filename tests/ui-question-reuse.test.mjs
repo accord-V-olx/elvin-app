@@ -119,3 +119,22 @@ test("canonical topic IDs remain compatible", () => {
   assert.equal(questionTopic({ id: "back.panel.type" }), "back_panel_type");
   assert.equal(questionTopic({ id: "shelf_type" }), "shelf_type");
 });
+
+test("legacy construction IDs cannot suppress dimensional clarification", () => {
+  const questions = [
+    { id: "back_panel_type", question: "Який відступ паза задньої стінки?" },
+    { id: "side_panels", question: "Яка товщина боковин?" },
+    { id: "shelf_type", question: "Яка глибина полиць?" }
+  ];
+  const answers = { back_panel_type: "у паз", side_panels: "на дні", shelf_type: "знімні" };
+  assert.deepEqual(
+    Array.from(unansweredQuestions(questions, answers), q => q.question),
+    questions.map(q => q.question)
+  );
+  assert.ok(questions.every(q => questionOptions(q).length === 0));
+});
+
+test("dimension with distinct ID reuses its exact answer", () => {
+  const q = { id: "groove_offset_mm", question: "Який відступ паза задньої стінки?" };
+  assert.equal(unansweredQuestions([q], { groove_offset_mm: "25 мм" }).length, 0);
+});
