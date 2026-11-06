@@ -59,3 +59,20 @@ test("a separate unanswered groove-offset question blocks approval", () => {
   assert.ok(result.errors.includes("open_questions_unresolved"));
   assert.equal(result.record, null);
 });
+
+
+test("explicit failed geometry verification blocks snapshot even without listed errors", () => {
+  const input = valid();
+  input.geometryCheck = { ok: false, errors: [] };
+  const result = createApprovedOrderSnapshot(input);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("geometry_not_verified"));
+  assert.equal(result.record, null);
+});
+
+test("successful geometry verification with empty errors remains acceptable", () => {
+  const input = valid();
+  input.geometryCheck = { ok: true, errors: [] };
+  const result = createApprovedOrderSnapshot(input);
+  assert.equal(result.ok, true, JSON.stringify(result.errors));
+});
