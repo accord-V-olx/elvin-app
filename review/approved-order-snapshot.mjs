@@ -47,7 +47,7 @@ export function createApprovedOrderSnapshot(order) {
       !Array.isArray(order.missing) || order.missing.length) {
     errors.push("analysis_not_ready");
   }
-  if (!object(order.geometryCheck) || order.geometryCheck.ok === false ||
+  if (!object(order.geometryCheck) || order.geometryCheck.ok !== true ||
       !Array.isArray(order.geometryCheck.errors) || order.geometryCheck.errors.length) {
     errors.push("geometry_not_verified");
   }

@@ -76,3 +76,22 @@ test("successful geometry verification with empty errors remains acceptable", ()
   const result = createApprovedOrderSnapshot(input);
   assert.equal(result.ok, true, JSON.stringify(result.errors));
 });
+
+
+test("missing explicit geometry success flag blocks approval", () => {
+  const input = valid();
+  input.geometryCheck = { errors: [] };
+  const result = createApprovedOrderSnapshot(input);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("geometry_not_verified"));
+  assert.equal(result.record, null);
+});
+
+test("non-boolean geometry success flag cannot authorize approval", () => {
+  const input = valid();
+  input.geometryCheck = { ok: "true", errors: [] };
+  const result = createApprovedOrderSnapshot(input);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("geometry_not_verified"));
+  assert.equal(result.record, null);
+});
