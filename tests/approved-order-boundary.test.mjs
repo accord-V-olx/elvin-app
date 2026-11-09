@@ -16,8 +16,14 @@ const valid = () => ({
   status: "READY",
   ok: true,
   missing: [],
-  geometryCheck: { errors: [] },
+  geometryCheck: { ok: true, errors: [] },
   review: { status: "approved", approvedBy: "test-technologist", approvedAt: "2026-11-05T09:00:00Z" }
+});
+
+test("valid approved snapshot fixture passes explicit geometry verification", () => {
+  const result = createApprovedOrderSnapshot(valid());
+  assert.equal(result.ok, true, JSON.stringify(result.errors));
+  assert.equal(result.record.productionReady, false);
 });
 
 test("two complementary drawing IDs survive snapshot without storing raw upload fields", () => {
