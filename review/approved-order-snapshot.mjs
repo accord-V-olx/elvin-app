@@ -40,6 +40,11 @@ export function createApprovedOrderSnapshot(order) {
   }
   if (!object(order.construction) || !Object.keys(order.construction).length) errors.push("construction_required");
   if (!Array.isArray(order.openQuestions) || order.openQuestions.length) errors.push("open_questions_unresolved");
+  // A groove requires an explicitly measured offset; an empty question list is not proof.
+  if (object(order.construction) && order.construction.back === "groove" &&
+      !positive(order.construction.back_groove_offset_mm)) {
+    errors.push("back_groove_offset_required");
+  }
   // Engine outputs can be incomplete even when the UI's question list is empty.
   // Never turn an ASK/error/geometry failure into an approved analysis snapshot.
   // Fail closed: technologist approval cannot replace a READY Engine result.
