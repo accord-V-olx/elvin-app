@@ -101,3 +101,30 @@ test("non-boolean geometry success flag cannot authorize approval", () => {
   assert.ok(result.errors.includes("geometry_not_verified"));
   assert.equal(result.record, null);
 });
+
+test("groove back without measured offset cannot be approved even if questions are empty", () => {
+  const input = valid();
+  input.construction = { back: "groove" };
+  const result = createApprovedOrderSnapshot(input);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("back_groove_offset_required"));
+  assert.equal(result.record, null);
+});
+
+test("groove back with positive measured offset may pass the snapshot boundary", () => {
+  const input = valid();
+  input.construction = { back: "groove", back_groove_offset_mm: 12 };
+  const result = createApprovedOrderSnapshot(input);
+  assert.equal(result.ok, true, JSON.stringify(result.errors));
+  assert.equal(result.record.productionReady, false);
+});
+
+test("groove back rejects zero and nonnumeric offsets", () => {
+  for (const offset of [0, -2, "12", null]) {
+    const input = valid();
+    input.construction = { back: "groove", back_groove_offset_mm: offset };
+    const result = createApprovedOrderSnapshot(input);
+    assert.equal(result.ok, false);
+    assert.ok(result.errors.includes("back_groove_offset_required"));
+  }
+});
