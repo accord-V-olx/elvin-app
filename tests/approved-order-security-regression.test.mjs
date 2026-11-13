@@ -46,3 +46,29 @@ test("rejects circular data instead of creating an incomplete snapshot", () => {
   assert.ok(result.errors.includes("snapshot_not_serializable"));
   assert.equal(result.record, null);
 });
+
+test("rejects nested credentials inside construction rather than persisting them", () => {
+  const order = valid();
+  order.construction.hardware = { access_token: "NESTED_SECRET" };
+  const result = createApprovedOrderSnapshot(order);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("sensitive_field_present"));
+  assert.equal(result.record, null);
+});
+
+test("rejects credentials nested in parts arrays", () => {
+  const order = valid();
+  order.parts = [{ id: "panel-1", metadata: { authorization: "Bearer SECRET" } }];
+  const result = createApprovedOrderSnapshot(order);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("sensitive_field_present"));
+  assert.equal(result.record, null);
+});
+
+test("retains legitimate nested geometry without credentials", () => {
+  const order = valid();
+  order.parts = [{ id: "panel-1", size_x_mm: 600, size_y_mm: 2400 }];
+  const result = createApprovedOrderSnapshot(order);
+  assert.equal(result.ok, true, JSON.stringify(result.errors));
+  assert.equal(result.record.parts[0].id, "panel-1");
+});
