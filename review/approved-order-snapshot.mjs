@@ -3,6 +3,8 @@
 // The snapshot is JSON-serializable and suitable for a future protected store.
 
 const SOURCES = new Set(["drawing", "approved_rule", "technologist"]);
+// Reject credentials at any nesting level; a top-level whitelist alone is insufficient.
+const SENSITIVE_KEYS = new Set(["apitoken", "accesstoken", "refreshtoken", "authorization", "bearer", "password", "secret", "clientsecret"]);
 const text = value => typeof value === "string" && value.trim().length > 0;
 const positive = value => typeof value === "number" && Number.isFinite(value) && value > 0;
 const scalar = value => (typeof value === "number" && Number.isFinite(value)) ||
@@ -101,10 +103,16 @@ export function createApprovedOrderSnapshot(order) {
     productionReady: false // human review of analysis != BAZIS production authorization
   };
   try {
-    const json = JSON.stringify(record);
+    const json = JSON.stringify(record, (key, value) => {
+      if (SENSITIVE_KEYS.has(key.toLowerCase().replace(/[_-]/g, ""))) {
+        throw new Error("sensitive_field_present");
+      }
+      return value;
+    });
     if (!json) throw new Error("not JSON");
     return { ok: true, errors: [], record: JSON.parse(json) };
-  } catch {
-    return { ok: false, errors: ["snapshot_not_serializable"], record: null };
+  } catch (error) {
+    return { ok: false, errors: [error?.message === "sensitive_field_present" ?
+      "sensitive_field_present" : "snapshot_not_serializable"], record: null };
   }
 }
