@@ -104,6 +104,10 @@ export function createApprovedOrderSnapshot(order) {
   };
   try {
     const json = JSON.stringify(record, (key, value) => {
+      // JSON.stringify silently turns NaN/Infinity into null; never corrupt panel geometry.
+      if (typeof value === "number" && !Number.isFinite(value)) {
+        throw new Error("nonfinite_number_present");
+      }
       if (SENSITIVE_KEYS.has(key.toLowerCase().replace(/[_-]/g, ""))) {
         throw new Error("sensitive_field_present");
       }
@@ -113,6 +117,7 @@ export function createApprovedOrderSnapshot(order) {
     return { ok: true, errors: [], record: JSON.parse(json) };
   } catch (error) {
     return { ok: false, errors: [error?.message === "sensitive_field_present" ?
-      "sensitive_field_present" : "snapshot_not_serializable"], record: null };
+      "sensitive_field_present" : error?.message === "nonfinite_number_present" ?
+      "nonfinite_number_present" : "snapshot_not_serializable"], record: null };
   }
 }
