@@ -72,3 +72,28 @@ test("retains legitimate nested geometry without credentials", () => {
   assert.equal(result.ok, true, JSON.stringify(result.errors));
   assert.equal(result.record.parts[0].id, "panel-1");
 });
+
+test("rejects NaN panel dimensions rather than silently storing null", () => {
+  const order = valid();
+  order.parts = [{ id: "panel-1", size_x_mm: NaN, size_y_mm: 2400 }];
+  const result = createApprovedOrderSnapshot(order);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("nonfinite_number_present"));
+  assert.equal(result.record, null);
+});
+
+test("rejects Infinity in nested construction data", () => {
+  const order = valid();
+  order.construction.hardware = { offset_mm: Infinity };
+  const result = createApprovedOrderSnapshot(order);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("nonfinite_number_present"));
+});
+
+test("preserves finite decimal panel geometry", () => {
+  const order = valid();
+  order.parts = [{ id: "panel-1", size_x_mm: 599.5, size_y_mm: 2400 }];
+  const result = createApprovedOrderSnapshot(order);
+  assert.equal(result.ok, true, JSON.stringify(result.errors));
+  assert.equal(result.record.parts[0].size_x_mm, 599.5);
+});
