@@ -97,3 +97,29 @@ test("preserves finite decimal panel geometry", () => {
   assert.equal(result.ok, true, JSON.stringify(result.errors));
   assert.equal(result.record.parts[0].size_x_mm, 599.5);
 });
+
+test("rejects undefined part array entries instead of storing null", () => {
+  const order = valid();
+  order.parts = [{ id: "panel-1" }, undefined];
+  const result = createApprovedOrderSnapshot(order);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("array_element_invalid"));
+  assert.equal(result.record, null);
+});
+
+test("rejects sparse parts arrays instead of storing null holes", () => {
+  const order = valid();
+  order.parts = new Array(2);
+  order.parts[1] = { id: "panel-2" };
+  const result = createApprovedOrderSnapshot(order);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.includes("array_element_invalid"));
+});
+
+test("keeps complete parts arrays unchanged", () => {
+  const order = valid();
+  order.parts = [{ id: "panel-1" }, { id: "panel-2" }];
+  const result = createApprovedOrderSnapshot(order);
+  assert.equal(result.ok, true, JSON.stringify(result.errors));
+  assert.deepEqual(result.record.parts.map(part => part.id), ["panel-1", "panel-2"]);
+});
