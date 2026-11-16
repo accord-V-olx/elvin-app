@@ -103,7 +103,7 @@ export function createApprovedOrderSnapshot(order) {
     productionReady: false // human review of analysis != BAZIS production authorization
   };
   try {
-    const json = JSON.stringify(record, (key, value) => {
+    const json = JSON.stringify(record, function (key, value) {
       // JSON.stringify turns missing/unsupported array entries into null; reject lost parts.
       if (Array.isArray(this) && (value === undefined || typeof value === "function" || typeof value === "symbol")) {
         throw new Error("array_element_invalid");
