@@ -104,8 +104,8 @@ export function createApprovedOrderSnapshot(order) {
   };
   try {
     const json = JSON.stringify(record, function (key, value) {
-      // JSON.stringify turns missing/unsupported array entries into null; reject lost parts.
-      if (Array.isArray(this) && (value === undefined || typeof value === "function" || typeof value === "symbol")) {
+      // Reject null, missing, or unsupported array entries; a panel must not disappear.
+      if (Array.isArray(this) && (value === null || value === undefined || typeof value === "function" || typeof value === "symbol")) {
         throw new Error("array_element_invalid");
       }
       // JSON.stringify silently turns NaN/Infinity into null; never corrupt panel geometry.
