@@ -112,7 +112,7 @@ export function createApprovedOrderSnapshot(order) {
       if (typeof value === "number" && !Number.isFinite(value)) {
         throw new Error("nonfinite_number_present");
       }
-      if (SENSITIVE_KEYS.has(key.toLowerCase().replace(/[_-]/g, ""))) {
+      if (SENSITIVE_KEYS.has(key.toLowerCase().replace(/[^a-z0-9]/g, ""))) {
         throw new Error("sensitive_field_present");
       }
       return value;
