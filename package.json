@@ -6,6 +6,7 @@
     "test": "node --test tests/*.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
     "@netlify/blobs": "^10.0.0"
   }
 }
