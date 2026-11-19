@@ -1,0 +1,444 @@
+// Run: node --test tests/
+// Synthetic wardrobe types only. Not real orders; no production data.
+import test from "node:test";
+import assert from "node:assert/strict";
+import { buildWardrobe } from "../engine/wardrobe-engine.js";
+import { validateGeometry, partBox, overlapVolume } from "../engine/geometry.js";
+
+// Carcass: sides stand on a full bottom, inset top, legs 100 mm.
+// Inner box: X 18..W-18, Y 0..D, Z 118..H-18.
+function order({ width = 1200, height = 2400, depth = 600, interior, construction = {}, ...rest } = {}) {
+  return {
+    projectName: "TEST-" + width + "x" + height,
+    width, height, depth,
+    material: "ДСП", materialThickness: 18,
+    backPanel: "none", facades: "none",
+    construction: {
+      top_type: "inset", bottom_type: "full_width", support_type: "legs",
+      side_panels: "on_bottom", plinth_height_mm: 100,
+      interior, ...construction
+    },
+    ...rest
+  };
+}
+
+const byId = result => Object.fromEntries(result.parts.map(p => [p.id, p]));
+const box = p => [p.x_mm, p.y_mm, p.z_mm, p.size_x_mm, p.size_y_mm, p.size_z_mm];
+const fields = result => (result.missing || []).map(m => m.field);
+const vol = p => p.size_x_mm * p.size_y_mm * p.size_z_mm;
+
+// Every mm³ of the inner box must belong to exactly one section or panel.
+function assertInteriorCovered(result) {
+  const ids = byId(result);
+  const inner = (ids.side_right.x_mm - ids.side_left.size_x_mm) *
+    ids.side_left.size_y_mm * (ids.top.z_mm - ids.bottom.z_mm - ids.bottom.size_z_mm);
+  const internal = result.parts.filter(p => p.role === "shelf" || p.role === "partition");
+  const total = [...internal, ...result.sections].reduce((s, p) => s + vol(p), 0);
+  assert.ok(Math.abs(total - inner) < 1, "covered " + total + " of " + inner);
+  // ...and no section may overlap a part or another section or leave the inner box.
+  const boxes = [...result.parts, ...result.sections].map(p => [p.id, partBox(p)]);
+  for (let i = 0; i < boxes.length; i++)
+    for (let j = i + 1; j < boxes.length; j++)
+      assert.equal(overlapVolume(boxes[i][1], boxes[j][1]), 0, boxes[i][0] + " overlaps " + boxes[j][0]);
+  for (const s of result.sections) {
+    const b = partBox(s);
+    assert.ok(b.x0 >= ids.side_left.size_x_mm && b.x1 <= ids.side_right.x_mm, s.id + " outside X");
+    assert.ok(b.z0 >= ids.bottom.z_mm + ids.bottom.size_z_mm && b.z1 <= ids.top.z_mm, s.id + " outside Z");
+  }
+}
+
+test("single section with 4 shelves: exact Z positions from clear heights", () => {
+  const r = buildWardrobe(order({ interior: {
+    size_reference: "clear", split: "horizontal",
+    cells: [{ size_mm: 400 }, { size_mm: 400 }, { size_mm: 400 }, { size_mm: 400 }, { size_mm: 592 }]
+  } }));
+  assert.equal(r.status, "READY", JSON.stringify(r.missing));
+  assert.equal(r.bazis.productionReady, false);
+  const p = byId(r);
+  assert.deepEqual(box(p.shelf_1), [18, 0, 518, 1164, 600, 18]);
+  assert.deepEqual(box(p.shelf_4), [18, 0, 518 + 3 * 418, 1164, 600, 18]);
+  assert.equal(r.sections.length, 5);
+  assert.deepEqual(r.sections.at(-1).size_z_mm, 592);
+  assertInteriorCovered(r);
+});
+
+test("two sections: partition stands on bottom and reaches the top", () => {
+  const r = buildWardrobe(order({ interior: {
+    size_reference: "clear", split: "vertical",
+    cells: [
+      { size_mm: 573, split: "horizontal", cells: [{ size_mm: 1800 }, { size_mm: 446 }] },
+      { size_mm: 573 }
+    ]
+  } }));
+  assert.equal(r.status, "READY", JSON.stringify(r.missing));
+  const p = byId(r);
+  assert.deepEqual(box(p.partition_1), [591, 0, 118, 18, 600, 2264]);
+  // Shelf in the left section spans from the left side to the partition.
+  assert.deepEqual(box(p.shelf_1_1), [18, 0, 1918, 573, 600, 18]);
+  assert.deepEqual(r.sections.map(s => s.id), ["S1.1", "S1.2", "S2"]);
+  assert.equal(r.geometryCheck.ok, true);
+  assertInteriorCovered(r);
+});
+
+test("three sections with nested partition between two shelves", () => {
+  const r = buildWardrobe(order({ width: 1800, interior: {
+    size_reference: "clear", split: "vertical",
+    cells: [
+      { size_mm: 600 },
+      { size_mm: 528, split: "horizontal", cells: [
+        { size_mm: 1000 },
+        { size_mm: 300, split: "vertical", cells: [{ size_mm: 255 }, { size_mm: 255 }] },
+        { size_mm: 928 }
+      ] },
+      { size_mm: 600 }
+    ]
+  } }));
+  assert.equal(r.status, "READY", JSON.stringify(r.missing));
+  const p = byId(r);
+  assert.deepEqual(box(p.partition_1), [618, 0, 118, 18, 600, 2264]);
+  assert.deepEqual(box(p.partition_2), [1164, 0, 118, 18, 600, 2264]);
+  assert.deepEqual(box(p.shelf_2_1), [636, 0, 1118, 528, 600, 18]);
+  // Nested partition stands on shelf_2_1 and is closed by shelf_2_2.
+  assert.deepEqual(box(p.partition_2_2_1), [891, 0, 1136, 18, 600, 300]);
+  assert.equal(p.shelf_2_2.z_mm, 1436);
+  assertInteriorCovered(r);
+});
+
+test("full-height sides with inset top and bottom on a plinth", () => {
+  const r = buildWardrobe(order({ width: 400, height: 2000, depth: 350,
+    construction: { side_panels: "full_height", bottom_type: "inset", support_type: "plinth" },
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 900 }, { size_mm: 946 }] }
+  }));
+  assert.equal(r.status, "READY", JSON.stringify(r.missing));
+  const p = byId(r);
+  assert.deepEqual(box(p.side_left), [0, 0, 0, 18, 350, 2000]);
+  assert.deepEqual(box(p.bottom), [18, 0, 100, 364, 350, 18]);
+  assert.deepEqual(box(p.shelf_1), [18, 0, 1018, 364, 350, 18]);
+  assertInteriorCovered(r);
+});
+
+test("dimension chain that does not close stops with a concrete question", () => {
+  const r = buildWardrobe(order({ interior: {
+    size_reference: "clear", split: "vertical", cells: [{ size_mm: 573 }, { size_mm: 580 }]
+  } }));
+  assert.equal(r.status, "GEOMETRY_INCOMPLETE");
+  // Draft code is still produced; the chain question is listed on top of it.
+  assert.equal(r.bazis.status, "DRAFT_CODE");
+  assert.equal(r.bazis.productionReady, false);
+  assert.match(r.bazis.script, /ЧЕРНЕТКА[\s\S]*Ланцюжок розмірів/);
+  const q = r.missing.find(m => m.field === "construction.interior.root.chain");
+  assert.ok(q, JSON.stringify(r.missing));
+  assert.match(q.question, /573 \+ 580 \+ 1×18 = 1171 мм, а доступно 1164 мм/);
+  // Nothing is stretched or guessed: no internal parts are emitted.
+  assert.equal(r.parts.filter(p => p.role === "partition").length, 0);
+});
+
+test("missing cell size is asked, not guessed", () => {
+  const r = buildWardrobe(order({ interior: {
+    size_reference: "clear", split: "vertical", cells: [{ size_mm: 573 }, { size_mm: null }]
+  } }));
+  assert.equal(r.status, "GEOMETRY_INCOMPLETE");
+  assert.ok(fields(r).includes("construction.interior.root.size_mm"));
+  assert.match(r.missing.find(m => m.field.endsWith("size_mm")).question, /S2/);
+});
+
+test("unknown size reference is asked", () => {
+  const r = buildWardrobe(order({ interior: { split: "vertical", cells: [{ size_mm: 573 }, { size_mm: 573 }] } }));
+  assert.ok(fields(r).includes("construction.interior.size_reference"));
+});
+
+test("interior and internal_panels together are a conflict", () => {
+  const r = buildWardrobe(order({
+    interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 573 }, { size_mm: 573 }] },
+    construction: { internal_panels: [{ id: "s1", type: "shelf", x_mm: 18, y_mm: 0, z_mm: 800, width_mm: 1164, depth_mm: 600, height_mm: 18 }] }
+  }));
+  assert.equal(r.status, "GEOMETRY_INCOMPLETE");
+  assert.ok(fields(r).includes("construction.interior"));
+});
+
+test("groove back panel with an explicit offset from the drawing: setback = offset + 4 mm groove", () => {
+  const r = buildWardrobe(order({ backPanel: "ХДФ",
+    construction: { back_panel_type: "ХДФ у паз", back_groove_offset_mm: 16, facade_type: null },
+    interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 573 }, { size_mm: 573 }] }
+  }));
+  assert.ok(!(r.missing || []).some(m => m.field === "construction.interior"), JSON.stringify(r.missing));
+  assert.equal(byId(r).partition_1.size_y_mm, 600 - 16 - 4);
+});
+
+test("overlay HDF is built (one sheet, 2 mm in from every edge); facades without a layout block READY", () => {
+  const r = buildWardrobe(order({ width: 1040, height: 2786, depth: 576, backPanel: "ХДФ 3 мм", facades: "2 фасади",
+    construction: { back_panel_type: "overlay", facade_type: "overlay", top_type: "overlay", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 493 }, { size_mm: 493 }] }
+  }));
+  // Real order A-104: TYL 2782 x 1036.
+  const hdf = byId(r).back;
+  assert.deepEqual(box(hdf), [2, 576, 2, 1036, 3, 2782]);
+  assert.ok(!fields(r).includes("geometry.back_panel"));
+  assert.equal(r.status, "GEOMETRY_INCOMPLETE");
+  assert.ok(fields(r).includes("geometry.facades"));
+  assert.ok(fields(r).includes("construction.facades_layout"));
+  assert.equal(r.geometryCheck.ok, true, JSON.stringify(r.geometryCheck.errors));
+});
+
+test("DSP back inside (open sections): ST_TYL on the bottom under the top, shelves depth - 19", () => {
+  // Real order F-S50: ST_TYL 2627 x 464, shelves 464 x 581, KR 464 x 600.
+  const cells = [1, 2, 3, 4, 5, 6].map(() => ({ size_mm: (2627 - 5 * 18) / 6 }));
+  const r = buildWardrobe(order({ width: 500, height: 2663, depth: 600, backPanel: "ДСП",
+    construction: { back_panel_type: "dsp", top_type: "inset", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "horizontal", cells } }));
+  assert.equal(r.status, "READY", JSON.stringify(r.missing));
+  const p = byId(r);
+  assert.deepEqual([p.back.name, p.back.size_x_mm, p.back.size_z_mm, p.back.y_mm], ["ST_TYL", 464, 2627, 582]);
+  assert.deepEqual([p.shelf_1.size_x_mm, p.shelf_1.size_y_mm], [464, 581]);
+  assert.deepEqual([p.top.size_x_mm, p.top.size_y_mm], [464, 600]);
+  // The DSP back hides the shelf rear edge (as in GibLab), and it is mounted.
+  assert.equal(p.shelf_1.edges.back, null);
+  assert.ok(r.machining.some(m => m.a === "back" && m.b === "bottom"));
+  assert.equal(r.geometryCheck.ok, true);
+});
+
+test("legacy panels: collision between shelf and partition is reported", () => {
+  const r = buildWardrobe(order({ width: 600, height: 2000, depth: 500, sections: [{ width_mm: 600, depth_mm: 500 }],
+    construction: { internal_panels: [
+      { id: "s1", type: "shelf", x_mm: 18, y_mm: 0, z_mm: 800, width_mm: 564, depth_mm: 500, height_mm: 18 },
+      { id: "v1", type: "partition", x_mm: 291, y_mm: 0, z_mm: 700, width_mm: 18, depth_mm: 500, height_mm: 1282 }
+    ] }
+  }));
+  const c = r.missing.find(m => m.field === "geometry.COLLISION");
+  assert.ok(c, JSON.stringify(r.missing));
+  assert.deepEqual(c.parts, ["internal_s1", "internal_v1"]);
+});
+
+test("legacy panels: floating shelf is reported as unsupported", () => {
+  const r = buildWardrobe(order({ width: 600, height: 2000, depth: 500, sections: [{ width_mm: 600, depth_mm: 500 }],
+    construction: { internal_panels: [
+      { id: "s1", type: "shelf", x_mm: 100, y_mm: 0, z_mm: 800, width_mm: 482, depth_mm: 500, height_mm: 18 }
+    ] }
+  }));
+  const u = r.missing.find(m => m.field === "geometry.UNSUPPORTED_SHELF");
+  assert.ok(u);
+  assert.match(u.question, /ліву/);
+});
+
+test("BAZIS preview includes every part and is never production-ready", () => {
+  const r = buildWardrobe(order({ interior: {
+    size_reference: "clear", split: "vertical",
+    cells: [{ size_mm: 573, split: "horizontal", cells: [{ size_mm: 1800 }, { size_mm: 446 }] }, { size_mm: 573 }]
+  } }));
+  assert.equal(r.status, "READY");
+  const panels = r.bazis.script.match(/objects3d\.NewPanel\(/g) || [];
+  assert.equal(panels.length, r.parts.length);
+  assert.match(r.bazis.script, /let P_partition_1 = objects3d\.NewPanel\(600, 2264, objects3d\.PanelOrientation\.vertical\)/);
+  assert.equal(r.bazis.productionReady, false);
+});
+
+test("engine output is JSON-safe and does not mutate input", () => {
+  const input = order({ interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 573 }, { size_mm: 573 }] } });
+  const snapshot = JSON.stringify(input);
+  const r = buildWardrobe(input);
+  assert.equal(JSON.stringify(input), snapshot);
+  assert.deepEqual(JSON.parse(JSON.stringify(r)), r);
+});
+
+test("geometry check: touching faces are not a collision, overlap is", () => {
+  const p = (id, x, sx) => ({ id, x_mm: x, y_mm: 0, z_mm: 0, size_x_mm: sx, size_y_mm: 100, size_z_mm: 100, thickness_mm: 18 });
+  assert.equal(validateGeometry([p("a", 0, 18), p("b", 18, 18)]).ok, true);
+  const bad = validateGeometry([p("a", 0, 18), p("b", 17, 18)]);
+  assert.deepEqual(bad.errors.map(e => e.code), ["COLLISION"]);
+  assert.deepEqual(partBox(p("a", 5, 18)).x1, 23);
+});
+
+test("geometry check: part without a thickness axis is rejected", () => {
+  const r = validateGeometry([{ id: "x", x_mm: 0, y_mm: 0, z_mm: 0, size_x_mm: 18, size_y_mm: 18, size_z_mm: 100, thickness_mm: 18 }]);
+  assert.deepEqual(r.errors.map(e => e.code), ["THICKNESS_AXIS"]);
+});
+
+test("HDF sheet larger than 2800x2070 (factory rule) must be split", async () => {
+  const { checkSheetLimits } = await import("../engine/geometry.js");
+  const { WARDROBE_RULES } = await import("../rules/wardrobe-rules.js");
+  const limit = { back: WARDROBE_RULES.backPanel.hdfOverlay.maxSheetMm };
+  const hdf = (id, w, h) => ({ id, role: "back", x_mm: 0, y_mm: 600, z_mm: 0, size_x_mm: w, size_y_mm: 3, size_z_mm: h, thickness_mm: 3 });
+  // Rotation of the sheet is allowed: 2070 wide x 2800 high fits.
+  assert.deepEqual(checkSheetLimits([hdf("ok", 2070, 2800), hdf("ok2", 2800, 2070)], limit), []);
+  const errs = checkSheetLimits([hdf("big", 2600, 2196)], limit);
+  assert.deepEqual(errs.map(e => e.code), ["SHEET_TOO_LARGE"]);
+  assert.match(errs[0].message, /2600×2196 мм.*2800×2070/);
+});
+
+test("draft BAZIS code: carcass without interior is still exported with a gap list", () => {
+  const r = buildWardrobe(order({ backPanel: "ХДФ 3 мм", facades: "2 фасади", construction: { back_panel_type: "overlay", facade_type: "overlay" }, interior: undefined,
+    sections: "4 секції" }));
+  assert.equal(r.status, "GEOMETRY_INCOMPLETE");
+  assert.equal(r.bazis.status, "DRAFT_CODE");
+  const s = r.bazis.script;
+  assert.equal((s.match(/objects3d\.NewPanel\(/g) || []).length, r.parts.length);
+  assert.match(s, /Фасади ще не розраховуються/);
+  assert.match(s, /historyOperations\.CommitCurrentChanges/);
+  // Comment lines cannot break out into code.
+  assert.ok(s.split("\n").filter(l => l.startsWith("//   - ")).length >= 2);
+});
+
+test("draft BAZIS code: a part without orientation is listed, not silently dropped", () => {
+  const r = buildWardrobe(order({ width: 600, height: 2000, depth: 500, sections: [{ width_mm: 600, depth_mm: 500 }],
+    construction: { internal_panels: [
+      { id: "cube", type: "shelf", x_mm: 18, y_mm: 0, z_mm: 800, width_mm: 18, depth_mm: 18, height_mm: 18 }
+    ] }
+  }));
+  assert.equal(r.bazis.status, "DRAFT_CODE");
+  assert.match(r.bazis.script, /Пропущено .*internal_cube/);
+});
+
+test("overlay top on a full bottom: sides stand between bottom and top (real factory module)", () => {
+  // Module 520 x 2786 x 576, DSP 18: GibLab gives KR/DNO 520x576, sides 2750x576, 7 shelves 484x576.
+  const cells = [1, 2, 3, 4, 5, 6, 7, 8].map(() => ({ size_mm: (2750 - 7 * 18) / 8 }));
+  const r = buildWardrobe(order({ width: 520, height: 2786, depth: 576,
+    construction: { top_type: "overlay", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "horizontal", cells } }));
+  assert.equal(r.status, "READY", JSON.stringify(r.missing));
+  const p = byId(r);
+  assert.deepEqual(box(p.top), [0, 0, 2768, 520, 576, 18]);
+  assert.deepEqual(box(p.bottom), [0, 0, 0, 520, 576, 18]);
+  assert.deepEqual(box(p.side_left), [0, 0, 18, 18, 576, 2750]);
+  const shelves = r.parts.filter(x => x.role === "shelf");
+  assert.equal(shelves.length, 7);
+  assert.ok(shelves.every(s => s.size_x_mm === 484 && s.size_y_mm === 576));
+  assertInteriorCovered(r);
+});
+
+test("chest with overlay top: top overhangs the carcass at the front by 20 mm (factory rule)", () => {
+  const r = buildWardrobe(order({ width: 1800, height: 980, depth: 500, furnitureType: "комод",
+    construction: { side_panels: "full_height", bottom_type: "inset", top_type: "overlay", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 873 }, { size_mm: 873 }] } }));
+  assert.equal(r.geometryCheck.ok, true, JSON.stringify(r.missing));
+  const p = byId(r);
+  assert.deepEqual(box(p.top), [0, 0, 962, 1800, 500, 18]);
+  assert.deepEqual(box(p.side_left), [0, 20, 0, 18, 480, 962]);
+  assert.deepEqual([p.partition_1.y_mm, p.partition_1.size_y_mm], [20, 480]);
+  // The same construction as a wardrobe keeps the top flush.
+  const w = buildWardrobe(order({ width: 1800, height: 980, depth: 500, furnitureType: "шафа",
+    construction: { side_panels: "full_height", bottom_type: "inset", top_type: "overlay", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 873 }, { size_mm: 873 }] } }));
+  assert.equal(byId(w).side_left.size_y_mm, 500);
+});
+
+test("HDF in groove (factory standard 14 + 4): shelves, partitions and inset top are 18 mm shallower", () => {
+  const r = buildWardrobe(order({ width: 840, height: 500, depth: 528, backPanel: "ХДФ 2,5",
+    construction: { back_panel_type: "groove", top_type: "inset", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 393 }, { size_mm: 393 }] } }));
+  const p = byId(r);
+  // Real order (top box 840): KR 804 x 510 = 528 - 18.
+  assert.deepEqual([p.top.size_x_mm, p.top.size_y_mm], [804, 510]);
+  assert.deepEqual([p.partition_1.y_mm, p.partition_1.size_y_mm], [0, 510]);
+  assert.equal(p.side_left.size_y_mm, 528);
+  assert.equal(p.bottom.size_y_mm, 528);
+  assert.ok(!(r.missing || []).some(m => m.field === "construction.back_groove_offset_mm"));
+  assert.equal(r.geometryCheck.ok, true, JSON.stringify(r.geometryCheck.errors));
+  // HDF in the groove (left, right, bottom): real order TYL 820 x 489.
+  const hdf = p.back;
+  assert.deepEqual([hdf.size_x_mm, hdf.size_z_mm, hdf.size_y_mm], [820, 489, 3]);
+  assert.deepEqual([hdf.x_mm, hdf.y_mm, hdf.z_mm], [10, 510, 10]);
+  assert.equal(r.status, "READY", JSON.stringify(r.missing));
+  assert.match(r.bazis.script, /P_back = objects3d\.NewPanel\(820, 489, objects3d\.PanelOrientation\.front\)/);
+});
+
+test("DSP other than 18 / 37 mm gives a warning (factory rule)", () => {
+  const r = buildWardrobe(order({ materialThickness: 16, width: 600, height: 2000, depth: 500,
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 900 }, { size_mm: 1032 - 16 + 18 * 0 + 0 }] } }));
+  assert.match(r.warnings.join(" "), /16 мм.*лише ДСП 18, 37/);
+  const ok = buildWardrobe(order({ interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 1000 }, { size_mm: 1246 }] } }));
+  assert.deepEqual(ok.warnings, []);
+});
+
+test("HDF in groove with an overlay top is asked (groove only in sides and bottom)", () => {
+  const r = buildWardrobe(order({ width: 840, height: 1570, depth: 528, backPanel: "ХДФ",
+    construction: { back_panel_type: "groove", top_type: "overlay", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 758 }, { size_mm: 758 }] } }));
+  assert.ok(r.missing.some(m => m.field === "construction.back_panel_type"), JSON.stringify(r.missing));
+  assert.ok(!r.parts.some(p => p.role === "back"));
+});
+
+test("overlay facades: equal widths with factory gaps, floating side gap, chain check", async () => {
+  const { buildFacades } = await import("../engine/facades.js");
+  const gaps = { top: 3, bottom: 3, left: 2, right: 2, betweenAdjacentFacades: 4 };
+  const opts = { thickness_mm: 18, material: "ДСП", gaps, floating: { min: 1.5, max: 4 } };
+  const zone = { x0: 0, x1: 1500, z0: 0, z1: 1850, yFront: 0 };
+  // Real wardrobe 1500: 3 doors 2 + 496 + 4 + 496 + 4 + 496 + 2.
+  const three = buildFacades({ columns: [1, 2, 3].map(() => ({ width_mm: null, rows: [] })) }, zone, opts);
+  assert.equal(three.ok, true);
+  assert.deepEqual(three.parts.map(p => [p.x_mm, p.size_x_mm, p.size_z_mm]), [[2, 496, 1844], [502, 496, 1844], [1002, 496, 1844]]);
+  assert.ok(three.parts.every(p => p.y_mm === -18 && p.outside_envelope_allowed));
+  // 1001 / 2 doors: (1001 - 2 - 2 - 4) / 2 = 496.5 -> whole 496 with a floating side gap (1001 - 4 - 992) / 2 = 2.5.
+  const odd = buildFacades({ columns: [{ width_mm: null }, { width_mm: null }] }, { ...zone, x1: 1001 }, opts);
+  assert.equal(odd.ok, true);
+  assert.deepEqual(odd.parts.map(p => p.size_x_mm), [496, 496]);
+  assert.equal(odd.parts[0].x_mm, 2.5);
+  // Heights that do not close are asked with numbers.
+  const bad = buildFacades({ columns: [{ width_mm: null, rows: [{ height_mm: 900 }, { height_mm: 900 }] }] }, zone, opts);
+  assert.equal(bad.ok, false);
+  assert.match(bad.errors[0].question, /900 \+ 900 \+ зазори 3\/4\/3 = 1810 мм, а висота під фасади 1850 мм/);
+  // Drawer fronts are named as such.
+  const dr = buildFacades({ columns: [{ width_mm: null, rows: [{ height_mm: 920, kind: "drawer" }, { height_mm: 920, kind: "door" }] }] }, zone, opts);
+  assert.deepEqual(dr.parts.map(p => p.name), ["FASAD_SHUH", "FASAD"]);
+});
+
+test("facades in the Engine: chest top stays above the facades; BAZIS gets vertical texture", () => {
+  const r = buildWardrobe(order({ width: 1800, height: 980, depth: 500, furnitureType: "комод", facades: "накладні",
+    construction: { side_panels: "full_height", bottom_type: "inset", top_type: "overlay", plinth_height_mm: 0, facade_type: "overlay",
+      facades_layout: { columns: [0, 1].map(() => ({ width_mm: null, rows: [{ height_mm: 312, kind: "drawer" }, { height_mm: 312, kind: "drawer" }, { height_mm: 324, kind: "drawer" }] })) } },
+    interior: { size_reference: "clear", split: "vertical", cells: [{ size_mm: 873 }, { size_mm: 873 }] } }));
+  assert.equal(r.status, "READY", JSON.stringify(r.missing));
+  const f = r.parts.filter(p => p.role === "facade");
+  assert.equal(f.length, 6);
+  assert.ok(f.every(p => p.size_x_mm === 896 && p.y_mm === 20 - 18));
+  // Top of the highest facade = 962 - 3 (under the overhanging top).
+  assert.equal(Math.max(...f.map(p => p.z_mm + p.size_z_mm)), 959);
+  assert.match(r.bazis.script, /P_facade_1_1\.TextureOrientation = panelOperations\.textureOrientation\.vertical;/);
+});
+
+test("edging follows the real GibLab patterns (KR08 front/open ends, BUM02 rear, none on covered ends)", () => {
+  // Module like A-104: KR and DNO over the sides.
+  const a = buildWardrobe(order({ width: 1040, height: 2786, depth: 576,
+    construction: { top_type: "overlay", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 1366 }, { size_mm: 1366 }] } }));
+  const p = byId(a);
+  assert.deepEqual(p.top.edges, { left: "KR08", right: "KR08", front: "KR08", back: "BUM02" });
+  assert.deepEqual(p.bottom.edges, { left: "KR08", right: "KR08", front: "KR08", back: "BUM02" });
+  assert.deepEqual(p.side_left.edges, { front: "KR08", back: "BUM02", bottom: null, top: null });
+  assert.deepEqual(p.shelf_1.edges, { left: null, right: null, front: "KR08", back: "BUM02" });
+  // Module like A-35: sides on the bottom, inset top -> the side's top end is visible.
+  const b = buildWardrobe(order({ width: 350, height: 2786, depth: 600, construction: { top_type: "inset", plinth_height_mm: 0 },
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 1366 }, { size_mm: 1366 }] } }));
+  const q = byId(b);
+  assert.deepEqual(q.side_left.edges, { front: "KR08", back: "BUM02", bottom: null, top: "KR08" });
+  assert.deepEqual(q.top.edges, { left: null, right: null, front: "KR08", back: "BUM02" });
+  // BAZIS butt indices from the factory script: side 1 front, 3 back, 2 top.
+  assert.match(b.bazis.script, /let KR08 = materialData\.CreateButtMaterialData\(/);
+  assert.match(b.bazis.script, /panelOperations\.AddButt\(P_side_left, 1, KR08\);\npanelOperations\.AddButt\(P_side_left, 2, KR08\);\npanelOperations\.AddButt\(P_side_left, 3, BUM02\);/);
+});
+
+test("edging: HDF in the groove does not hide the shelf rear edge; facades keep KR08 all round", () => {
+  const r = buildWardrobe(order({ width: 840, height: 500, depth: 528, backPanel: "ХДФ", facades: "накладні",
+    construction: { back_panel_type: "groove", top_type: "inset", plinth_height_mm: 0, facade_type: "overlay",
+      facades_layout: { columns: [{ width_mm: null, rows: [] }, { width_mm: null, rows: [] }] } },
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 223 }, { size_mm: 223 }] } }));
+  const p = byId(r);
+  assert.equal(p.shelf_1.edges.back, "BUM02");
+  assert.equal(p.back.edges, null);
+  assert.deepEqual(p.facade_1_1.edges, { top: "KR08", bottom: "KR08", left: "KR08", right: "KR08" });
+  assert.match(r.bazis.script, /AddButt\(P_facade_1_1, 3, KR08\)/);
+});
+
+test("plinth: carcass standing on the plinth gets a full-width COKOL recessed 20 mm", () => {
+  const r = buildWardrobe(order({ width: 1500, height: 2000, depth: 300,
+    construction: { support_type: "plinth", plinth_height_mm: 150, top_type: "inset" },
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 805 }, { size_mm: 805 }] } }));
+  const c = byId(r).plinth;
+  assert.deepEqual(box(c), [0, 20, 0, 1500, 18, 150]);
+  assert.equal(r.geometryCheck.ok, true, JSON.stringify(r.geometryCheck.errors));
+  // Plastic plinth is not a DSP part; legs give no COKOL.
+  const plastic = buildWardrobe(order({ construction: { support_type: "plinth", plinth_type: "plastic", plinth_height_mm: 100 },
+    interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 1082 }, { size_mm: 1082 }] } }));
+  assert.ok(!plastic.parts.some(p => p.role === "plinth"));
+  const legs = buildWardrobe(order({ interior: { size_reference: "clear", split: "horizontal", cells: [{ size_mm: 1123 }, { size_mm: 1123 }] } }));
+  assert.ok(!legs.parts.some(p => p.role === "plinth"));
+});

@@ -16,7 +16,7 @@
 // conflicting reference rules.
 // ============================================================
 
-export const WARDROBE_RULES_VERSION = "1.0";
+export const WARDROBE_RULES_VERSION = "1.10";
 
 export const WARDROBE_RULES = {
 
@@ -57,23 +57,24 @@ export const WARDROBE_RULES = {
       standardMaterial: "DSP",
       standardThicknessMm: 18,
 
+      // Confirmed 2026-10-17: the factory uses DSP 18 mm and glued
+      // 37 mm panels (two 18 mm sheets + 1 mm glue).
       allowedKnownThicknessesMm: [
-        10,
-        16,
-        18
+        18,
+        37
       ],
 
       laminatedConstruction: {
-        status: "ASK",
+        status: "AUTO",
         layersMm: [18, 18],
-        glueApproxMm: 1,
-        totalApproxMm: 37
+        glueMm: 1,
+        totalMm: 37
       },
 
       rules: [
         "Standard carcass DSP thickness is 18 mm.",
 
-        "DSP 10 mm and 16 mm are also used when specified by the project.",
+        "The factory uses DSP 18 mm and glued 37 mm panels (18 + 18 + 1 mm glue). Any other thickness on a drawing must be confirmed by the technologist.",
 
         "If another thickness is explicitly specified in the drawing/order, use the project value.",
 
@@ -89,7 +90,6 @@ export const WARDROBE_RULES = {
       standardThicknessMm: 18,
 
       knownOptions: [
-        "DSP 16 mm",
         "DSP 18 mm",
         "MDF - thickness depends on project"
       ],
@@ -160,6 +160,32 @@ export const WARDROBE_RULES = {
       ]
     },
 
+    // Confirmed 2026-10-16 from two real orders (chests 1350 and 1800).
+    overlayTopOverhang: {
+      status: "AUTO",
+      appliesTo: ["CHEST", "TUMBA"],
+      frontOverhangMm: 20,
+      rules: [
+        "Chests and bedside/low cabinets with an overlay top: the top is 20 mm deeper than the carcass and overhangs at the front.",
+        "Overall depth on the drawing is the top depth; carcass depth = overall depth - 20.",
+        "Wardrobes keep the top flush with the carcass."
+      ]
+    },
+
+    // FACTORY STANDARD fixed by the product owner 2026-10-16, to end
+    // differences between technologists seen in real orders (0/-1/-2 mm).
+    innerPanelFit: {
+      status: "AUTO",
+      lengthClearanceMm: 0,
+      depthClearanceMm: 0,
+      rules: [
+        "Inset bottom, inset top, fixed shelves and partitions fit the opening exactly: no length clearance.",
+        "With overlay HDF they have the full carcass depth: no depth clearance.",
+        "Removable shelves on shelf supports follow the same rule as fixed shelves.",
+        "A technologist may deviate only by an explicit note in the order."
+      ]
+    },
+
 
     internalUprights: {
       status: "AUTO",
@@ -178,6 +204,18 @@ export const WARDROBE_RULES = {
   // ==========================================================
   // DEPTH
   // ==========================================================
+
+  // Owner decision 2026-10-18.
+  fillers: {
+    status: "AUTO_WHEN_SELECTED",
+    stockWidthMm: 200,
+    rules: [
+      "Planky (PLANKA) close gaps to uneven walls and ceiling: '20' at a wall, '+20' on the height.",
+      "Strips are made 200 mm wide and cut to the real gap on site (owner, 20.10.2026).",
+      "Side strip = full carcass height x 200; top strip = full carcass width x 200 (2000x1000 wardrobe -> 2000x200, 2000x200, 1000x200).",
+      "Carcass material, in the facade plane, edged on all 4 sides, not drilled (no MountScheme)."
+    ]
+  },
 
   depth: {
 
@@ -218,7 +256,7 @@ export const WARDROBE_RULES = {
       formula: "shelfDepth = carcassDepth",
 
       rules: [
-        "Standard shelf depth equals carcass/side depth.",
+        "Standard shelf depth equals carcass/side depth (also for removable shelves; confirmed 2026-10-16).",
 
         "Do not automatically subtract 10 mm."
       ]
@@ -238,6 +276,7 @@ export const WARDROBE_RULES = {
       knownTypes: [
         "HDF_OVERLAY",
         "HDF_PAZ",
+        "HDF_REBATE",
         "DSP_BACK"
       ],
 
@@ -256,27 +295,67 @@ export const WARDROBE_RULES = {
       thicknessMm: 3,
       fastening: "NAILS",
 
+      // Confirmed 2026-10-15.
+      maxSheetMm: {
+        length: 2800,
+        width: 2070
+      },
+
+      layoutOptions: [
+        "PER_SECTION",
+        "SINGLE"
+      ],
+
+      // Confirmed 2026-10-18: one sheet per module, 2 mm smaller than the
+      // carcass on every side (GibLab: 2782 x 1036 for a 2786 x 1040 module).
+      edgeOffsetsMm: { top: 2, bottom: 2, left: 2, right: 2 },
+
       rules: [
         "Standard overlay HDF/DVP thickness is 3 mm.",
 
-        "Overlay HDF is nailed to the carcass."
+        "Overlay HDF is nailed to the carcass.",
+
+        "One overlay HDF sheet per module, 2 mm smaller than the carcass on every side (confirmed 2026-10-18).",
+
+        "If the module sheet is larger than 2800 x 2070, split it by sections: one sheet per section, as wide as the clear section (confirmed 2026-10-18).",
+
+        "Normally a separate HDF sheet per section; one whole sheet is allowed for a small wardrobe.",
+
+        "One HDF sheet must not exceed 2800 x 2070 mm."
+      ]
+    },
+
+
+    rebate: {
+      status: "PAUSED",
+
+      // "Вибірка" (rebate along the rear edge). Known as a construction,
+      // all parameters still require the technologist.
+      operationName: null,
+      rebateWidthMm: null,
+      rebateDepthMm: null,
+      panels: null,
+
+      rules: [
+        "HDF in a rebate is a known construction but must NOT be generated automatically.",
+
+        "Rebate size, panels and BAZIS operation must be confirmed and tested in real BAZIS."
       ]
     },
 
 
     paz: {
-      status: "PAUSED",
+      // Factory standard confirmed 2026-10-17: groove 14 mm from the back,
+      // 4 mm wide, 9 mm deep. Geometry is AUTO; the BAZIS groove operation
+      // itself is not generated until a tested BAZIS script is supplied.
+      status: "AUTO_GEOMETRY",
 
       operationName: "PAZ",
 
       panelThicknessMm: 3,
       grooveWidthMm: 4,
       grooveDepthMm: 9,
-
-      rearOffsetMm: {
-        min: 5,
-        max: 20
-      },
+      rearOffsetMm: 14,
 
       grooveSides: [
         "LEFT_UPRIGHT",
@@ -285,9 +364,17 @@ export const WARDROBE_RULES = {
       ],
 
       rules: [
-        "PAZ is currently stored as a known construction but must NOT be generated automatically.",
+        "Standard groove: 14 mm from the rear edge, 4 mm wide, 9 mm deep.",
 
-        "PAZ must be tested in real BAZIS before activation.",
+        "Shelves, partitions and an inset top stop in front of the groove: depth = carcass depth - 14 - 4 = carcass depth - 18.",
+
+        "Sides, bottom and an overlay top keep the full depth and receive the groove.",
+
+        "The groove is made in three parts: left side, right side and bottom; HDF slides into it (confirmed 2026-10-17).",
+
+        "HDF sheet = opening + 16 mm in width (8 mm into each side groove); bottom edge 8 mm into the bottom groove; top edge 1 mm below the carcass top, behind an inset top.",
+
+        "The BAZIS groove operation is not generated until it is tested in real BAZIS.",
 
         "Maximum allowed HDF dimension for this construction still requires confirmation."
       ]
@@ -295,14 +382,18 @@ export const WARDROBE_RULES = {
 
 
     dspBack: {
-      status: "ASK",
+      // Confirmed 2026-10-18 for open sections: DSP 18 back stands on the
+      // bottom between the sides under the top; shelves = depth - 18 - 1.
+      status: "AUTO",
+      thicknessMm: 18,
+      shelfClearanceMm: 1,
 
       rules: [
-        "DSP back is treated as a separate furniture part.",
+        "DSP back (ST_TYL) is a separate DSP 18 part: between the sides, on the bottom, under the top, at the rear.",
 
-        "Exact geometry and fastening rules are not fully defined yet.",
+        "Shelves and partitions in front of it: depth = carcass depth - 18 - 1 mm.",
 
-        "Do not invent the fastening method."
+        "Fastening follows the touching panels (MountScheme)."
       ]
     }
   },
@@ -482,8 +573,8 @@ export const WARDROBE_RULES = {
         top: 3,
         left: 2,
         right: 2,
-        betweenAdjacentFacades: 2,
-        bottom: null
+        betweenAdjacentFacades: 4,
+        bottom: 3
       },
 
       floatingGapMm: {
@@ -497,9 +588,9 @@ export const WARDROBE_RULES = {
 
         "Preferred left/right gaps are 2 mm.",
 
-        "Preferred gap between adjacent facades is 2 mm.",
+        "Preferred gap between adjacent facades is 4 mm, horizontally and vertically (confirmed 2026-10-16 from a real order).",
 
-        "Bottom gap is not yet finally confirmed.",
+        "Preferred bottom gap is 3 mm (confirmed 2026-10-15).",
 
         "If equal whole-number facade sizes cannot be achieved with preferred gaps, use a symmetric floating gap from 1.5 to 4 mm.",
 
@@ -708,11 +799,17 @@ export const WARDROBE_RULES = {
     status: "ASK",
 
     items: [
-      "Confirm bottom gap for standard overlay facade.",
-
       "Confirm top and bottom gaps/formula for inset facades.",
 
       "Confirm maximum HDF dimension for PAZ construction.",
+
+      "Overlay HDF: offsets of the sheet from carcass/section edges (top, bottom, left, right, overlap on partitions).",
+
+      "Overlay HDF: when exactly one whole sheet is used instead of one per section.",
+
+      "PAZ: how deep HDF enters the groove; top fixing (groove in top or under top); standard rear offset; BAZIS script for the groove.",
+
+      "Rebate (vybirka): width, depth, panels, HDF size and BAZIS script.",
 
       "Define exact DSP back geometry and fastening.",
 
@@ -745,7 +842,7 @@ PRIORITY:
 
 MATERIALS:
 - Standard carcass DSP: 18 mm.
-- DSP 10 mm and 16 mm may be used when specified.
+- The factory uses DSP 18 mm and glued 37 mm panels (18 + 18 + 1 mm glue). Set material_thickness_mm = 18 unless the drawing clearly says otherwise; 37 mm only for glued parts; any other value must be confirmed.
 - Standard DSP facade: 18 mm.
 - Other facade materials/thicknesses may be project-specific.
 - Laminated 18+18 construction exists but must be explicitly confirmed.
@@ -762,6 +859,16 @@ DEPTH:
 - Example: 600 overall with 18 mm facade = 580 mm carcass.
 - Do not automatically subtract HDF.
 
+INNER PANELS (factory standard):
+- Inset bottom/top, fixed and removable shelves, partitions: exactly the opening size, full carcass depth (with overlay HDF). No 1-2 mm clearances unless the order says so.
+
+EDGING THICKNESS:
+- Default visible carcass edge KR08 0.8 mm; if the order names another edge (0.45, ABS 1 mm), use the order value.
+
+CHEST / TUMBA TOP:
+- Overlay top of a chest or low cabinet overhangs the carcass at the front by 20 mm.
+- Overall depth on the drawing = top depth; carcass depth = overall depth - 20.
+
 SHELVES:
 - Standard shelf depth = carcass depth.
 
@@ -769,17 +876,19 @@ BACK:
 - Known options:
   1. HDF/DVP 3 mm overlay, nailed.
   2. HDF/DVP in PAZ.
-  3. DSP back as a separate furniture part.
+  3. HDF/DVP in a rebate (vybirka) - PAUSED, parameters not confirmed.
+  4. DSP back as a separate furniture part.
+- Overlay HDF: normally a separate sheet per section; one whole sheet for a small wardrobe.
+- One HDF sheet max 2800 x 2070 mm.
+- Overlay HDF offsets from edges are NOT confirmed -> ASK.
 - If back type is not defined -> ASK.
-- PAZ is currently PAUSED.
+- PAZ (groove) is the factory standard when HDF goes into a groove.
 
-PAZ REFERENCE ONLY:
+PAZ (factory standard):
 - Name: PAZ.
-- Width: 4 mm.
-- Depth: 9 mm.
-- Rear offset: 5-20 mm.
-- On left upright + right upright + bottom.
-- Do not generate automatically yet.
+- 14 mm from the rear edge, 4 mm wide, 9 mm deep.
+- Shelves, partitions and an inset top are 18 mm shallower than the carcass (14 + 4).
+- Do not ask for the groove offset: it is 14 mm unless the drawing says otherwise.
 
 PLINTH:
 - If plinth is not defined -> ASK.
@@ -810,8 +919,8 @@ FACADES:
 - Overlay preferred gaps:
   top 3 mm;
   left/right 2 mm;
-  between adjacent facades 2 mm.
-- Bottom overlay gap is not yet confirmed.
+  between adjacent facades 4 mm (horizontally and vertically);
+  bottom 3 mm.
 - Floating symmetric gap 1.5-4 mm is allowed when needed to obtain equal whole-number facade sizes.
 - Inset facade:
   left/right clearance 2 mm;

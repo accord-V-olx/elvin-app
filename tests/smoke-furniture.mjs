@@ -37,11 +37,15 @@ const supported = buildWardrobe({
 });
 try {
   assert.equal(supported.status,"GEOMETRY_INCOMPLETE");
-  assert.equal(supported.bazis.script,null);
+  // Incomplete geometry still yields a DRAFT script (decision 2026-10-15), never production-ready.
+  assert.equal(supported.bazis.status,"DRAFT_CODE");
+  assert.match(supported.bazis.script,/ЧЕРНЕТКА — НЕ ДЛЯ ВИРОБНИЦТВА/);
+  assert.equal(supported.bazis.productionReady,false);
   assert.equal(supported.parts.length,4);
   const byId=Object.fromEntries(supported.parts.map(p=>[p.id,p]));
   assert.deepEqual([byId.bottom.x_mm,byId.bottom.z_mm,byId.bottom.size_x_mm],[0,100,600]);
-  assert.deepEqual([byId.side_left.z_mm,byId.side_left.size_z_mm],[118,1864]);
+  // Sides stand on the bottom (z=118) and reach the overall height, because the top is inset between them: 2000-100-18=1882.
+  assert.deepEqual([byId.side_left.z_mm,byId.side_left.size_z_mm],[118,1882]);
   assert.deepEqual([byId.top.x_mm,byId.top.z_mm,byId.top.size_x_mm],[18,1982,564]);
   console.log("PASS bottom-supported carcass: four correct panels, export blocked until internals");
 } catch(e) {failures++;console.error("FAIL bottom-supported carcass",e.message);}
@@ -60,7 +64,8 @@ try {
   assert.equal(internals.status,"GEOMETRY_INCOMPLETE");
   assert.equal(internals.parts.length,6);
   assert.deepEqual(internals.parts.filter(p=>p.id.startsWith("internal_")).map(p=>p.id),["internal_s1","internal_v1"]);
-  assert.equal(internals.bazis.script,null);
+  assert.equal(internals.bazis.status,"DRAFT_CODE");
+  assert.equal(internals.bazis.productionReady,false);
   console.log("PASS explicit shelf and partition geometry; export safely blocked");
 } catch(e) {failures++;console.error("FAIL explicit internals",e.message);}
 const invalid=buildWardrobe({
