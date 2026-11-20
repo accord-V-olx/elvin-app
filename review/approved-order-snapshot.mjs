@@ -108,6 +108,10 @@ export function createApprovedOrderSnapshot(order) {
       if (Array.isArray(this) && (value === null || value === undefined || typeof value === "function" || typeof value === "symbol")) {
         throw new Error("array_element_invalid");
       }
+      // JSON.stringify silently omits undefined object fields, including panel dimensions.
+      if (value === undefined) {
+        throw new Error("undefined_field_present");
+      }
       // JSON.stringify silently turns NaN/Infinity into null; never corrupt panel geometry.
       if (typeof value === "number" && !Number.isFinite(value)) {
         throw new Error("nonfinite_number_present");
@@ -123,6 +127,7 @@ export function createApprovedOrderSnapshot(order) {
     return { ok: false, errors: [error?.message === "sensitive_field_present" ?
       "sensitive_field_present" : error?.message === "nonfinite_number_present" ?
       "nonfinite_number_present" : error?.message === "array_element_invalid" ?
-      "array_element_invalid" : "snapshot_not_serializable"], record: null };
+      "array_element_invalid" : error?.message === "undefined_field_present" ?
+      "undefined_field_present" : "snapshot_not_serializable"], record: null };
   }
 }
