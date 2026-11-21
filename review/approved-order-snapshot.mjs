@@ -108,6 +108,10 @@ export function createApprovedOrderSnapshot(order) {
       if (Array.isArray(this) && (value === null || value === undefined || typeof value === "function" || typeof value === "symbol")) {
         throw new Error("array_element_invalid");
       }
+      // Functions and symbols in object fields are silently omitted by JSON.stringify.
+      if (typeof value === "function" || typeof value === "symbol") {
+        throw new Error("unsupported_field_present");
+      }
       // JSON.stringify silently omits undefined object fields, including panel dimensions.
       if (value === undefined) {
         throw new Error("undefined_field_present");
@@ -128,6 +132,7 @@ export function createApprovedOrderSnapshot(order) {
       "sensitive_field_present" : error?.message === "nonfinite_number_present" ?
       "nonfinite_number_present" : error?.message === "array_element_invalid" ?
       "array_element_invalid" : error?.message === "undefined_field_present" ?
-      "undefined_field_present" : "snapshot_not_serializable"], record: null };
+      "undefined_field_present" : error?.message === "unsupported_field_present" ?
+      "unsupported_field_present" : "snapshot_not_serializable"], record: null };
   }
 }
