@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Elvin 3D · Перевірка шафи</title>
+<style>body{margin:0;background:#0d1015;color:#f5f7fa;font:15px Arial}header{padding:18px 24px;border-bottom:1px solid #303844;font-weight:bold}main{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:18px;padding:20px;max-width:1400px;margin:auto}.panel{background:#171b21;border:1px solid #303844;border-radius:14px;padding:18px}#scene{height:68vh;min-height:420px;touch-action:none}label{display:block;margin:13px 0;color:#b8c2cd}input{display:block;width:100%;box-sizing:border-box;margin-top:5px;background:#101419;border:1px solid #4b5563;border-radius:7px;color:white;padding:10px}button,a.btn{display:inline-block;background:#e9edf2;color:#111;border:0;border-radius:8px;padding:11px 14px;cursor:pointer;font-weight:bold;text-decoration:none;margin:5px 4px 5px 0}.muted{color:#a9b3c1;line-height:1.5}.warn{color:#ffcf8b}#detail{min-height:85px;line-height:1.7}@media(max-width:800px){main{grid-template-columns:1fr}#scene{height:52vh;min-height:350px}}</style>
+</head><body><header>ELVIN · 3D перевірка <a class="btn" href="/">← Замовлення</a></header>
+<main><section class="panel"><div id="scene"></div><p class="muted">Поверніть модель мишею або пальцем. Колесо миші — масштаб. Натисніть на деталь, щоб побачити розміри.</p><p class="warn" id="notice">Демонстраційна геометрія. Не підтверджена кресленням і не призначена для експорту в BAZIS.</p></section>
+<aside class="panel"><h2>Параметри шафи</h2><p class="muted">Введіть перевірені розміри вручну. Автоматичний імпорт конструкції з аналізу додамо окремо.</p>
+<label>Назва замовлення<input id="name" placeholder="Точна назва з креслення"></label>
+<label>Ширина, мм<input id="w" type="number" min="100" max="6000" value="1800"></label>
+<label>Висота, мм<input id="h" type="number" min="100" max="4000" value="2400"></label>
+<label>Глибина, мм<input id="d" type="number" min="100" max="1500" value="600"></label>
+<label>ДСП, мм<input id="t" type="number" min="8" max="50" value="18"></label>
+<label>Кількість секцій<input id="sections" type="number" min="1" max="12" value="3"></label>
+<button id="build">Побудувати 3D</button><button id="reset">Початковий вигляд</button>
+<h3>Вибрана деталь</h3><div id="detail" class="muted">Натисніть на панель моделі.</div>
+<p class="muted">Модель показує каркас, верх, дно і рівномірні вертикальні перегородки. Полиці, фасади, опори, крайку та свердління не виводимо без окремих підтверджених даних.</p></aside></main>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js';
+import {OrbitControls} from 'https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/controls/OrbitControls.js';
+const $=id=>document.getElementById(id), host=$('scene');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x111820);
+const camera=new THREE.PerspectiveCamera(40,1,.01,100);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));host.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
+scene.add(new THREE.HemisphereLight(0xffffff,0x526173,2.5));
+const light=new THREE.DirectionalLight(0xffffff,2);light.position.set(4,7,6);scene.add(light);
+const group=new THREE.Group();scene.add(group);let panels=[],selected=null;
+const mat=new THREE.MeshStandardMaterial({color:0xc5aa83,roughness:.75});
+const selectMat=new THREE.MeshStandardMaterial({color:0x7bc9ff,roughness:.55});
+function addPanel(name,x,y,z,w,h,d){
+ const mesh=new THREE.Mesh(new THREE.BoxGeometry(w/1000,h/1000,d/1000),mat);
+ mesh.position.set(x/1000,y/1000,z/1000);mesh.userData={name,w,h,d};
+ const edge=new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry),new THREE.LineBasicMaterial({color:0x4e3929}));mesh.add(edge);
+ group.add(mesh);panels.push(mesh);
+}
+function build(){
+ const W=+$('w').value,H=+$('h').value,D=+$('d').value,T=+$('t').value,N=+$('sections').value;
+ if(![W,H,D,T,N].every(Number.isFinite)||W<100||H<100||D<100||T<8||T>=Math.min(W/2,H/2)||N<1||N>12||!Number.isInteger(N)||W-(N+1)*T<=0){alert('Перевірте розміри, товщину ДСП і кількість секцій.');return}
+ group.clear();panels=[];selected=null;$('detail').textContent='Натисніть на панель моделі.';
+ addPanel('Ліва боковина',-W/2+T/2,0,0,T,H,D);
+ addPanel('Права боковина',W/2-T/2,0,0,T,H,D);
+ addPanel('Дно',0,-H/2+T/2,0,W-2*T,T,D);
+ addPanel('Кришка',0,H/2-T/2,0,W-2*T,T,D);
+ const gap=(W-(N+1)*T)/N;
+ for(let i=1;i<N;i++)addPanel('Перегородка '+i,-W/2+T+i*gap+(i+.5)*T,0,0,T,H-2*T,D);
+ const extent=Math.max(W,H,D)/1000;camera.position.set(extent*1.25,extent*.75,extent*1.55);controls.target.set(0,0,0);controls.update();camera.near=.01;camera.far=Math.max(100,extent*10);camera.updateProjectionMatrix();
+ $('notice').textContent='Попередній каркас за введеними розмірами. Схема з’єднання деталей умовна; це не виробнича модель і не експорт у BAZIS.';
+}
+const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
+renderer.domElement.addEventListener('click',event=>{
+ const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);
+ raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(panels,false);
+ if(selected)selected.material=mat;selected=hits.length?hits[0].object:null;
+ if(selected){selected.material=selectMat;const p=selected.userData;$('detail').textContent=p.name+' — '+p.w+' × '+p.h+' × '+p.d+' мм (X × Y × Z)';}else $('detail').textContent='Деталь не вибрана.';
+});
+function resize(){const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+new ResizeObserver(resize).observe(host);$('build').onclick=build;$('reset').onclick=()=>build();
+function frame(){requestAnimationFrame(frame);controls.update();renderer.render(scene,camera)}resize();build();frame();
+</script></body></html>

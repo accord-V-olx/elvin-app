@@ -1,6 +1,7 @@
 import { getWardrobeRulesForAI } from "../../rules/wardrobe-rules.js";
 import { getStore } from "@netlify/blobs";
 import { buildWardrobe } from "../../engine/wardrobe-engine.js";
+import { JOBS_STORE } from "../../ai/jobs.js";
 const MAX_IMAGES = 8;
 const MAX_TOTAL_CHARS = 5_500_000;
 const RULES_STORE_NAME = "elvin-rules";
@@ -106,171 +107,38 @@ function buildAnswerText(answers) {
 }
 
 
-const RESPONSE_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
+const CONSTRUCTION_GUIDE = `
+ЗНАЧЕННЯ project.construction (лише ці, невідоме = null):
+- side_panels: "full_height" — боковини від підлоги до верху; "on_bottom" — боковини стоять на суцільному дні.
+- top_type: "inset" — верх між боковинами; "overlay" — верх накладний на боковини.
+- bottom_type: "inset" — дно між боковинами; "full_width" — дно на всю ширину, боковини стоять на ньому.
+- support_type: "plinth" — цоколь; "legs" — ніжки; "none" — без опори.
+- plinth_type: "dsp" — цоколь з ДСП (деталь COKOL); "plastic" — пластиковий цоколь; null — не вказано.
+- back_panel_type: "overlay" — ХДФ накладна ззаду; "groove" — ХДФ у паз; "rebate" — ХДФ у вибірку; "dsp" — задня стінка з ДСП; "none" — без задньої стінки.
+- facade_type: "overlay" — накладні; "inset" — вкладні; "none" — без фасадів.
+- fillers — планки (добори) для нерівних стін і стелі: left_mm / right_mm — розмір біля лівої / правої стіни (на кресленні число біля стіни, наприклад «20»); top_mm — зверху (позначка «+20» у висоті, наприклад «h-2450+20» → height_mm = 2450, top_mm = 20). Не вказано — null; немає планок взагалі — fillers = null. Ширина шафи (width_mm) — без планок.
+- depth_includes_facade: true — на кресленні написано, що глибина вказана з фасадом (наприклад «глибина 650 з фасадом»); false — явно без фасаду (глибина корпусу); null — не вказано.
 
-  properties: {
-    status: {
-      type: "string",
-      enum: [
-        "needs_clarification",
-        "ready"
-      ]
-    },
+ВНУТРІШНЄ НАПОВНЕННЯ project.construction.interior (секції, полиці, стійки):
+- sections — секції зліва направо, розділені вертикальними стійками. width_mm — ширина секції.
+- openings — прорізи секції знизу вгору, розділені полицями. height_mm — висота прорізу. Секція без полиць = один проріз.
+- subsections — лише якщо один проріз додатково поділений вертикальною стійкою (наприклад між двома полицями); інакше [].
+- size_reference: "clear" — розміри у світлі між деталями; "axis" — по осях деталей; "outer" — зовнішні; "unknown" — неможливо визначити. Записуй розміри так, як вони проставлені на кресленні, і чесно вкажи спосіб. НЕ перераховуй розміри самостійно.
+- shelf_front_setback_mm — втоплення полиць від переднього краю, лише якщо вказано на кресленні; інакше null.
+- Розмір, якого не видно на кресленні, = null. Не розподіляй рівномірно і не вгадуй.
+- Якщо наповнення на кресленні немає зовсім — interior = null.
 
-    summary: {
-      type: "string"
-    },
+МОДУЛІ project.modules (кілька окремих корпусів поруч):
+- Якщо виріб складається з окремих корпусів, кожен зі своїми боковинами (наприклад, на кресленні ширини 32 | 104 | 35 | 52 см), перелічи їх зліва направо в project.modules.
+- width_mm — зовнішня ширина модуля в мм (см переводь у мм). height_mm, depth_mm, furniture_type, top_type, bottom_type, side_panels — лише якщо відрізняються від загальних; інакше null.
+- interior кожного модуля описуй окремо. Тоді project.construction.interior = null.
+- Якщо виріб — один корпус, modules = [].
 
-    project: {
-      type: "object",
-      additionalProperties: false,
-
-      properties: {
-        name: {
-          type: ["string", "null"]
-        },
-
-        furniture_type: {
-          type: ["string", "null"]
-        },
-
-        width_mm: {
-          type: ["number", "null"]
-        },
-
-        height_mm: {
-          type: ["number", "null"]
-        },
-
-        depth_mm: {
-          type: ["number", "null"]
-        },
-
-        sections_description: {
-          type: ["string", "null"]
-        },
-
-        material: {
-          type: ["string", "null"]
-        },
-
-        back_panel: {
-          type: ["string", "null"]
-        },
-
-        material_thickness_mm: {
-          type: ["number", "null"]
-        },
-
-        construction: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            top_type: { type: ["string", "null"] },
-            bottom_type: { type: ["string", "null"] },
-            support_type: { type: ["string", "null"] },
-            plinth_height_mm: { type: ["number", "null"] },
-            plinth_setback_mm: { type: ["number", "null"] },
-            back_panel_type: { type: ["string", "null"] },
-            back_groove_offset_mm: { type: ["number", "null"] },
-            facade_type: { type: ["string", "null"] },
-            side_panels: { type: ["string", "null"] }
-          },
-          required: ["top_type","bottom_type","support_type","plinth_height_mm","plinth_setback_mm","back_panel_type","back_groove_offset_mm","facade_type","side_panels"]
-        }
-      },
-
-      required: [
-        "name",
-        "furniture_type",
-        "width_mm",
-        "height_mm",
-        "depth_mm",
-        "sections_description",
-        "material",
-        "back_panel",
-        "material_thickness_mm",
-        "construction"
-      ]
-    },
-
-    warnings: {
-      type: "array",
-      items: {
-        type: "string"
-      }
-    },
-
-    questions: {
-      type: "array",
-
-      items: {
-        type: "object",
-        additionalProperties: false,
-
-        properties: {
-          id: {
-            type: "string"
-          },
-
-          title: {
-            type: "string"
-          },
-
-          question: {
-            type: "string"
-          },
-
-          options: {
-            type: "array",
-
-            items: {
-              type: "object",
-              additionalProperties: false,
-
-              properties: {
-                label: {
-                  type: "string"
-                },
-
-                value: {
-                  type: "string"
-                },
-
-                recommended: {
-                  type: "boolean"
-                }
-              },
-
-              required: [
-                "label",
-                "value",
-                "recommended"
-              ]
-            }
-          }
-        },
-
-        required: [
-          "id",
-          "title",
-          "question",
-          "options"
-        ]
-      }
-    }
-  },
-
-  required: [
-    "status",
-    "summary",
-    "project",
-    "warnings",
-    "questions"
-  ]
-};
+ФАСАДИ facades_layout (накладні фасади; у корпусі або в кожному модулі):
+- columns — колонки фасадів зліва направо. width_mm лише якщо ширина фасаду написана на кресленні; інакше null (Elvin поділить порівну за зазорами фабрики).
+- rows — фасади в колонці знизу вгору: height_mm — висота фасаду з креслення, kind — "door" (двері) або "drawer" (фасад шухляди). Якщо в колонці один фасад на всю висоту — rows = [{ height_mm: null, kind: "door" }].
+- Без фасадів або фасади невідомі — facades_layout = null.
+`.trim();
 
 
 function initialPrompt(note) {
@@ -293,7 +161,7 @@ function initialPrompt(note) {
 
 5. Можеш позначити найімовірніший варіант recommended=true, але не вважай його підтвердженим.
 
-6. Назву замовлення не вигадуй. Якщо не читається — запитай.
+6. Назву замовлення не вигадуй. Якщо не читається — залиш порожньою і напиши про це у warnings; не став через це питання.
 
 7. Не плутай загальний габарит з розмірами модулів, доборів, планок чи боковин.
 
@@ -309,12 +177,20 @@ function initialPrompt(note) {
 
 13. Заповнюй project.material_thickness_mm та project.construction лише з креслення, підтверджених відповідей або активних правил. Невідоме залишай null.
 
-14. Якщо критичних питань немає:
+14. Заповни project.construction.interior за кресленням (див. нижче). Не став окремих питань про розміри кожної полиці: Elvin сам перевірить ланцюжок розмірів і запитає, якщо він не сходиться.
+
+15. Якщо критичних питань немає:
 status="ready"
 questions=[]
 
-15. Якщо питання є:
+16. Якщо питання є:
 status="needs_clarification"
+
+17. ПИТАНЬ НЕ БІЛЬШЕ 3 (технологи скаржаться, що їх забагато). Питай лише те, без чого деталі будуть неправильні: загальний габарит, кількість і ширини модулів, суперечності між аркушами. Решту невизначеного залиш null — Elvin сам покаже, чого бракує.
+
+18. Стандарти фабрики з активних правил (ДСП 18, паз під ХДФ 14/4/9, зазори фасадів, кромка, глибина полиць, цоколь) НЕ є питанням: якщо на кресленні не сказано інакше, застосуй правило і коротко згадай це у summary.
+
+${CONSTRUCTION_GUIDE}
 
 Примітка технолога:
 
@@ -356,7 +232,7 @@ function clarificationPrompt(
 
 6. Перевірити, чи залишилися критичні невідомі або суперечності. Спочатку застосувати активні правила, не запитувати те, що вже є у project або відповідях.
 
-7. Якщо залишилися — поставити ТІЛЬКИ нові або невирішені питання.
+7. Якщо залишилися — поставити ТІЛЬКИ нові або невирішені критичні питання, не більше 3. Стандарти фабрики з активних правил не питай — застосовуй.
 
 8. Якщо все критичне визначено:
 status="ready"
@@ -378,6 +254,12 @@ questions=[]
 14. Онови project.material_thickness_mm та project.construction з підтверджених відповідей; невідоме залишай null.
 
 15. Recommended не є підтвердженням, доки технолог не вибрав варіант.
+
+16. Онови project.construction.interior з креслення та відповідей технолога.
+
+17. Відповіді з позначкою «Питання розрахунку» — це відповіді на питання Wardrobe Engine про деталі (наповнення модуля, розміри секцій, конструкція). Внеси їх у відповідні поля project: modules[N].interior для «Модуль N», інакше construction.interior або інше поле construction. Розміри бери лише з відповіді або креслення.
+
+${CONSTRUCTION_GUIDE}
 
 ПОПЕРЕДНІЙ АНАЛІЗ:
 
@@ -410,19 +292,11 @@ export default async (request) => {
 
   try {
 
-    const apiKey =
-      process.env.OPENAI_API_KEY;
-
-    const model =
-      process.env.OPENAI_MODEL ||
-      "gpt-5.6-sol";
-
-
-    if (!apiKey) {
+    if (!process.env.ANTHROPIC_API_KEY) {
       return jsonResponse(
         {
           error:
-            "OPENAI_API_KEY не знайдено."
+            "ANTHROPIC_API_KEY не знайдено в налаштуваннях Netlify."
         },
         500
       );
@@ -526,160 +400,53 @@ export default async (request) => {
         )
   );
 
-    const content = [
-      {
-        type: "input_text",
-        text: prompt
-      }
-    ];
+    // Claude reads the drawings in a background function (up to 15 min);
+    // the job and its photos wait in Netlify Blobs until then.
+    const jobId =
+      crypto.randomUUID();
 
+    const mode =
+      isClarification
+        ? "clarification"
+        : "initial";
 
-    images.forEach(
-      (image, index) => {
+    const jobs =
+      getStore({ name: JOBS_STORE, consistency: "strong" });
 
-        content.push({
-          type: "input_text",
+    await jobs.setJSON(jobId, {
+      status: "queued",
+      mode,
+      prompt,
+      images,
+      createdAt: Date.now()
+    });
 
-          text:
-            `Аркуш ${index + 1}` +
-            (
-              image.fileName
-
-                ? ` (${image.fileName})`
-
-                : ""
-            )
-        });
-
-
-        content.push({
-          type: "input_image",
-
-          image_url:
-            image.dataUrl
-        });
-
-      }
-    );
-
-
-    const openAIResponse =
+    const run =
       await fetch(
-        "https://api.openai.com/v1/responses",
-
+        new URL("/.netlify/functions/analyze-run-background", request.url),
         {
           method: "POST",
-
-          headers: {
-            "content-type":
-              "application/json",
-
-            authorization:
-              `Bearer ${apiKey}`
-          },
-
-
-          body: JSON.stringify({
-
-            model,
-
-            background: true,
-
-            reasoning: {
-              effort: "medium"
-            },
-
-
-            input: [
-              {
-                role: "user",
-                content
-              }
-            ],
-
-
-            text: {
-              format: {
-
-                type:
-                  "json_schema",
-
-                name:
-                  "elvin_wardrobe_analysis",
-
-                strict:
-                  true,
-
-                schema:
-                  RESPONSE_SCHEMA
-              }
-            }
-
-          })
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jobId })
         }
       );
 
-
-    const rawText =
-      await openAIResponse.text();
-
-
-    let data;
-
-
-    try {
-      data =
-        JSON.parse(
-          rawText
-        );
-    }
-    catch {
+    if (!run.ok && run.status !== 202) {
+      await jobs.delete(jobId);
       return jsonResponse(
         {
           error:
-            `OpenAI повернув не JSON: ${rawText}`
+            "Не вдалося запустити аналіз (" + run.status + ")."
         },
         502
       );
     }
-
-
-    if (!openAIResponse.ok) {
-      return jsonResponse(
-        {
-          error:
-            data?.error?.message ||
-            rawText
-        },
-        502
-      );
-    }
-
-
-    if (!data?.id) {
-      return jsonResponse(
-        {
-          error:
-            "OpenAI не повернув ID аналізу."
-        },
-        502
-      );
-    }
-
 
     return jsonResponse(
       {
-        job_id:
-          data.id,
-
-        status:
-          data.status ||
-          "queued",
-
-        mode:
-          isClarification
-            ? "clarification"
-            : "initial"
+        job_id: jobId,
+        status: "queued",
+        mode
       }
     );
 
