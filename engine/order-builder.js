@@ -75,12 +75,23 @@ export function buildOrder(analysis = {}) {
   }
 
   const results = modules.map((m, i) => buildWardrobe(moduleAnalysis(analysis, m, i)));
-  const missing = [];
+  // The same question for several modules is asked once, naming all of them
+  // (technologists found one question per carcass too many, 19.11.2026).
+  const grouped = new Map();
   results.forEach((r, i) => {
     for (const q of r.missing || []) {
-      missing.push({ ...q, field: "modules[" + i + "]." + q.field, question: moduleLabel(modules[i], i) + ": " + q.question });
+      const key = q.field + "\u0000" + q.question;
+      if (!grouped.has(key)) grouped.set(key, { q, idx: [] });
+      grouped.get(key).idx.push(i);
     }
   });
+  const missing = [...grouped.values()].map(({ q, idx }) => ({
+    ...q,
+    field: "modules[" + idx.join(",") + "]." + q.field,
+    modules: idx,
+    question: (idx.length > 1 ? "Модулі " + idx.map(i => moduleLabel(modules[i], i).replace(/^Модуль /, "")).join(", ")
+      : moduleLabel(modules[idx[0]], idx[0])) + ": " + q.question
+  }));
 
   // Place modules: X = sum of previous widths; backs aligned to the wall.
   const depths = results.map(r => r.project?.depth || 0);

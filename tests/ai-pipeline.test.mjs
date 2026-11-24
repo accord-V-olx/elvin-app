@@ -188,7 +188,9 @@ test("modules without interior: carcass draft + one plain interior question per 
   assert.equal(r.parts.filter(p => p.role === "facade").length, 5);
   // Depth with facade: 650 - 18 - 2 = 630, 600 - 18 - 2 = 580 (factory rule).
   assert.deepEqual(r.modules.map(m => m.depth), [630, 580, 630]);
-  assert.deepEqual(r.missing.map(m => m.field), [0, 1, 2].map(i => "modules[" + i + "].construction.interior"));
+  // One question for all three modules, not three copies.
+  assert.deepEqual(r.missing.map(m => m.field), ["modules[0,1,2].construction.interior"]);
+  assert.match(r.missing[0].question, /^Модулі 1 «ліва», 2 «середня», 3 «права»: Внутрішнє наповнення/);
 });
 
 test("depth_includes_facade null or false keeps the drawing depth as carcass depth", () => {
