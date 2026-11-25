@@ -1,7 +1,7 @@
 import { getWardrobeRulesForAI } from "../../rules/wardrobe-rules.js";
 import { getStore } from "@netlify/blobs";
 import { buildWardrobe } from "../../engine/wardrobe-engine.js";
-import { RESPONSE_SCHEMA } from "../../ai/analysis-schema.js";
+import { JOBS_STORE } from "../../ai/jobs.js";
 const MAX_IMAGES = 8;
 const MAX_TOTAL_CHARS = 5_500_000;
 const RULES_STORE_NAME = "elvin-rules";
@@ -161,7 +161,7 @@ function initialPrompt(note) {
 
 5. Можеш позначити найімовірніший варіант recommended=true, але не вважай його підтвердженим.
 
-6. Назву замовлення не вигадуй. Якщо не читається — запитай.
+6. Назву замовлення не вигадуй. Якщо не читається — залиш порожньою і напиши про це у warnings; не став через це питання.
 
 7. Не плутай загальний габарит з розмірами модулів, доборів, планок чи боковин.
 
@@ -185,6 +185,10 @@ questions=[]
 
 16. Якщо питання є:
 status="needs_clarification"
+
+17. ПИТАНЬ НЕ БІЛЬШЕ 3 (технологи скаржаться, що їх забагато). Питай лише те, без чого деталі будуть неправильні: загальний габарит, кількість і ширини модулів, суперечності між аркушами. Решту невизначеного залиш null — Elvin сам покаже, чого бракує.
+
+18. Стандарти фабрики з активних правил (ДСП 18, паз під ХДФ 14/4/9, зазори фасадів, кромка, глибина полиць, цоколь) НЕ є питанням: якщо на кресленні не сказано інакше, застосуй правило і коротко згадай це у summary.
 
 ${CONSTRUCTION_GUIDE}
 
@@ -228,7 +232,7 @@ function clarificationPrompt(
 
 6. Перевірити, чи залишилися критичні невідомі або суперечності. Спочатку застосувати активні правила, не запитувати те, що вже є у project або відповідях.
 
-7. Якщо залишилися — поставити ТІЛЬКИ нові або невирішені питання.
+7. Якщо залишилися — поставити ТІЛЬКИ нові або невирішені критичні питання, не більше 3. Стандарти фабрики з активних правил не питай — застосовуй.
 
 8. Якщо все критичне визначено:
 status="ready"
@@ -288,19 +292,11 @@ export default async (request) => {
 
   try {
 
-    const apiKey =
-      process.env.OPENAI_API_KEY;
-
-    const model =
-      process.env.OPENAI_MODEL ||
-      "gpt-5.6-sol";
-
-
-    if (!apiKey) {
+    if (!process.env.ANTHROPIC_API_KEY) {
       return jsonResponse(
         {
           error:
-            "OPENAI_API_KEY не знайдено."
+            "ANTHROPIC_API_KEY не знайдено в налаштуваннях Netlify."
         },
         500
       );
@@ -404,160 +400,53 @@ export default async (request) => {
         )
   );
 
-    const content = [
-      {
-        type: "input_text",
-        text: prompt
-      }
-    ];
+    // Claude reads the drawings in a background function (up to 15 min);
+    // the job and its photos wait in Netlify Blobs until then.
+    const jobId =
+      crypto.randomUUID();
 
+    const mode =
+      isClarification
+        ? "clarification"
+        : "initial";
 
-    images.forEach(
-      (image, index) => {
+    const jobs =
+      getStore({ name: JOBS_STORE, consistency: "strong" });
 
-        content.push({
-          type: "input_text",
+    await jobs.setJSON(jobId, {
+      status: "queued",
+      mode,
+      prompt,
+      images,
+      createdAt: Date.now()
+    });
 
-          text:
-            `Аркуш ${index + 1}` +
-            (
-              image.fileName
-
-                ? ` (${image.fileName})`
-
-                : ""
-            )
-        });
-
-
-        content.push({
-          type: "input_image",
-
-          image_url:
-            image.dataUrl
-        });
-
-      }
-    );
-
-
-    const openAIResponse =
+    const run =
       await fetch(
-        "https://api.openai.com/v1/responses",
-
+        new URL("/.netlify/functions/analyze-run-background", request.url),
         {
           method: "POST",
-
-          headers: {
-            "content-type":
-              "application/json",
-
-            authorization:
-              `Bearer ${apiKey}`
-          },
-
-
-          body: JSON.stringify({
-
-            model,
-
-            background: true,
-
-            reasoning: {
-              effort: "medium"
-            },
-
-
-            input: [
-              {
-                role: "user",
-                content
-              }
-            ],
-
-
-            text: {
-              format: {
-
-                type:
-                  "json_schema",
-
-                name:
-                  "elvin_wardrobe_analysis",
-
-                strict:
-                  true,
-
-                schema:
-                  RESPONSE_SCHEMA
-              }
-            }
-
-          })
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jobId })
         }
       );
 
-
-    const rawText =
-      await openAIResponse.text();
-
-
-    let data;
-
-
-    try {
-      data =
-        JSON.parse(
-          rawText
-        );
-    }
-    catch {
+    if (!run.ok && run.status !== 202) {
+      await jobs.delete(jobId);
       return jsonResponse(
         {
           error:
-            `OpenAI повернув не JSON: ${rawText}`
+            "Не вдалося запустити аналіз (" + run.status + ")."
         },
         502
       );
     }
-
-
-    if (!openAIResponse.ok) {
-      return jsonResponse(
-        {
-          error:
-            data?.error?.message ||
-            rawText
-        },
-        502
-      );
-    }
-
-
-    if (!data?.id) {
-      return jsonResponse(
-        {
-          error:
-            "OpenAI не повернув ID аналізу."
-        },
-        502
-      );
-    }
-
 
     return jsonResponse(
       {
-        job_id:
-          data.id,
-
-        status:
-          data.status ||
-          "queued",
-
-        mode:
-          isClarification
-            ? "clarification"
-            : "initial"
+        job_id: jobId,
+        status: "queued",
+        mode
       }
     );
 

@@ -1,4 +1,6 @@
+import { getStore } from "@netlify/blobs";
 import { buildOrder } from "../../engine/order-builder.js";
+import { JOBS_STORE } from "../../ai/jobs.js";
 function jsonResponse(data, status = 200) {
   return new Response(
     JSON.stringify(data),
@@ -10,30 +12,6 @@ function jsonResponse(data, status = 200) {
       }
     }
   );
-}
-
-
-function getOutputText(response) {
-  const parts = [];
-
-  for (const item of response.output || []) {
-
-    if (item.type !== "message") {
-      continue;
-    }
-
-    for (const content of item.content || []) {
-
-      if (
-        content.type === "output_text" &&
-        typeof content.text === "string"
-      ) {
-        parts.push(content.text);
-      }
-    }
-  }
-
-  return parts.join("");
 }
 
 
@@ -49,28 +27,11 @@ export default async (request) => {
 
   try {
 
-    const apiKey =
-      process.env.OPENAI_API_KEY;
-
-
-    if (!apiKey) {
-      return jsonResponse(
-        {
-          error:
-            "OPENAI_API_KEY не знайдено."
-        },
-        500
-      );
-    }
-
-
     const url =
       new URL(request.url);
 
-
     const jobId =
       url.searchParams.get("id");
-
 
     if (!jobId) {
       return jsonResponse(
@@ -82,97 +43,58 @@ export default async (request) => {
       );
     }
 
+    const job =
+      await getStore({ name: JOBS_STORE, consistency: "strong" }).get(jobId, { type: "json" });
 
-    const response =
-      await fetch(
-        `https://api.openai.com/v1/responses/${encodeURIComponent(jobId)}`,
-        {
-          headers: {
-            Authorization:
-              `Bearer ${apiKey}`
-          }
-        }
-      );
-
-
-    const rawText =
-      await response.text();
-
-
-    let data;
-
-    try {
-      data =
-        JSON.parse(rawText);
-    }
-    catch {
+    if (!job) {
       return jsonResponse(
         {
+          status: "failed",
           error:
-            `OpenAI повернув не JSON: ${rawText}`
-        },
-        502
-      );
-    }
-
-
-    if (!response.ok) {
-      return jsonResponse(
-        {
-          error:
-            data?.error?.message ||
-            rawText
-        },
-        502
-      );
-    }
-
-
-    if (
-      data.status === "queued" ||
-      data.status === "in_progress"
-    ) {
-      return jsonResponse(
-        {
-          status:
-            data.status
+            "Аналіз не знайдено. Запустіть його ще раз."
         }
       );
     }
 
+    // A background function stops after 15 minutes; a job left running
+    // longer (or never started) is reported instead of polled forever.
+    const age =
+      Date.now() - (job.startedAt || job.createdAt || Date.now());
 
     if (
-      data.status === "failed" ||
-      data.status === "cancelled" ||
-      data.status === "incomplete"
+      (job.status === "in_progress" && age > 16 * 60 * 1000) ||
+      (job.status === "queued" && age > 3 * 60 * 1000)
     ) {
       return jsonResponse(
         {
-          status:
-            data.status,
-
+          status: "failed",
           error:
-            data?.error?.message ||
-            data?.incomplete_details?.reason ||
+            "Аналіз не завершився вчасно. Спробуйте ще раз або менше фото."
+        }
+      );
+    }
+
+    if (job.status === "queued" || job.status === "in_progress") {
+      return jsonResponse(
+        {
+          status: job.status
+        }
+      );
+    }
+
+    if (job.status === "failed") {
+      return jsonResponse(
+        {
+          status: "failed",
+          error:
+            job.error ||
             "Аналіз не завершився."
         }
       );
     }
 
-
-    if (data.status !== "completed") {
-      return jsonResponse(
-        {
-          status:
-            data.status || "unknown"
-        }
-      );
-    }
-
-
     const text =
-      getOutputText(data);
-
+      job.text;
 
     if (!text) {
       return jsonResponse(
@@ -183,7 +105,6 @@ export default async (request) => {
         }
       );
     }
-
 
     let result;
 
